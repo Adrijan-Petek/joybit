@@ -1,0 +1,36 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwMDEyMDYsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhCMkRCZTdkQUI2ZEUzMGRiYzYyNjc0MzA4RUQ2MEYyMTVjNWMxRkNCIn0",
+    "payload": "eyJkb21haW4iOiJqb3liaXQudmVyY2VsLmFwcCJ9",
+    "signature": "SJrZ2WsMwChKk/ox05VAFC2urROhZvPwr0ZYOzEiShl1NoDpHUTM25VH7/Qh2uC5LfPglSNQ2sER05j9kiH2iBw="
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Joybit",
+    "homeUrl": "https://joybit.vercel.app",
+    "iconUrl": "https://joybit.vercel.app/branding/logo.png",
+    "splashImageUrl": "https://joybit.vercel.app/branding/logo.png",
+    "splashBackgroundColor": "#000000",
+    "webhookUrl": "https://joybit.vercel.app/api/farcaster-webhook",
+    "imageUrl": "https://joybit.vercel.app/branding/logo-small.png",
+    "buttonTitle": "Play Joybit",
+    "subtitle": "Match-3 Game on Base",
+    "description": "Play Match-3 puzzle games and earn JOYB tokens on Base blockchain. Compete on the leaderboard, claim daily rewards, and play card games!",
+    "screenshotUrls": [
+      "https://joybit.vercel.app/branding/screenshot-0.png",
+      "https://joybit.vercel.app/branding/screenshot-1.png",
+      "https://joybit.vercel.app/branding/screenshot-2.png"
+    ],
+    "primaryCategory": "games",
+    "tags": ["games", "blockchain", "puzzle", "match3", "crypto"],
+    "heroImageUrl": "https://joybit.vercel.app/branding/logo.png",
+    "tagline": "Match, Play, Earn JOYB",
+    "ogTitle": "Joybit - Match-3 Game on Base",
+    "ogDescription": "Play Match-3 games and earn JOYB tokens on Base blockchain",
+    "ogImageUrl": "https://joybit.vercel.app/branding/logo.png",
+    "castShareUrl": "https://joybit.vercel.app"
+  },
+  "baseBuilder": {
+    "ownerAddress": "0xEbd001b69E71Df928a7581157eE41F7e2F56d685"
+  }
+}
