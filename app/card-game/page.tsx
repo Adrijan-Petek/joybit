@@ -9,6 +9,8 @@ import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { useCardGame, useCardGameData } from '@/lib/hooks/useCardGame'
+import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
+import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
 
 interface Card {
   id: number
@@ -23,6 +25,7 @@ export default function CardGame() {
 
   const { playGame, isPlaying: isPlayingTx } = useCardGame()
   const { playerData, canPlayFree, playFee, winReward, refetch } = useCardGameData(address)
+  const { updateScore } = useLeaderboard()
 
   const [cards, setCards] = useState<Card[]>([
     { id: 0, isFlipped: false, isWinner: false },
@@ -117,6 +120,22 @@ export default function CardGame() {
 
       setGameResult(won ? 'win' : 'lose')
       playSound(won ? 'win' : 'lose')
+      
+      // Update leaderboard with proper scoring
+      try {
+        if (!address) return
+        
+        // Award points for playing the game
+        const gamePoints = calculateLeaderboardPoints('card_game')
+        // Award bonus points for winning
+        const winPoints = won ? calculateLeaderboardPoints('card_win') : 0
+        const totalPoints = gamePoints + winPoints
+        
+        await updateScore(address, totalPoints)
+        console.log(`✅ Card game leaderboard updated: +${totalPoints} points (${gamePoints} for playing${won ? ` + ${winPoints} for winning` : ''})`)
+      } catch (error) {
+        console.error('Failed to update card game leaderboard:', error)
+      }
       
     } catch (error) {
       console.error('Failed to play game:', error)

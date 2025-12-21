@@ -12,6 +12,7 @@ import { useMatch3Game, useMatch3GameData, useMatch3LevelReward, useLevelRewards
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { notifyAdminReward } from '@/lib/utils/farcasterNotifications'
+import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
 import {
   initializeGrid,
   findAllMatches,
@@ -209,9 +210,16 @@ export default function Match3Game() {
       console.error('❌ Failed to save game stats:', error)
     }
     
-    // Update global leaderboard
+    // Update global leaderboard with proper scoring
     try {
-      await updateScore(address, gameState.score, userData.username, userData.pfpUrl)
+      // Award points for playing the game
+      const gamePoints = calculateLeaderboardPoints('match3_game')
+      // Award bonus points for winning
+      const winPoints = won ? calculateLeaderboardPoints('match3_win') : 0
+      const totalPoints = gamePoints + winPoints
+      
+      await updateScore(address, totalPoints, userData.username, userData.pfpUrl)
+      console.log(`✅ Leaderboard updated: +${totalPoints} points (${gamePoints} for playing${won ? ` + ${winPoints} for winning` : ''})`)
     } catch (error) {
       console.error('Failed to update leaderboard:', error)
     }
@@ -516,8 +524,8 @@ export default function Match3Game() {
     if (!isConnected || !address) return
     
     try {
-      // Continue current level with same fee logic as starting level 1
-      const value = canPlayFree ? 0n : (playFee || parseEther('0.001'))
+      // Continue current level - always payable (no free continues)
+      const value = playFee || parseEther('0.001')
       await startGameContract(gameState.level, value)
       const newSessionId = BigInt(Date.now())
       setSessionId(newSessionId)
@@ -540,7 +548,7 @@ export default function Match3Game() {
     } catch (error) {
       console.error('Failed to continue level:', error)
     }
-  }, [gameState.level, canPlayFree, playFee, startGameContract, isConnected, address, playSound, refetch])
+  }, [gameState.level, playFee, startGameContract, isConnected, address, playSound, refetch])
 
   const handleNextLevel = () => {
     const nextLevel = gameState.level + 1
@@ -933,7 +941,7 @@ export default function Match3Game() {
                       onClick={handleContinueLevel}
                       className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base"
                     >
-                      🔄 Continue Level ({canPlayFree ? 'FREE' : `${formatEther(playFee || 0n)} ETH`})
+                      🔄 Continue Level ({formatEther(playFee || parseEther('0.001'))} ETH)
                     </button>
                   )}
                   {gameResult === 'lose' && (

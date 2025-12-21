@@ -10,6 +10,8 @@ import { AudioButtons } from '@/components/AudioButtons'
 import { useAudio } from '@/components/audio/AudioContext'
 import { useDailyClaim, useClaimData } from '@/lib/hooks/useDailyClaim'
 import { notifyDailyReward } from '@/lib/utils/farcasterNotifications'
+import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
+import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
 
 export default function DailyClaim() {
   const router = useRouter()
@@ -19,6 +21,7 @@ export default function DailyClaim() {
 
   const { claimDaily, isClaiming, isSuccess } = useDailyClaim()
   const { playerData, canClaim, claimableReward, timeUntilNext, baseReward, streakBonus, refetch } = useClaimData(address)
+  const { updateScore } = useLeaderboard()
 
   useEffect(() => {
     setMounted(true)
@@ -70,6 +73,20 @@ export default function DailyClaim() {
 
       // Send notification for successful daily claim
       notifyDailyReward(rewardAmount)
+      
+      // Update leaderboard with daily claim points
+      try {
+        if (!address) return
+        
+        const claimPoints = calculateLeaderboardPoints('daily_claim')
+        const streakPoints = currentStreak > 0 ? calculateLeaderboardPoints('streak_day') * currentStreak : 0
+        const totalPoints = claimPoints + streakPoints
+        
+        await updateScore(address, totalPoints)
+        console.log(`✅ Daily claim leaderboard updated: +${totalPoints} points (${claimPoints} for claiming + ${streakPoints} for ${currentStreak} streak days)`)
+      } catch (error) {
+        console.error('Failed to update daily claim leaderboard:', error)
+      }
     } catch (error) {
       console.error('Failed to claim:', error)
     }
