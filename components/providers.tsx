@@ -1,16 +1,18 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { WagmiProvider, http, createStorage, cookieStorage } from 'wagmi'
+import { WagmiProvider, http, createStorage, cookieStorage, createConfig } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { RainbowKitProvider, getDefaultConfig, darkTheme } from '@rainbow-me/rainbowkit'
+import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
+import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 import '@rainbow-me/rainbowkit/styles.css'
 
-const config = getDefaultConfig({
-  appName: 'Joybit',
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
+const config = createConfig({
   chains: [base],
+  connectors: [
+    miniAppConnector()
+  ],
   transports: {
     [base.id]: http('https://mainnet.base.org', {
       batch: {

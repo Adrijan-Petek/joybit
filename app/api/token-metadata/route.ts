@@ -1,19 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Redis } from '@upstash/redis'
+import { createClient } from '@libsql/client'
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!,
 })
 
-const REDIS_KEY = 'token:metadata'
+// Initialize database table
+async function initTable() {
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS token_metadata (
+      address TEXT PRIMARY KEY,
+      image TEXT,
+      symbol TEXT
+    )
+  `)
+}
+
+// Call init on module load
+initTable().catch(console.error)
 
 export async function GET() {
   try {
-    console.log('🔍 API: Getting token metadata from Redis...')
-    const tokenMetadata = await redis.get(REDIS_KEY) as Record<string, { image: string; symbol: string }> | null
+    console.log('🔍 API: Getting token metadata from Turso...')
+    const result = await client.execute('SELECT address, image, symbol FROM token_metadata')
+    
+    const tokenMetadata: Record<string, { image: string; symbol: string }> = {}
+    result.rows.forEach(row => {
+      tokenMetadata[row.address as string] = {
+        image: row.image as string || '',
+        symbol: row.symbol as string || 'TOKEN'
+      }
+    })
+    
     console.log('✅ API: Token metadata retrieved:', tokenMetadata)
-    return NextResponse.json(tokenMetadata || {})
+    return NextResponse.json(tokenMetadata)
   } catch (error) {
     console.error('❌ API: Error fetching token metadata:', error)
     return NextResponse.json({}, { status: 500 })
@@ -30,25 +51,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Address required' }, { status: 400 })
     }
 
-    // Get current metadata
-    const currentMetadata = await redis.get(REDIS_KEY) as Record<string, { image: string; symbol: string }> | null
-    console.log('📦 API: Current metadata in Redis:', currentMetadata)
-    
-    const tokenMetadata = currentMetadata || {}
+    // Insert or update token metadata
+    await client.execute({
+      sql: 'INSERT OR REPLACE INTO token_metadata (address, image, symbol) VALUES (?, ?, ?)',
+      args: [address.toLowerCase(), image || '', symbol || 'TOKEN']
+    })
 
-    // Update with new token
-    tokenMetadata[address.toLowerCase()] = {
-      image: image || '',
-      symbol: symbol || 'TOKEN'
-    }
+    console.log('💾 API: Token metadata saved to Turso')
 
-    console.log('💾 API: Saving updated metadata to Redis:', tokenMetadata)
-    // Save back to Redis
-    await redis.set(REDIS_KEY, tokenMetadata)
-    
-    // Verify it was saved
-    const verified = await redis.get(REDIS_KEY)
-    console.log('✅ API: Verified saved data:', verified)
+    // Get all metadata to return
+    const result = await client.execute('SELECT address, image, symbol FROM token_metadata')
+    const tokenMetadata: Record<string, { image: string; symbol: string }> = {}
+    result.rows.forEach(row => {
+      tokenMetadata[row.address as string] = {
+        image: row.image as string || '',
+        symbol: row.symbol as string || 'TOKEN'
+      }
+    })
 
     return NextResponse.json({ success: true, data: tokenMetadata })
   } catch (error) {
@@ -66,14 +85,21 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Address required' }, { status: 400 })
     }
 
-    // Get current metadata
-    const tokenMetadata = await redis.get(REDIS_KEY) as Record<string, { image: string; symbol: string }> | null || {}
+    // Delete token metadata
+    await client.execute({
+      sql: 'DELETE FROM token_metadata WHERE address = ?',
+      args: [address.toLowerCase()]
+    })
 
-    // Remove token
-    delete tokenMetadata[address.toLowerCase()]
-
-    // Save back to Redis
-    await redis.set(REDIS_KEY, tokenMetadata)
+    // Get all metadata to return
+    const result = await client.execute('SELECT address, image, symbol FROM token_metadata')
+    const tokenMetadata: Record<string, { image: string; symbol: string }> = {}
+    result.rows.forEach(row => {
+      tokenMetadata[row.address as string] = {
+        image: row.image as string || '',
+        symbol: row.symbol as string || 'TOKEN'
+      }
+    })
 
     return NextResponse.json({ success: true, data: tokenMetadata })
   } catch (error) {

@@ -13,6 +13,7 @@ import { formatEther } from 'viem'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { TREASURY_ABI } from '@/lib/contracts/abis'
 import { notifyAnnouncement, notifyPlayGame } from '@/lib/utils/farcasterNotifications'
+import { sdk } from '@farcaster/miniapp-sdk'
 
 // Utility function to format token balances with reasonable precision
 function formatTokenBalance(balance: bigint | undefined): string {
@@ -70,6 +71,7 @@ export default function Home() {
   useEffect(() => {
     setMounted(true)
     playMusic('main-menu')
+    sdk.actions.ready()
     
     // Load announcements from localStorage
     const saved = localStorage.getItem('joybit_announcements')

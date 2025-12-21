@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Redis } from '@upstash/redis'
+import { createClient } from '@libsql/client'
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!,
 })
+
+// Initialize database table
+async function initTable() {
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS match3_stats (
+      address TEXT PRIMARY KEY,
+      data TEXT NOT NULL
+    )
+  `)
+}
+
+// Call init on module load
+initTable().catch(console.error)
 
 interface Match3Stats {
   gamesPlayed: number
@@ -23,8 +36,15 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('🔍 API: Getting Match3 stats for:', address)
-    const statsKey = `match3:stats:${address.toLowerCase()}`
-    const stats = await redis.get(statsKey) as Match3Stats | null
+    const result = await client.execute({
+      sql: 'SELECT data FROM match3_stats WHERE address = ?',
+      args: [address.toLowerCase()]
+    })
+
+    let stats: Match3Stats | null = null
+    if (result.rows.length > 0) {
+      stats = JSON.parse(result.rows[0].data as string)
+    }
 
     const defaultStats: Match3Stats = {
       gamesPlayed: 0,
@@ -57,16 +77,22 @@ export async function POST(request: NextRequest) {
 
     console.log('📝 API: Saving Match3 stats:', { address, score, level, gamesPlayed })
 
-    const statsKey = `match3:stats:${address.toLowerCase()}`
-
     // Get current stats
-    const currentStats = await redis.get(statsKey) as Match3Stats | null
+    const result = await client.execute({
+      sql: 'SELECT data FROM match3_stats WHERE address = ?',
+      args: [address.toLowerCase()]
+    })
 
-    const stats: Match3Stats = currentStats || {
-      gamesPlayed: 0,
-      highScore: 0,
-      highScoreLevel: 0,
-      lastPlayed: Date.now()
+    let stats: Match3Stats
+    if (result.rows.length > 0) {
+      stats = JSON.parse(result.rows[0].data as string)
+    } else {
+      stats = {
+        gamesPlayed: 0,
+        highScore: 0,
+        highScoreLevel: 0,
+        lastPlayed: Date.now()
+      }
     }
 
     // Update stats
@@ -81,8 +107,11 @@ export async function POST(request: NextRequest) {
 
     stats.lastPlayed = Date.now()
 
-    console.log('💾 API: Saving updated Match3 stats to Redis:', stats)
-    await redis.set(statsKey, stats)
+    console.log('💾 API: Saving updated Match3 stats to Turso:', stats)
+    await client.execute({
+      sql: 'INSERT OR REPLACE INTO match3_stats (address, data) VALUES (?, ?)',
+      args: [address.toLowerCase(), JSON.stringify(stats)]
+    })
 
     return NextResponse.json({ success: true, stats })
   } catch (error) {

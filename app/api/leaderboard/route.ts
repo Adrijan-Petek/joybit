@@ -1,42 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Redis } from '@upstash/redis'
+import { createClient } from '@libsql/client'
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!,
 })
+
+// Initialize database tables
+async function initTables() {
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS leaderboard_scores (
+      address TEXT PRIMARY KEY,
+      score INTEGER NOT NULL
+    )
+  `)
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS leaderboard_users (
+      address TEXT PRIMARY KEY,
+      username TEXT,
+      pfp TEXT
+    )
+  `)
+}
+
+// Call init on module load
+initTables().catch(console.error)
 
 // GET leaderboard
 export async function GET() {
   try {
-    console.log('Fetching leaderboard from Upstash...')
-    console.log('Redis URL:', process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'Missing')
-    console.log('Redis Token:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'Set' : 'Missing')
+    console.log('Fetching leaderboard from Turso...')
+    console.log('Turso URL:', process.env.TURSO_DATABASE_URL ? 'Set' : 'Missing')
+    console.log('Turso Token:', process.env.TURSO_AUTH_TOKEN ? 'Set' : 'Missing')
     
-    // Get all leaderboard entries (sorted by score descending)
-    const leaderboard = await redis.zrange('leaderboard', 0, 99, {
-      rev: true,
-      withScores: true
-    })
+    // Get leaderboard entries (sorted by score descending)
+    const result = await client.execute(`
+      SELECT ls.address, ls.score, lu.username, lu.pfp
+      FROM leaderboard_scores ls
+      LEFT JOIN leaderboard_users lu ON ls.address = lu.address
+      ORDER BY ls.score DESC
+      LIMIT 100
+    `)
 
-    console.log('Leaderboard raw data:', leaderboard)
+    console.log('Leaderboard raw data:', result.rows)
 
     // Format the data
-    const formatted = []
-    for (let i = 0; i < leaderboard.length; i += 2) {
-      const address = leaderboard[i] as string
-      const score = leaderboard[i + 1] as number
-      
-      // Get user data
-      const userData = await redis.hgetall(`leaderboard:user:${address}`) || {}
-      
-      formatted.push({
-        address,
-        score: Math.floor(score),
-        username: userData.username,
-        pfp: userData.pfp
-      })
-    }
+    const formatted = result.rows.map(row => ({
+      address: row.address as string,
+      score: Math.floor(row.score as number),
+      username: row.username as string || undefined,
+      pfp: row.pfp as string || undefined
+    }))
 
     console.log('Formatted leaderboard:', formatted)
     return NextResponse.json({ leaderboard: formatted })
@@ -59,22 +73,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 })
     }
 
-    // Only update if new score is higher
-    const currentScore = await redis.zscore('leaderboard', address) || 0
+    // Get current score
+    const currentResult = await client.execute({
+      sql: 'SELECT score FROM leaderboard_scores WHERE address = ?',
+      args: [address]
+    })
     
+    const currentScore = currentResult.rows.length > 0 ? currentResult.rows[0].score as number : 0
+    
+    let updated = false
     if (score > currentScore) {
-      await redis.zadd('leaderboard', { score, member: address })
+      await client.execute({
+        sql: 'INSERT OR REPLACE INTO leaderboard_scores (address, score) VALUES (?, ?)',
+        args: [address, score]
+      })
+      updated = true
     }
     
     // Always store user data if provided
-    if (username || pfp) {
-      const userData: any = {}
-      if (username) userData.username = username
-      if (pfp) userData.pfp = pfp
-      await redis.hset(`leaderboard:user:${address}`, userData)
+    if (username !== undefined || pfp !== undefined) {
+      await client.execute({
+        sql: 'INSERT OR REPLACE INTO leaderboard_users (address, username, pfp) VALUES (?, ?, ?)',
+        args: [address, username || null, pfp || null]
+      })
     }
 
-    return NextResponse.json({ success: true, updated: score > currentScore })
+    return NextResponse.json({ success: true, updated })
   } catch (error) {
     console.error('Error updating leaderboard:', error)
     return NextResponse.json({ error: 'Failed to update leaderboard' }, { status: 500 })
