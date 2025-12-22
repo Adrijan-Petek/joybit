@@ -9,13 +9,13 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Joybit - Match-3 Game on Base',
-  description: 'Play Match-3 games, earn JOYB tokens on Base blockchain! Compete in card battles and claim daily rewards.',
+  description: 'Play Match-3 games, earn JOYB tokens on Base blockchain! Compete in card battles and claim daily rewards. Built on Base (bc_sf53xjf3).',
   icons: {
     icon: '/branding/favicon.ico',
   },
   openGraph: {
     title: 'Joybit - Blockchain Gaming on Base',
-    description: 'Play, earn, and win JOYB tokens in Match-3 games',
+    description: 'Play, earn, and win JOYB tokens in Match-3 games. Built on Base (bc_sf53xjf3).',
     url: 'https://joybit.vercel.app',
     siteName: 'Joybit',
     images: [
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Joybit - Match-3 on Base',
-    description: 'Play Match-3 games and earn JOYB tokens on Base blockchain',
+    description: 'Play Match-3 games and earn JOYB tokens on Base blockchain. Built on Base (bc_sf53xjf3).',
     images: ['/branding/logo.png'],
   },
   other: {
