@@ -26,7 +26,7 @@ export function formatTokenBalance(balance: bigint | undefined | null): string {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
   if (num >= 1) {
-    return num.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
   // For very small amounts
