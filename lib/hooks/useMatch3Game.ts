@@ -108,9 +108,28 @@ export function useMatch3Game() {
     return hash
   }
 
+  // Complete level
+  const { 
+    writeContractAsync: completeLevelWrite,
+    isPending: isCompletePending 
+  } = useWriteContract()
+
+  const completeLevel = async (sessionId: bigint, level: number) => {
+    const hash = await completeLevelWrite({
+      address: CONTRACT_ADDRESSES.match3Game as `0x${string}`,
+      abi: MATCH3_GAME_ABI,
+      functionName: 'completeLevel',
+      args: [sessionId, level],
+    })
+    setTxHash(hash)
+    return hash
+  }
+
   return {
     startGame,
+    completeLevel,
     isStarting: isStartPending || isStartConfirming,
+    isCompleting: isCompletePending,
     buyHammer,
     buyShuffle,
     buyColorBomb,

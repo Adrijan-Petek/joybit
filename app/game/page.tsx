@@ -49,6 +49,7 @@ export default function Match3Game() {
   // Hook for contract interaction
   const { 
     startGame: startGameContract, 
+    completeLevel,
     isStarting, 
     buyHammer,
     buyShuffle,
@@ -186,14 +187,15 @@ export default function Match3Game() {
       const rewardAmount = getRewardAmount(gameState.level)
       if (rewardAmount > 0) {
         try {
-          // Here you would call the contract to distribute the reward
-          // For now, we'll just show a notification
-          console.log(`🎁 Distributing ${rewardAmount} JOYB for completing level ${gameState.level}`)
+          // Complete the level and credit the reward
+          console.log(`🎁 Completing level ${gameState.level} and crediting ${rewardAmount} JOYB reward`)
+          
+          await completeLevel(sessionId, gameState.level)
           
           // Send notification about the reward
           await notifyAdminReward(rewardAmount.toString(), 'JOYB')
         } catch (error) {
-          console.error('Failed to distribute level reward:', error)
+          console.error('Failed to complete level and credit reward:', error)
         }
       }
     }

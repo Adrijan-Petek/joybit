@@ -62,6 +62,7 @@ contract Match3Game is Ownable, ReentrancyGuard {
     event PlayFeeUpdated(uint256 newFee);
     event BoosterPricesUpdated(uint256 hammer, uint256 shuffle, uint256 colorBomb, uint256 hammerPack, uint256 shufflePack, uint256 colorBombPack);
     event LevelRewardUpdated(uint16 level, uint256 reward);
+    event LevelCompleted(uint256 indexed sessionId, address indexed player, uint16 level, uint256 reward);
     
     constructor(address _treasury) Ownable(msg.sender) {
         require(_treasury != address(0), "Invalid treasury");
@@ -222,6 +223,29 @@ contract Match3Game is Ownable, ReentrancyGuard {
         }
         
         emit BoosterUsed(msg.sender, boosterType);
+    }
+    
+    /**
+     * @notice Complete a level and claim reward (called by frontend when level is completed)
+     */
+    function completeLevel(uint256 sessionId, uint16 level) external {
+        GameSession storage session = sessions[sessionId];
+        require(session.player == msg.sender, "Not your session");
+        require(session.active, "Session not active");
+        require(session.level == level, "Level mismatch");
+        
+        // Mark session as completed
+        session.active = false;
+        
+        // Check if there's a reward for this level
+        uint256 reward = levelRewards[level];
+        if (reward > 0) {
+            // Credit reward to player in treasury
+            treasury.creditReward(msg.sender, treasury.joybitToken(), reward);
+            emit LevelCompleted(sessionId, msg.sender, level, reward);
+        } else {
+            emit LevelCompleted(sessionId, msg.sender, level, 0);
+        }
     }
     
     // ============ ADMIN FUNCTIONS ============
