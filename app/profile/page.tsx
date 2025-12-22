@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAccount } from 'wagmi'
-import { formatEther } from 'viem'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
@@ -16,6 +15,7 @@ import { useClaimData } from '@/lib/hooks/useDailyClaim'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { notifyRewardAvailable } from '@/lib/utils/farcasterNotifications'
+import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -127,7 +127,7 @@ export default function ProfilePage() {
         const tokenData = tokenImages[firstTokenAddress.toLowerCase()]
         const tokenSymbol = tokenData?.symbol || (firstTokenAddress.toLowerCase() === CONTRACT_ADDRESSES.joybitToken.toLowerCase() ? 'JOYB' : 'tokens')
 
-        notifyRewardAvailable(formatEther(totalPending), tokenSymbol)
+        notifyRewardAvailable(formatTokenBalance(totalPending), tokenSymbol)
 
         // Mark as notified
         localStorage.setItem(notificationKey, now.toString())
@@ -175,7 +175,7 @@ export default function ProfilePage() {
         const tokenData = tokenImages[firstTokenAddress.toLowerCase()]
         const tokenSymbol = tokenData?.symbol || (firstTokenAddress.toLowerCase() === CONTRACT_ADDRESSES.joybitToken.toLowerCase() ? 'JOYB' : 'tokens')
 
-        notifyRewardAvailable(formatEther(totalClaimed), tokenSymbol)
+        notifyRewardAvailable(formatTokenBalance(totalClaimed), tokenSymbol)
       }
 
       // Hide share prompt
@@ -205,7 +205,7 @@ export default function ProfilePage() {
         const amount = allPendingRewards.amounts[index]
         const tokenData = tokenImages[tokenAddress.toLowerCase()]
         const symbol = tokenData?.symbol || (tokenAddress.toLowerCase() === CONTRACT_ADDRESSES.joybitToken.toLowerCase() ? 'JOYB' : tokenAddress.slice(0, 6) + '...')
-        return `  ${formatEther(amount)} ${symbol}`
+        return `  ${formatTokenBalance(amount)} ${symbol}`
       }).join('\n')
 
       const shareText = `🎮 Just crushed it in Joybit!\n\n` +
@@ -358,7 +358,7 @@ export default function ProfilePage() {
                       )}
                       <div>
                         <div className="text-sm font-bold text-green-400">
-                          {formatEther(amount)} {tokenData?.symbol || (isJoyb ? 'JOYB' : tokenAddress.slice(0, 6) + '...')}
+                          {formatTokenBalance(amount)} {tokenData?.symbol || (isJoyb ? 'JOYB' : tokenAddress.slice(0, 6) + '...')}
                         </div>
                         <div className="text-xs text-gray-400">
                           {isJoyb ? 'From games & rewards' : 'From admin rewards'}
@@ -396,7 +396,7 @@ export default function ProfilePage() {
                     🎮 Just crushed it in Joybit!<br/>
                     🏆 Match-3: {match3Stats.gamesPlayed || (match3Data && Array.isArray(match3Data) ? Number(match3Data[1]) || 0 : 0)} games played, High Score: {match3Stats.highScore || 0}<br/>
                     🃏 Card Game: {cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0} games, {cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0} wins<br/>
-                    💰 Claiming {allPendingRewards ? formatEther(allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)) : '0'} JOYB in rewards!<br/>
+                    💰 Claiming {allPendingRewards ? formatTokenBalance(allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)) : '0'} JOYB in rewards!<br/>
                     <br/>
                     Who&apos;s next? Come play and win big! 🚀<br/>
                     #Joybit #GameFi #MiniApp
@@ -502,7 +502,7 @@ export default function ProfilePage() {
               <div className="text-gray-400 text-xs md:text-sm mt-0.5">Current Streak</div>
             </div>
             <div className="text-right">
-              <div className="text-xl md:text-2xl font-bold text-green-400">{formatEther(totalClaimed)} JOYB</div>
+              <div className="text-xl md:text-2xl font-bold text-green-400">{formatTokenBalance(totalClaimed)} JOYB</div>
               <div className="text-gray-400 text-xs md:text-sm mt-0.5">Total Claimed</div>
             </div>
           </div>

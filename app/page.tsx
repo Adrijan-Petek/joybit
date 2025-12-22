@@ -9,32 +9,11 @@ import { Logo } from '@/components/Logo'
 import Image from 'next/image'
 import { useAudio } from '@/components/audio/AudioContext'
 import { useReadContract } from 'wagmi'
-import { formatEther } from 'viem'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { TREASURY_ABI } from '@/lib/contracts/abis'
-import { notifyAnnouncement, notifyPlayGame } from '@/lib/utils/farcasterNotifications'
+import { notifyPlayGame } from '@/lib/utils/farcasterNotifications'
 import { sdk } from '@farcaster/miniapp-sdk'
-
-// Utility function to format token balances with reasonable precision
-function formatTokenBalance(balance: bigint | undefined): string {
-  if (!balance) return '0'
-  
-  const formatted = formatEther(balance)
-  const num = parseFloat(formatted)
-  
-  // For large numbers (> 1000), show 2 decimal places
-  if (num >= 1000) {
-    return num.toFixed(2)
-  }
-  
-  // For medium numbers (100-999), show 4 decimal places  
-  if (num >= 100) {
-    return num.toFixed(4)
-  }
-  
-  // For smaller numbers, show 6 decimal places
-  return num.toFixed(6)
-}
+import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 
 export default function Home() {
   const router = useRouter()
