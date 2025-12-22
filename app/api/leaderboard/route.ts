@@ -21,6 +21,16 @@ async function initTables() {
       pfp TEXT
     )
   `)
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS notification_tokens (
+      fid INTEGER PRIMARY KEY,
+      token TEXT,
+      url TEXT,
+      enabled BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 }
 
 // Call init on module load

@@ -10,15 +10,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Log the event for monitoring
-    console.log('Farcaster webhook event received:', body)
+    console.log('🎣 Farcaster webhook event received:', JSON.stringify(body, null, 2))
 
     // Extract event type
     const eventData = body.payload ? JSON.parse(Buffer.from(body.payload, 'base64url').toString()) : {}
     const eventType = eventData.event
 
+    console.log('📋 Event type:', eventType)
+    console.log('📋 Event data:', JSON.stringify(eventData, null, 2))
+
     // Extract FID from header (decode base64url)
     const headerData = JSON.parse(Buffer.from(body.header, 'base64url').toString())
     const fid = headerData.fid
+
+    console.log('👤 FID:', fid)
 
     // Handle different event types
     switch (eventType) {
@@ -29,28 +34,22 @@ export async function POST(request: NextRequest) {
         // When user adds the mini app, automatically enable notifications
         // (user agrees to notifications by adding the app)
         if (eventData.notificationDetails) {
-          notificationTokens.set(fid, {
+          await notificationTokens.set(fid, {
             token: eventData.notificationDetails.token,
             url: eventData.notificationDetails.url,
             enabled: true
           })
           console.log(`Stored notification token for FID ${fid} (auto-enabled on app add)`)
         } else {
-          // No notification details provided yet, but mark as enabled
-          // Token details will be provided later when notifications are actually enabled
-          notificationTokens.set(fid, {
-            token: '', // Will be filled later
-            url: '', // Will be filled later
-            enabled: true
-          })
-          console.log(`Marked notifications as enabled for FID ${fid} (awaiting token details)`)
+          console.log(`No notification details provided for FID ${fid} - user needs to enable notifications in Farcaster client`)
+          // Don't store empty tokens - wait for notifications_enabled event
         }
         break
 
       case 'miniapp_removed':
         console.log(`User ${fid} removed the Mini App`)
         // Remove notification token from store
-        notificationTokens.delete(fid)
+        await notificationTokens.delete(fid)
         break
 
       case 'notifications_enabled':
@@ -59,27 +58,22 @@ export async function POST(request: NextRequest) {
         
         // Update notification token in store (or create if doesn't exist)
         if (eventData.notificationDetails) {
-          const existingEntry = notificationTokens.get(fid)
-          notificationTokens.set(fid, {
+          await notificationTokens.set(fid, {
             token: eventData.notificationDetails.token,
             url: eventData.notificationDetails.url,
             enabled: true
           })
-          if (existingEntry) {
-            console.log(`Updated notification token for FID ${fid}`)
-          } else {
-            console.log(`Created notification token for FID ${fid}`)
-          }
+          console.log(`Updated notification token for FID ${fid}`)
         }
         break
 
       case 'notifications_disabled':
         console.log(`User ${fid} disabled notifications`)
         // Mark notifications as disabled in store
-        const existingToken = notificationTokens.get(fid)
+        const existingToken = await notificationTokens.get(fid)
         if (existingToken) {
           existingToken.enabled = false
-          notificationTokens.set(fid, existingToken)
+          await notificationTokens.set(fid, existingToken)
         }
         break
 
@@ -100,9 +94,10 @@ export async function POST(request: NextRequest) {
 
 // Health check endpoint
 export async function GET() {
+  const storedTokens = await notificationTokens.size()
   return NextResponse.json({ 
     status: 'ok',
     message: 'Farcaster webhook endpoint is ready',
-    storedTokens: notificationTokens.size
+    storedTokens
   })
 }

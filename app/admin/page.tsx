@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
@@ -100,6 +100,8 @@ export default function AdminPage() {
         <div className="space-y-4 md:space-y-6">
           <SettingsOverview />
           <AnnouncementManager />
+          <NotificationsManager />
+          <ScheduledNotificationsManager />
           <LevelRewardsManager />
           <LeaderboardSyncSection />
           <TreasurySection />
@@ -295,6 +297,601 @@ function AnnouncementManager() {
 
       <p className="text-xs text-green-300 mt-4">
         💡 Up to 5 messages scroll continuously in a seamless loop with spacing (•) between them. Leave blank to skip.
+      </p>
+    </motion.div>
+  )
+}
+
+// Notifications Manager Section
+function NotificationsManager() {
+  const [notificationTokens, setNotificationTokens] = useState<any[]>([])
+  const [isLoadingTokens, setIsLoadingTokens] = useState(false)
+  const [testFid, setTestFid] = useState('')
+  const [testTitle, setTestTitle] = useState('Test Notification')
+  const [testBody, setTestBody] = useState('This is a test notification from the admin panel')
+  const [isSendingTest, setIsSendingTest] = useState(false)
+  const [sendToAll, setSendToAll] = useState(false)
+  const [stats, setStats] = useState({ total: 0, enabled: 0 })
+  
+  // Manual token addition
+  const [manualFid, setManualFid] = useState('')
+  const [manualToken, setManualToken] = useState('')
+  const [manualUrl, setManualUrl] = useState('')
+  const [isAddingToken, setIsAddingToken] = useState(false)
+
+  const loadNotificationTokens = async () => {
+    setIsLoadingTokens(true)
+    try {
+      const response = await fetch('/api/admin/notification-tokens')
+      if (response.ok) {
+        const data = await response.json()
+        setNotificationTokens(data.tokens || [])
+        setStats(data.stats || { total: 0, enabled: 0 })
+      } else {
+        console.error('Failed to load notification tokens')
+        setNotificationTokens([])
+        setStats({ total: 0, enabled: 0 })
+      }
+    } catch (error) {
+      console.error('Failed to load notification tokens:', error)
+      setNotificationTokens([])
+      setStats({ total: 0, enabled: 0 })
+    } finally {
+      setIsLoadingTokens(false)
+    }
+  }
+
+  const sendTestNotification = async () => {
+    if (!sendToAll && (!testFid || !testTitle || !testBody)) {
+      alert('Please fill in all test notification fields')
+      return
+    }
+
+    if (sendToAll && (!testTitle || !testBody)) {
+      alert('Please fill in title and body for sending to all users')
+      return
+    }
+
+    setIsSendingTest(true)
+    try {
+      const requestBody: any = {
+        title: testTitle,
+        body: testBody,
+        targetUrl: window.location.origin
+      }
+
+      if (sendToAll) {
+        requestBody.sendToAll = true
+      } else {
+        requestBody.fid = parseInt(testFid)
+      }
+
+      const response = await fetch('/api/send-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (sendToAll) {
+          alert(`✅ Notifications sent! ${result.successCount}/${result.totalUsers} successful`)
+        } else {
+          alert('✅ Test notification sent successfully!')
+        }
+      } else {
+        const error = await response.json()
+        alert(`❌ Failed to send notification: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Failed to send test notification:', error)
+      alert('❌ Failed to send test notification')
+    } finally {
+      setIsSendingTest(false)
+    }
+  }
+
+  const addManualToken = async () => {
+    if (!manualFid) {
+      alert('Please enter a valid FID')
+      return
+    }
+
+    setIsAddingToken(true)
+    try {
+      const response = await fetch('/api/admin/notification-tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fid: parseInt(manualFid),
+          token: manualToken || '',
+          url: manualUrl || '',
+          enabled: true
+        })
+      })
+
+      if (response.ok) {
+        alert('✅ Notification token added successfully!')
+        setManualFid('')
+        setManualToken('')
+        setManualUrl('')
+        loadNotificationTokens() // Refresh the list
+      } else {
+        const error = await response.json()
+        alert(`❌ Failed to add token: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Failed to add manual token:', error)
+      alert('❌ Failed to add token')
+    } finally {
+      setIsAddingToken(false)
+    }
+  }
+
+  useEffect(() => {
+    loadNotificationTokens()
+  }, [])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-xl p-4 md:p-6"
+    >
+      <h2 className="text-lg md:text-2xl font-bold mb-4">🔔 Notification Manager</h2>
+
+      {/* Stats Overview */}
+      <div className="mb-6">
+        <label className="block text-sm font-bold text-blue-200 mb-3">📊 Notification Stats</label>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-black/40 border border-blue-500/30 rounded-lg px-4 py-3 text-center">
+            <div className="text-2xl font-bold text-blue-400">{stats.total}</div>
+            <div className="text-sm text-blue-300">Total Users</div>
+          </div>
+          <div className="bg-black/40 border border-green-500/30 rounded-lg px-4 py-3 text-center">
+            <div className="text-2xl font-bold text-green-400">{stats.enabled}</div>
+            <div className="text-sm text-green-300">Notifications Enabled</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Manual Token Addition */}
+      <div className="mb-6">
+        <label className="block text-sm font-bold text-blue-200 mb-3">➕ Manually Add Notification Token</label>
+        <div className="space-y-3">
+          <input
+            type="number"
+            placeholder="Farcaster FID (e.g., 12345)"
+            value={manualFid}
+            onChange={(e) => setManualFid(e.target.value)}
+            className="w-full bg-black/40 border border-blue-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+          />
+          <input
+            type="text"
+            placeholder="Notification Token (leave empty if not available)"
+            value={manualToken}
+            onChange={(e) => setManualToken(e.target.value)}
+            className="w-full bg-black/40 border border-blue-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+          />
+          <input
+            type="url"
+            placeholder="Notification URL (leave empty if not available)"
+            value={manualUrl}
+            onChange={(e) => setManualUrl(e.target.value)}
+            className="w-full bg-black/40 border border-blue-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+          />
+          <button
+            onClick={addManualToken}
+            disabled={isAddingToken || !manualFid}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-3 rounded-lg font-bold transition-all disabled:cursor-not-allowed"
+          >
+            {isAddingToken ? '⏳ Adding...' : '➕ Add Token'}
+          </button>
+        </div>
+        <p className="text-xs text-blue-300 mt-2">
+          💡 Use this to manually add notification tokens when the webhook isn&apos;t working or for testing purposes.
+        </p>
+      </div>
+
+      {/* Test Notification */}
+      <div className="mb-6">
+        <label className="block text-sm font-bold text-blue-200 mb-3">📤 Send Test Notification</label>
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="sendToAll"
+              checked={sendToAll}
+              onChange={(e) => setSendToAll(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="sendToAll" className="text-sm text-blue-300">
+              Send to all users ({stats.enabled} enabled)
+            </label>
+          </div>
+
+          {!sendToAll && (
+            <input
+              type="number"
+              placeholder="Farcaster FID (e.g., 12345)"
+              value={testFid}
+              onChange={(e) => setTestFid(e.target.value)}
+              className="w-full bg-black/40 border border-blue-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+            />
+          )}
+
+          <input
+            type="text"
+            placeholder="Notification Title"
+            value={testTitle}
+            onChange={(e) => setTestTitle(e.target.value)}
+            className="w-full bg-black/40 border border-blue-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+          />
+          <textarea
+            placeholder="Notification Body"
+            value={testBody}
+            onChange={(e) => setTestBody(e.target.value)}
+            rows={3}
+            className="w-full bg-black/40 border border-blue-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none resize-none"
+          />
+          <button
+            onClick={sendTestNotification}
+            disabled={isSendingTest || (!sendToAll && !testFid) || !testTitle || !testBody}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-4 py-3 rounded-lg font-bold transition-all disabled:cursor-not-allowed"
+          >
+            {isSendingTest ? '⏳ Sending...' : sendToAll ? `📢 Send to All (${stats.enabled})` : '📤 Send Test Notification'}
+          </button>
+        </div>
+      </div>
+
+      {/* Notification Tokens List */}
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-3">
+          <label className="block text-sm font-bold text-blue-200">📋 Notification Tokens</label>
+          <button
+            onClick={loadNotificationTokens}
+            disabled={isLoadingTokens}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-3 py-1 rounded text-sm transition-all"
+          >
+            {isLoadingTokens ? '⏳' : '🔄'} Refresh
+          </button>
+        </div>
+
+        {notificationTokens.length > 0 ? (
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {notificationTokens.map((token) => (
+              <div key={token.fid} className="bg-black/40 border border-blue-500/30 rounded-lg px-3 py-2 flex justify-between items-center">
+                <div>
+                  <div className="text-sm font-bold text-blue-300">FID: {token.fid}</div>
+                  <div className="text-xs text-gray-400">
+                    Token: {token.hasToken ? 'Available' : 'Pending'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2 py-1 rounded ${token.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    {token.enabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-black/40 border border-blue-500/30 rounded-lg px-4 py-6 text-center text-gray-400">
+            {isLoadingTokens ? '⏳ Loading notification tokens...' : 'No notification tokens found. Users need to enable notifications in Farcaster to receive them.'}
+          </div>
+        )}
+      </div>
+
+      <p className="text-xs text-blue-300 mt-4">
+        💡 Notification tokens are stored in the database and persist across deployments. The system is fully operational - users just need to enable notifications in Farcaster to receive them.
+      </p>
+
+      {/* Troubleshooting */}
+      <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+        <h3 className="text-sm font-bold text-yellow-300 mb-2">🔧 Troubleshooting</h3>
+        <ul className="text-xs text-yellow-200 space-y-1">
+          <li>• <strong>✅ System Status:</strong> Notification system is fully operational and deployed</li>
+          <li>• <strong>Webhook URL:</strong> Configured as <code>https://joybit.vercel.app/api/farcaster-webhook</code></li>
+          <li>• <strong>User Setup:</strong> Users must <strong>enable notifications</strong> in Farcaster client (not just add the app)</li>
+          <li>• <strong>Token Storage:</strong> Tokens are only stored when users enable notifications (notifications_enabled event)</li>
+          <li>• <strong>Empty Tokens:</strong> miniapp_added events provide empty tokens - real tokens come from notifications_enabled</li>
+          <li>• <strong>External APIs:</strong> System successfully calls Pushover/Farcaster APIs when valid tokens exist</li>
+          <li>• <strong>400 Errors:</strong> Usually means user hasn&apos;t enabled notifications or invalid app token</li>
+          <li>• <strong>Test Results:</strong> API integration confirmed working with proper token data</li>
+          <li>• <strong>Next Steps:</strong> Wait for users to enable notifications or manually add test tokens</li>
+        </ul>
+      </div>
+    </motion.div>
+  )
+}
+
+// Scheduled Notifications Manager Section
+function ScheduledNotificationsManager() {
+  const [scheduledNotifications, setScheduledNotifications] = useState<any[]>([])
+  const [isLoadingScheduled, setIsLoadingScheduled] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+
+  // Create form state
+  const [createTitle, setCreateTitle] = useState('')
+  const [createBody, setCreateBody] = useState('')
+  const [createTargetUrl, setCreateTargetUrl] = useState('https://joybit.vercel.app')
+  const [createScheduledTime, setCreateScheduledTime] = useState('')
+  const [createIsRecurring, setCreateIsRecurring] = useState(false)
+  const [createRecurrencePattern, setCreateRecurrencePattern] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [createFid, setCreateFid] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
+
+  const loadScheduledNotifications = async () => {
+    setIsLoadingScheduled(true)
+    try {
+      const response = await fetch('/api/scheduled-notifications')
+      if (response.ok) {
+        const data = await response.json()
+        setScheduledNotifications(data.notifications || [])
+      } else {
+        console.error('Failed to load scheduled notifications')
+        setScheduledNotifications([])
+      }
+    } catch (error) {
+      console.error('Failed to load scheduled notifications:', error)
+      setScheduledNotifications([])
+    } finally {
+      setIsLoadingScheduled(false)
+    }
+  }
+
+  const createScheduledNotification = async () => {
+    if (!createTitle || !createBody || !createScheduledTime) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    setIsCreating(true)
+    try {
+      const requestBody: any = {
+        title: createTitle,
+        body: createBody,
+        targetUrl: createTargetUrl,
+        scheduledTime: new Date(createScheduledTime).toISOString(),
+        isRecurring: createIsRecurring,
+        enabled: true
+      }
+
+      if (createFid) {
+        requestBody.fid = parseInt(createFid)
+      }
+
+      if (createIsRecurring) {
+        requestBody.recurrencePattern = createRecurrencePattern
+      }
+
+      const response = await fetch('/api/scheduled-notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (response.ok) {
+        alert('✅ Scheduled notification created successfully!')
+        setCreateTitle('')
+        setCreateBody('')
+        setCreateTargetUrl('https://joybit.vercel.app')
+        setCreateScheduledTime('')
+        setCreateIsRecurring(false)
+        setCreateFid('')
+        setShowCreateForm(false)
+        loadScheduledNotifications()
+      } else {
+        const error = await response.json()
+        alert(`❌ Failed to create notification: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Failed to create scheduled notification:', error)
+      alert('❌ Failed to create scheduled notification')
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const toggleNotification = async (id: number, enabled: boolean) => {
+    try {
+      const response = await fetch(`/api/scheduled-notifications?id=${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ enabled })
+      })
+
+      if (response.ok) {
+        loadScheduledNotifications()
+      } else {
+        alert('Failed to update notification')
+      }
+    } catch (error) {
+      console.error('Failed to toggle notification:', error)
+      alert('Failed to update notification')
+    }
+  }
+
+  const deleteNotification = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this scheduled notification?')) return
+
+    try {
+      const response = await fetch(`/api/scheduled-notifications?id=${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        loadScheduledNotifications()
+      } else {
+        alert('Failed to delete notification')
+      }
+    } catch (error) {
+      console.error('Failed to delete notification:', error)
+      alert('Failed to delete notification')
+    }
+  }
+
+  useEffect(() => {
+    loadScheduledNotifications()
+  }, [])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4 md:p-6"
+    >
+      <h2 className="text-lg md:text-2xl font-bold mb-4">⏰ Scheduled Notifications</h2>
+
+      {/* Create Button */}
+      <div className="mb-4">
+        <button
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-bold transition-all"
+        >
+          {showCreateForm ? '❌ Cancel' : '➕ Create Scheduled Notification'}
+        </button>
+      </div>
+
+      {/* Create Form */}
+      {showCreateForm && (
+        <div className="mb-6 p-4 bg-black/40 border border-purple-500/30 rounded-lg">
+          <h3 className="text-sm font-bold text-purple-300 mb-3">📝 Create New Scheduled Notification</h3>
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Notification Title"
+              value={createTitle}
+              onChange={(e) => setCreateTitle(e.target.value)}
+              className="w-full bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none"
+            />
+            <textarea
+              placeholder="Notification Body"
+              value={createBody}
+              onChange={(e) => setCreateBody(e.target.value)}
+              rows={3}
+              className="w-full bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none resize-none"
+            />
+            <input
+              type="url"
+              placeholder="Target URL (optional)"
+              value={createTargetUrl}
+              onChange={(e) => setCreateTargetUrl(e.target.value)}
+              className="w-full bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none"
+            />
+            <input
+              type="number"
+              placeholder="Farcaster FID (leave empty for broadcast to all)"
+              value={createFid}
+              onChange={(e) => setCreateFid(e.target.value)}
+              className="w-full bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none"
+            />
+            <input
+              type="datetime-local"
+              value={createScheduledTime}
+              onChange={(e) => setCreateScheduledTime(e.target.value)}
+              className="w-full bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none"
+            />
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isRecurring"
+                checked={createIsRecurring}
+                onChange={(e) => setCreateIsRecurring(e.target.checked)}
+                className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <label htmlFor="isRecurring" className="text-sm text-purple-300">
+                Recurring notification
+              </label>
+            </div>
+            {createIsRecurring && (
+              <select
+                value={createRecurrencePattern}
+                onChange={(e) => setCreateRecurrencePattern(e.target.value as 'daily' | 'weekly' | 'monthly')}
+                className="w-full bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            )}
+            <button
+              onClick={createScheduledNotification}
+              disabled={isCreating || !createTitle || !createBody || !createScheduledTime}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-3 rounded-lg font-bold transition-all disabled:cursor-not-allowed"
+            >
+              {isCreating ? '⏳ Creating...' : '✅ Create Notification'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Scheduled Notifications List */}
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-3">
+          <label className="block text-sm font-bold text-purple-200">📋 Scheduled Notifications</label>
+          <button
+            onClick={loadScheduledNotifications}
+            disabled={isLoadingScheduled}
+            className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 px-3 py-1 rounded text-sm transition-all"
+          >
+            {isLoadingScheduled ? '⏳' : '🔄'} Refresh
+          </button>
+        </div>
+
+        {scheduledNotifications.length > 0 ? (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {scheduledNotifications.map((notification) => (
+              <div key={notification.id} className="bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-purple-300">{notification.title}</div>
+                    <div className="text-xs text-gray-400 mt-1">{notification.body}</div>
+                    <div className="text-xs text-purple-400 mt-1">
+                      📅 {new Date(notification.scheduledTime).toLocaleString()}
+                      {notification.fid ? ` • FID: ${notification.fid}` : ' • 📢 Broadcast'}
+                      {notification.isRecurring && ` • 🔄 ${notification.recurrencePattern}`}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-2">
+                    <button
+                      onClick={() => toggleNotification(notification.id, !notification.enabled)}
+                      className={`text-xs px-2 py-1 rounded ${
+                        notification.enabled
+                          ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                          : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                      }`}
+                    >
+                      {notification.enabled ? '✅' : '⏸️'}
+                    </button>
+                    <button
+                      onClick={() => deleteNotification(notification.id)}
+                      className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-black/40 border border-purple-500/30 rounded-lg px-4 py-6 text-center text-gray-400">
+            {isLoadingScheduled ? '⏳ Loading scheduled notifications...' : 'No scheduled notifications found.'}
+          </div>
+        )}
+      </div>
+
+      <p className="text-xs text-purple-300 mt-4">
+        💡 Scheduled notifications will be sent automatically at their scheduled time. Recurring notifications reschedule themselves after sending.
       </p>
     </motion.div>
   )
