@@ -16,6 +16,25 @@ import {
   DAILY_CLAIM_ABI
 } from '@/lib/contracts/abis'
 import { notifyAdminReward } from '@/lib/utils/farcasterNotifications'
+import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
+
+// Professional Tab Button Component
+function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 min-w-0 px-2 py-2 md:px-4 md:py-3 rounded-lg font-medium text-xs md:text-sm transition-all duration-200 flex items-center justify-center gap-1 md:gap-2 ${
+        active
+          ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/25 transform scale-[0.98]'
+          : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+      }`}
+    >
+      <span className="text-sm md:text-base">{icon}</span>
+      <span className="hidden sm:inline truncate">{label}</span>
+      <span className="sm:hidden">{label.slice(0, 3)}</span>
+    </button>
+  )
+}
 
 export default function AdminPage() {
   const router = useRouter()
@@ -23,6 +42,7 @@ export default function AdminPage() {
   const { playMusic } = useAudio()
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
     setMounted(true)
@@ -97,21 +117,81 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Professional Tab Navigation */}
+        <div className="mb-6 md:mb-8">
+          <div className="flex flex-wrap gap-1 md:gap-2 p-1 bg-gray-800/50 rounded-xl border border-gray-700/50 backdrop-blur-sm">
+            <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon="📊" label="Overview" />
+            <TabButton active={activeTab === 'content'} onClick={() => setActiveTab('content')} icon="📢" label="Content" />
+            <TabButton active={activeTab === 'games'} onClick={() => setActiveTab('games')} icon="🎮" label="Games" />
+            <TabButton active={activeTab === 'rewards'} onClick={() => setActiveTab('rewards')} icon="💰" label="Rewards" />
+            <TabButton active={activeTab === 'system'} onClick={() => setActiveTab('system')} icon="⚙️" label="System" />
+          </div>
+        </div>
+
+        {/* Tab Content */}
         <div className="space-y-4 md:space-y-6">
-          <SettingsOverview />
-          <AnnouncementManager />
-          <NotificationsManager />
-          <ScheduledNotificationsManager />
-          <LevelRewardsManager />
-          <LeaderboardSyncSection />
-          <TreasurySection />
-          <MultiTokenManagement />
-          <LeaderboardRewardsSection />
-          <MultiTokenLeaderboardRewardsSection />
-          <Match3GameSection />
-          <CardGameSection />
-          <DailyClaimSection />
-          <ContractAddresses />
+          {activeTab === 'overview' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <SettingsOverview />
+            </motion.div>
+          )}
+
+          {activeTab === 'content' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 md:space-y-6"
+            >
+              <AnnouncementManager />
+              <NotificationsManager />
+              <ScheduledNotificationsManager />
+            </motion.div>
+          )}
+
+          {activeTab === 'games' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 md:space-y-6"
+            >
+              <LevelRewardsManager />
+              <Match3GameSection />
+              <CardGameSection />
+              <DailyClaimSection />
+            </motion.div>
+          )}
+
+          {activeTab === 'rewards' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 md:space-y-6"
+            >
+              <TreasurySection />
+              <MultiTokenManagement />
+              <LeaderboardRewardsSection />
+              <MultiTokenLeaderboardRewardsSection />
+            </motion.div>
+          )}
+
+          {activeTab === 'system' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 md:space-y-6"
+            >
+              <LeaderboardSyncSection />
+              <ContractAddresses />
+            </motion.div>
+          )}
         </div>
       </div>
     </div>
@@ -1441,11 +1521,11 @@ function SettingsOverview() {
           <div className="space-y-1 text-xs md:text-sm mb-3">
             <div className="flex justify-between">
               <span className="text-gray-400">ETH Balance:</span>
-              <span className="font-bold">{formatEther(treasuryETH || 0n)} ETH</span>
+              <span className="font-bold">{formatTokenBalance(treasuryETH)} ETH</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">JOYB Balance:</span>
-              <span className="font-bold">{formatEther(treasuryJOYB || 0n)} JOYB</span>
+              <span className="font-bold">{formatTokenBalance(treasuryJOYB)} JOYB</span>
             </div>
           </div>
           
@@ -1714,13 +1794,13 @@ function TreasurySection() {
         <div className="bg-black/30 rounded-lg p-3 md:p-4">
           <div className="text-xs md:text-sm text-gray-400">ETH Balance</div>
           <div className="text-lg md:text-2xl font-bold text-green-400">
-            {ethBalance ? formatEther(ethBalance as bigint) : '0.0'} ETH
+            {formatTokenBalance(ethBalance)} ETH
           </div>
         </div>
         <div className="bg-black/30 rounded-lg p-3 md:p-4">
           <div className="text-xs md:text-sm text-gray-400">JOYB Balance</div>
           <div className="text-lg md:text-2xl font-bold text-yellow-400">
-            {joybBalance ? formatEther(joybBalance as bigint) : '0'} JOYB
+            {formatTokenBalance(joybBalance)} JOYB
           </div>
         </div>
       </div>
@@ -1866,7 +1946,7 @@ function TokenBalance({ address, symbol, image }: { address: `0x${string}`; symb
     <div className="bg-purple-500/20 border border-purple-500/30 rounded-lg p-3">
       <div className="text-xs text-gray-400 mb-1">{symbol} Balance</div>
       <div className="text-base md:text-lg font-bold text-purple-300">
-        {balance ? formatEther(balance as bigint) : '0'} {symbol}
+        {formatTokenBalance(balance)} {symbol}
       </div>
     </div>
   )
@@ -1885,7 +1965,7 @@ function MultiTokenBalanceDisplay({ address, symbol }: { address: `0x${string}`;
     <div className="flex justify-between text-xs">
       <span className="text-gray-400">{symbol}:</span>
       <span className="font-bold text-purple-300">
-        {balance ? formatEther(balance as bigint) : '0'} {symbol}
+        {formatTokenBalance(balance)} {symbol}
       </span>
     </div>
   )
