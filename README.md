@@ -1,536 +1,210 @@
-# 🎮 JOYBIT - Blockchain Gaming Platform
+# 🎮 Joybit
 
-Decentralized gaming platform on Base blockchain featuring Match-3 puzzle, 3-Card game, and Daily Claim rewards. Built with Next.js, Solidity, and JOYB token economy.
+<div align="center">
 
-## 📋 Table of Contents
+**A Decentralized Gaming Platform on Base Blockchain**
 
-- [Quick Start](#quick-start)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Smart Contracts](#smart-contracts)
-- [Installation](#installation)
-- [Deployment Guide](#deployment-guide)
-- [Game Mechanics](#game-mechanics)
-- [Reward System](#reward-system)
-- [Admin Panel](#admin-panel)
-- [Testing](#testing)
-- [Architecture](#architecture)
-- [Troubleshooting](#troubleshooting)
+[![Next.js](https://img.shields.io/badge/Next.js-14.0+-000000?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.22+-363636?style=for-the-badge&logo=solidity)](https://soliditylang.org/)
+[![Base](https://img.shields.io/badge/Base-Blockchain-0052FF?style=for-the-badge&logo=ethereum)](https://base.org/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0+-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 
-## ⚡ Quick Start
+*Play • Earn • Own*
 
-```bash
-# 1. Install dependencies
-npm install
+[🌐 Live Demo](https://joybit.vercel.app) • [📖 Documentation](#) • [🎯 Quick Start](#quick-start)
 
-# 2. Setup environment
-cp .env.example .env.local
-# Edit .env.local with your values
-
-# 3. Run development server
-npm run dev
-
-# 4. Deploy contracts (testnet)
-npx hardhat run scripts/deploy-testnet.js --network baseSepolia
-```
-
-**Open** [http://localhost:3000](http://localhost:3000)
+</div>
 
 ---
 
-## ✨ Features
+## ✨ Overview
 
-### 🎮 Three Games
-- **JoybitGame (Match-3)**: 8x8 grid tile-matching with score targets
-- **CardGame (3-Card)**: Luck-based card flip game
-- **DailyClaim**: Daily streak rewards system
+**Joybit** is a cutting-edge decentralized gaming platform built on the Base blockchain, featuring three distinct games unified by the JOYB token economy. Players can enjoy Match-3 puzzles, strategic card games, and daily reward systems while earning and trading JOYB tokens.
 
-### 💎 JOYB Token Economy
-- **Unified Rewards**: All games reward in JOYB tokens
-- **User Claims**: Players claim their own rewards (no admin needed)
-- **Play Fees**: Pay ETH to play (goes to Treasury)
-- **Win Rewards**: Earn JOYB tokens (claim from profile)
+### 🎯 Key Features
 
-### 🔐 Security Features
-- ReentrancyGuard on all critical functions
-- Access control for admin operations
-- Block-based randomness for CardGame
-- Treasury with withdrawal limits
-- Pausable emergency controls
-
-## 🔧 Tech Stack
-
-**Frontend**: Next.js 14, TypeScript, TailwindCSS, Wagmi v2, RainbowKit  
-**Blockchain**: Solidity 0.8.22+, Hardhat, OpenZeppelin, Base Sepolia  
-**Token**: ERC20 (JOYB) with 18 decimals
+- **🎮 Three Unique Games**: Match-3 puzzles, 3-card strategy, and daily rewards
+- **💎 Unified Token Economy**: All games reward in JOYB tokens
+- **🏆 Achievement System**: Unlock NFTs and track progress
+- **🔐 Decentralized Rewards**: Players claim their own earnings
+- **📱 Modern UI/UX**: Responsive design with smooth animations
+- **⚡ Fast Transactions**: Optimized for Base network
 
 ---
 
-## 📜 Smart Contracts
-
-### Core Contracts
-
-| Contract | Purpose | Key Functions |
-|----------|---------|---------------|
-| **JoybitToken** | ERC20 game token | `transfer`, `approve`, `mint` (owner) |
-| **JoybitGame** | Match-3 gameplay | `submitResult`, `claimReward`, `distributeReward` |
-| **CardGame** | 3-card game | `playCard`, `claimReward`, uses JOYB rewards |
-| **DailyClaim** | Daily rewards | `claim`, `claimReward`, streak tracking |
-| **Treasury** | Fund management | `fundRewards`, `withdraw`, authorization |
-| **BoosterShop** | In-game items | `purchaseBooster`, price management |
-| **GameSettings** | Configuration | Level settings, tile sets |
-| **AccessControl** | Permissions | Admin roles, access management |
-
-### Contract Addresses (Base Sepolia)
-After deployment, addresses are in `deployments/testnet-deployment.json`
-
----
-
-## 🚀 Installation
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- MetaMask wallet
-- Base Sepolia testnet ETH ([Faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet))
 
-### Setup Steps
+- **Node.js** 18.0 or higher
+- **MetaMask** or compatible Web3 wallet
+- **Base Sepolia** testnet ETH ([Get from faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet))
 
-1. **Install Dependencies**
+### Installation
+
 ```bash
+# Clone the repository
+git clone https://github.com/Adrijan-Petek/joybit.git
+cd joybit
+
+# Install dependencies
 npm install
-```
 
-2. **Environment Configuration**
-```bash
+# Set up environment
 cp .env.example .env.local
-```
+# Edit .env.local with your configuration
 
-Edit `.env.local`:
-```env
-# Network
-NEXT_PUBLIC_CHAIN_ID=84532
-NEXT_PUBLIC_BASE_TESTNET_RPC_URL=https://sepolia.base.org
-
-# WalletConnect
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=get_from_walletconnect.com
-
-# Admin Wallet
-NEXT_PUBLIC_ADMIN_WALLET_ADDRESS=0xYourAddress
-
-# Deployment Key
-PRIVATE_KEY=your_private_key_without_0x
-```
-
-3. **Compile Contracts**
-```bash
-npx hardhat compile
-```
-
-4. **Run Tests**
-```bash
-npx hardhat test
-```
-Expected: **293 passing, 4 pending**
-
-5. **Start Development**
-```bash
+# Start development server
 npm run dev
 ```
 
----
-
-## 🌐 Deployment Guide
-
-### Deploy to Base Sepolia (Testnet)
-
-1. **Fund Wallet**
-   - Get Base Sepolia ETH from [faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet)
-   - Minimum: ~0.02 ETH for all contracts
-
-2. **Deploy All Contracts**
-```bash
-npx hardhat run scripts/deploy-testnet.js --network baseSepolia
-```
-
-3. **Deployment Output**
-   - Addresses saved to `deployments/testnet-deployment.json`
-   - Transaction hashes logged to console
-   - Verification URLs for BaseScan
-
-4. **Update Frontend**
-```bash
-# Copy addresses from deployment output to .env.local
-NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS=0x...
-NEXT_PUBLIC_JOYBIT_GAME_ADDRESS=0x...
-NEXT_PUBLIC_CARD_GAME_ADDRESS=0x...
-NEXT_PUBLIC_DAILY_CLAIM_ADDRESS=0x...
-NEXT_PUBLIC_TREASURY_ADDRESS=0x...
-NEXT_PUBLIC_BOOSTER_SHOP_ADDRESS=0x...
-NEXT_PUBLIC_GAME_SETTINGS_ADDRESS=0x...
-NEXT_PUBLIC_ACCESS_CONTROL_ADDRESS=0x...
-```
-
-5. **Verify Contracts** (Optional)
-```bash
-npx hardhat verify --network baseSepolia <CONTRACT_ADDRESS> <CONSTRUCTOR_ARGS>
-```
-
-### Deploy to Mainnet
-
-⚠️ **IMPORTANT**: Only after extensive testnet testing!
-
-```bash
-npx hardhat run scripts/deploy-testnet.js --network base
-```
+Visit **[http://localhost:3000](http://localhost:3000)** to start playing!
 
 ---
 
-## 🎮 Game Mechanics
+## 🎮 Games
 
-### Match-3 Game (JoybitGame)
+### 🧩 Match-3 Puzzle (JoybitGame)
 
-**How to Play:**
-1. Connect wallet
-2. Select level (different fees/rewards)
-3. Pay play fee in ETH
-4. Match 3+ tiles by swapping adjacent pieces
-5. Reach target score before time runs out
-6. Win → Pending rewards tracked in JOYB
-7. Go to Profile → Claim Rewards
+**Strategic tile-matching gameplay with progressive difficulty**
 
-**Scoring:**
+- **🎯 Objective**: Match 3+ tiles to reach score targets
+- **💰 Entry Fee**: 0.001 ETH per level
+- **🏆 Rewards**: JOYB tokens based on performance
+- **⚡ Features**: 8x8 grid, time challenges, combo multipliers
+
+**Scoring System:**
 - 3 tiles: 30 points
-- 4 tiles: 80 points (2.67x)
-- 5 tiles: 150 points (5x)
-- 6+ tiles: 200+ points (6.67x+)
+- 4 tiles: 80 points (2.67× multiplier)
+- 5 tiles: 150 points (5× multiplier)
+- 6+ tiles: 200+ points (6.67×+ multiplier)
 
-**Rewards:** 
-- Fee: 0.001 ETH → Treasury
-- Win: JOYB tokens → User claims from profile
+### 🃏 3-Card Game (CardGame)
 
----
+**Luck-based strategy with blockchain randomness**
 
-### 3-Card Game (CardGame)
+- **🎯 Objective**: Choose 1 of 3 face-down cards
+- **💰 Entry Fee**: 0.002 ETH (configurable)
+- **🏆 Win Rate**: ~33.3% with block-based randomness
+- **⚡ Features**: Instant results, fair distribution
 
-**How to Play:**
-1. Choose 1 of 3 cards
-2. Pay fee (0.002 ETH default)
-3. Block randomness determines win
-4. Win rate: ~33.3%
-5. Win → Pending rewards in JOYB
-6. Go to Profile → Claim Rewards
+### 📅 Daily Claim (DailyClaim)
 
-**Economics:**
-- Play Fee: 0.002 ETH (configurable)
-- Win Amount: JOYB tokens (configurable)
-- Funding: Owner transfers JOYB to contract
+**Build streaks for maximum rewards**
 
----
-
-### Daily Claim (DailyClaim)
-
-**How it Works:**
-1. Claim once per 24 hours
-2. Build streaks for bonuses
-3. Rewards accumulate in pending balance
-4. Go to Profile → Claim Rewards
-
-**Rewards Structure:**
-- Base: 0.001 JOYB
-- Streak bonus: +0.0002 JOYB per day
-- Max bonus: 0.002 JOYB (10-day streak)
-
----
-
-## 💰 Reward System
-
-### How Rewards Work
-
-**All games use JOYB token rewards:**
-
-```
-┌─────────────┐
-│  Play Game  │ → Pay ETH fee → Treasury
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Win/Claim  │ → pendingRewards[player] += amount
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│   Profile   │ → User clicks "Claim Rewards"
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ JOYB Tokens │ → Transferred to player wallet
-└─────────────┘
-```
-
-### Claim Rewards (Profile Page)
-
-All rewards from all 3 games go to **Profile page** for claiming:
-
-1. **JoybitGame rewards** → Claim button
-2. **CardGame rewards** → Claim button  
-3. **DailyClaim rewards** → Claim button
-
-**How to Claim:**
-```solidity
-// User calls from frontend
-joybitGame.claimReward()   // Claims Match-3 rewards
-cardGame.claimReward()      // Claims CardGame rewards
-dailyClaim.claimReward()    // Claims Daily rewards
-```
-
-**Check Pending:**
-```solidity
-joybitGame.pendingRewards(playerAddress)
-cardGame.pendingRewards(playerAddress)
-dailyClaim.pendingRewards(playerAddress)
-```
-
----
-
-## 🛠️ Admin Panel
-
-### Access
-1. Click Joybit logo **10 times** on homepage
-2. Connect with authorized admin wallet
-3. Panel unlocks if wallet matches `NEXT_PUBLIC_ADMIN_WALLET_ADDRESS`
-
-### Admin Features
-
-**GameSettings:**
-- Configure play fees (ETH)
-- Set win rewards (JOYB)
-- Update CardGame settings
-- View contract addresses
-
-**Treasury Management:**
-- View total balance
-- Withdraw fees collected
-- Emergency controls
-- Authorize/deauthorize contracts
-
-**Access Control:**
-- Add/remove admin wallets
-- View all administrators
-- Manage permissions
-
----
-
-## 🧪 Testing
-
-### Run All Tests
-```bash
-npx hardhat test
-```
-
-**Expected Output:**
-```
-  JoybitGame Contract
-    ✓ Deployment
-    ✓ Should submit result and track rewards
-    ✓ Should claim rewards
-    ... (60 more tests)
-    
-  CardGame Contract
-    ✓ Should use JOYB tokens for rewards
-    ✓ Should allow users to claim
-    ... (40 more tests)
-    
-  DailyClaim Contract  
-    ✓ Should track streaks
-    ✓ Should distribute JOYB rewards
-    ... (50 more tests)
-    
-  293 passing (9s)
-  4 pending
-```
-
-### Gas Optimization Tests
-4 gas tests are skipped due to `.transfer()` gas limit requirements. This is expected behavior.
-
-### Test Coverage
-```bash
-npx hardhat coverage
-```
+- **🎯 Objective**: Claim daily rewards to build streaks
+- **💰 Base Reward**: 0.001 JOYB tokens
+- **🏆 Streak Bonus**: +0.0002 JOYB per consecutive day
+- **⚡ Features**: Automatic tracking, NFT achievements
 
 ---
 
 ## 🏗️ Architecture
 
-### Contract Flow
+### Smart Contracts
 
-```
-┌─────────────────┐
-│  JoybitToken    │ ← ERC20 token (JOYB)
-└────────┬────────┘
-         │ transfers
-         ▼
-┌─────────────────┐     ┌──────────────┐
-│   JoybitGame    │────→│   Treasury   │
-│   CardGame      │────→│  (Fees ETH)  │
-│   DailyClaim    │────→│              │
-└─────────────────┘     └──────────────┘
-         │
-         │ rewards (JOYB)
-         ▼
-┌─────────────────┐
-│  Player Wallet  │
-└─────────────────┘
-```
+| Contract | Purpose | Key Features |
+|----------|---------|--------------|
+| **JoybitToken** | ERC20 Token | JOYB token with 18 decimals |
+| **JoybitGame** | Match-3 Logic | Score validation, reward distribution |
+| **CardGame** | Card Game | Block randomness, JOYB rewards |
+| **DailyClaim** | Daily Rewards | Streak tracking, NFT achievements |
+| **Treasury** | Fund Management | ETH fee collection, authorized withdrawals |
+| **GameSettings** | Configuration | Dynamic pricing, game parameters |
+| **AccessControl** | Permissions | Role-based access, admin management |
+
+### Tech Stack
+
+**Frontend:**
+- Next.js 14 with App Router
+- TypeScript for type safety
+- TailwindCSS for styling
+- Framer Motion for animations
+- Wagmi v2 + RainbowKit for Web3
+
+**Blockchain:**
+- Solidity 0.8.22+
+- OpenZeppelin contracts
+- Hardhat development framework
+- Base Sepolia testnet
+
+**Database:**
+- Turso (SQLite) for user data
+- Achievement tracking
+- Game statistics
+
+---
+
+## 💰 Token Economy
+
+### JOYB Token
+
+- **Total Supply**: 1,000,000,000 JOYB
+- **Decimals**: 18
+- **Standard**: ERC20
+- **Utility**: Gaming rewards, NFT purchases
 
 ### Reward Distribution
 
-**Method 1: User Claims (Recommended)**
-```solidity
-// User-initiated (gas paid by user)
-contract.claimReward()
+```
+Gameplay → ETH Fee → Treasury
+    ↓
+Win/Loss → JOYB Reward → Pending Balance
+    ↓
+Claim → Transfer → Player Wallet
 ```
 
-**Method 2: Admin Distributes**
-```solidity
-// Admin-initiated (gas paid by admin)
-contract.distributeReward(player, amount)
-contract.batchDistributeRewards(players[], amounts[])
-```
+### Economic Model
+
+- **Play Fees**: ETH collected in Treasury
+- **Win Rewards**: JOYB distributed from game contracts
+- **Claim System**: User-initiated reward collection
+- **Treasury**: Admin-managed fund distribution
 
 ---
 
-## 📁 Project Structure
+## 🏆 Achievement System
 
-```
-joybit/
-├── app/                    # Next.js pages
-│   ├── game/              # Match-3 game
-│   ├── card-game/         # 3-card game  
-│   ├── daily-claim/       # Daily rewards
-│   ├── profile/           # Claim rewards HERE
-│   ├── leaderboard/       # Rankings
-│   └── admin/             # Admin panel
-├── contracts/             # Solidity contracts
-│   ├── JoybitToken.sol    # ERC20 token
-│   ├── JoybitGame.sol     # Match-3 logic
-│   ├── CardGame.sol       # Card game (JOYB rewards)
-│   ├── DailyClaim.sol     # Daily system
-│   ├── Treasury.sol       # Fee management
-│   ├── BoosterShop.sol    # Items
-│   ├── GameSettings.sol   # Config
-│   └── AccessControl.sol  # Permissions
-├── scripts/
-│   └── deploy-testnet.js  # Deployment script
-├── test/                  # Hardhat tests
-├── lib/
-│   ├── contracts/         # ABIs & addresses
-│   └── hooks/             # React hooks
-└── components/            # React components
-```
+Unlock exclusive NFTs and track your gaming progress:
+
+### 🎖️ Achievement Categories
+
+- **Match-3 Achievements**: First Win, Hot Streak, Gem Master, etc.
+- **Card Game Achievements**: Card Novice, Card Winner, Card Expert, etc.
+- **Daily Claim Achievements**: Daily Starter, Streak Master, Dedicated Player, etc.
+- **General Achievements**: Well Rounded, High Scorer, Level Climber, etc.
+
+### 🏅 Rarity Tiers
+
+- **Common** (Yellow): Basic achievements
+- **Rare** (Blue): Moderate challenges
+- **Epic** (Purple): Advanced goals
+- **Legendary** (Teal): Expert level
+- **Mythic** (Rose): Ultimate challenges
 
 ---
 
-## 🐛 Troubleshooting
+## 🔧 Development
 
-### Build Errors
+### Environment Setup
 
-**Error: BigInt not supported**
-```bash
-# Check tsconfig.json target is ES2020+
-"target": "ES2020"
-```
-
-**Error: Module not found**
-```bash
-npm install
-npm run build
-```
-
-### Contract Errors
-
-**Error: Insufficient funds**
-- Get testnet ETH from faucet
-- Check wallet has enough balance
-
-**Error: Contract not authorized**
-- Only owner can call admin functions
-- Check if contract authorized in Treasury
-
-**Error: No rewards to claim**
-- Play games first to earn rewards
-- Check `pendingRewards` balance
-
-### Frontend Issues
-
-**Wallet won't connect**
-- Check `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
-- Clear browser cache
-- Try different wallet
-
-**Transactions fail**
-- Check network (Base Sepolia vs Mainnet)
-- Verify contract addresses in `.env.local`
-- Ensure sufficient gas
-
----
-
-## 📊 Token Economics (JOYB)
-
-### Initial Supply
-- **Total**: 1,000,000,000 JOYB (1 billion)
-- **Decimals**: 18
-- **Owner**: Deployer wallet
-
-### Distribution
-- **Match-3 Rewards**: 100,000,000 JOYB
-- **CardGame Rewards**: 1,000,000 JOYB  
-- **DailyClaim Rewards**: 10,000,000 JOYB
-- **Treasury**: Remaining balance
-
-### Funding Games
-```javascript
-// Transfer JOYB to game contracts
-joybitToken.transfer(joybitGameAddress, parseEther("100000000"))
-joybitToken.transfer(cardGameAddress, parseEther("1000000"))  
-joybitToken.transfer(dailyClaimAddress, parseEther("10000000"))
-```
-
----
-
-## 🔒 Security
-
-### Implemented
-✅ ReentrancyGuard on `claimReward()`, `distributeReward()`  
-✅ Access control (onlyOwner, onlyAuthorized)  
-✅ Withdrawal limits on Treasury  
-✅ Pausable contracts for emergencies  
-✅ Block-based randomness (casual game)  
-✅ OpenZeppelin audited contracts  
-
-### Recommendations
-⚠️ Get professional audit before mainnet  
-⚠️ Test extensively on testnet  
-⚠️ Monitor contract balances  
-⚠️ Set up multisig for admin wallet  
-
----
-
-## 📝 Environment Variables
-
-### Complete .env.local Template
+Create `.env.local` with the following variables:
 
 ```env
-# Network
+# Network Configuration
 NEXT_PUBLIC_CHAIN_ID=84532
 NEXT_PUBLIC_BASE_TESTNET_RPC_URL=https://sepolia.base.org
 
 # WalletConnect
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
 
-# Admin
+# Admin Configuration
 NEXT_PUBLIC_ADMIN_WALLET_ADDRESS=0xYourAdminAddress
+
+# Database (Turso)
+TURSO_DATABASE_URL=your_database_url
+TURSO_AUTH_TOKEN=your_auth_token
 
 # Contract Addresses (after deployment)
 NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS=0x...
@@ -538,84 +212,159 @@ NEXT_PUBLIC_JOYBIT_GAME_ADDRESS=0x...
 NEXT_PUBLIC_CARD_GAME_ADDRESS=0x...
 NEXT_PUBLIC_DAILY_CLAIM_ADDRESS=0x...
 NEXT_PUBLIC_TREASURY_ADDRESS=0x...
-NEXT_PUBLIC_BOOSTER_SHOP_ADDRESS=0x...
-NEXT_PUBLIC_GAME_SETTINGS_ADDRESS=0x...
-NEXT_PUBLIC_ACCESS_CONTROL_ADDRESS=0x...
+```
 
-# Deployment (Hardhat)
-PRIVATE_KEY=your_private_key
-BASESCAN_API_KEY=optional_for_verification
+### Available Scripts
+
+```bash
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+
+# Testing
+npm run test         # Run all tests
+npm run test:watch   # Run tests in watch mode
+
+# Contracts
+npm run compile      # Compile Solidity contracts
+npm run deploy:test  # Deploy to testnet
+npm run deploy:main  # Deploy to mainnet
+```
+
+### Testing
+
+```bash
+# Run comprehensive test suite
+npx hardhat test
+
+# Expected: 293 passing tests
+# Includes unit tests, integration tests, and gas optimization checks
 ```
 
 ---
 
-## 🚢 Production Deployment
+## 🌐 Deployment
 
-### Frontend (Vercel)
+### Testnet Deployment (Base Sepolia)
 
-1. **Push to GitHub**
 ```bash
-git init
-git add .
-git commit -m "Ready for deployment"
-git push origin main
+# Deploy all contracts
+npx hardhat run scripts/deploy-testnet.js --network baseSepolia
+
+# Verify contracts on BaseScan
+npx hardhat verify --network baseSepolia <CONTRACT_ADDRESS>
 ```
 
-2. **Deploy on Vercel**
-   - Import repository
-   - Add all environment variables
-   - Deploy
-
-3. **Update Contract Addresses**
-   - After deploying contracts
-   - Update Vercel environment variables
-   - Redeploy frontend
-
-### Contracts (Base Mainnet)
+### Production Deployment
 
 ```bash
-# Deploy to mainnet
+# Deploy to Base mainnet
 npx hardhat run scripts/deploy-testnet.js --network base
 
-# Verify on BaseScan
-npx hardhat verify --network base <ADDRESS> <ARGS>
+# Update frontend environment variables
+# Redeploy on Vercel/Netlify
+```
+
+### Frontend Deployment
+
+**Vercel (Recommended):**
+1. Connect GitHub repository
+2. Add environment variables
+3. Deploy automatically
+
+**Manual:**
+```bash
+npm run build
+npm run start
 ```
 
 ---
 
-## 🎯 Key Differences from Other Projects
+## 🔐 Security
 
-### Unified Token Economy
-- **All rewards in JOYB** (not ETH)
-- CardGame fixed to use JOYB tokens
-- Consistent reward claiming across all games
+### Implemented Safeguards
 
-### User-Centric Claims  
-- **Players claim their own rewards**
-- No admin overhead for distribution
-- Profile page centralized claim hub
+- ✅ **ReentrancyGuard** on all reward functions
+- ✅ **Access Control** with role-based permissions
+- ✅ **Pausable Contracts** for emergency stops
+- ✅ **Withdrawal Limits** on Treasury
+- ✅ **OpenZeppelin Standards** for battle-tested code
+- ✅ **Input Validation** on all user functions
 
-### Modular Architecture
-- Each game is independent contract
-- Treasury manages all ETH fees
-- Games don't hold ETH (hold JOYB)
+### Best Practices
+
+- Regular security audits recommended
+- Extensive testnet testing before mainnet
+- Multisig wallet for admin operations
+- Continuous monitoring of contract balances
+
+---
+
+## 📊 Analytics & Monitoring
+
+### Game Statistics
+
+- Real-time player counts
+- Game completion rates
+- Reward distribution tracking
+- Achievement unlock metrics
+
+### Contract Monitoring
+
+- Balance tracking across all contracts
+- Transaction volume analysis
+- Gas usage optimization
+- Error rate monitoring
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Development Guidelines
+
+- Follow TypeScript best practices
+- Write comprehensive tests
+- Update documentation
+- Ensure security standards
+
+---
+
+## 📝 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Base** for the excellent blockchain infrastructure
+- **OpenZeppelin** for secure smart contract libraries
+- **RainbowKit** for seamless wallet integration
+- **Framer Motion** for smooth animations
 
 ---
 
 ## 📞 Support
 
-**Issues**: Open GitHub issue  
-**Questions**: Check this README  
-**Contributions**: Pull requests welcome
+- **🐛 Issues**: [GitHub Issues](https://github.com/Adrijan-Petek/joybit/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/Adrijan-Petek/joybit/discussions)
+- **📧 Contact**: [adrijan@joybit.game](mailto:adrijan@joybit.game)
 
 ---
 
-## 📜 License
+<div align="center">
 
-MIT License - See LICENSE file
+**Built with ❤️ on Base** • **Powered by JOYB** • **Made for Gamers**
 
----
+[🎮 Start Playing](https://joybit.vercel.app) • [📚 Documentation](#) • [💬 Discord](#)
 
-**Built on Base Sepolia** 🔵  
-**Powered by JOYB Token** 💎  
-**Play → Earn → Claim** 🎮
+</div>
