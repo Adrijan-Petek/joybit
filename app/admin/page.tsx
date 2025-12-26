@@ -161,7 +161,7 @@ export default function AdminPage() {
               className="space-y-4 md:space-y-6"
             >
               <LevelRewardsManager />
-              <Match3GameSection />
+              <Match3GameSection setActiveTab={setActiveTab} />
               <CardGameSection />
               <DailyClaimSection />
             </motion.div>
@@ -178,6 +178,7 @@ export default function AdminPage() {
               <MultiTokenManagement />
               <LeaderboardRewardsSection />
               <MultiTokenLeaderboardRewardsSection />
+              <LevelRewardDistributionSection />
             </motion.div>
           )}
 
@@ -1765,6 +1766,8 @@ function TreasurySection() {
   const [adminAddress, setAdminAddress] = useState('')
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
   const [tokenMetadata, setTokenMetadata] = useState<Record<string, { image: string; symbol: string }>>({})
+  const [currentAdmins, setCurrentAdmins] = useState<string[]>([])
+  const [checkingAdmins, setCheckingAdmins] = useState(false)
   
   const { writeContractAsync: writeContract, isPending } = useWriteContract()
   const { isLoading: isProcessing, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
@@ -1812,8 +1815,36 @@ function TreasurySection() {
       setWithdrawTokenAddress('')
       setWithdrawTokenAmount('')
       setAdminAddress('')
+      // Refresh admin list after admin operations
+      checkAdminList()
     }
   }, [isSuccess])
+
+  // Check admin status for known addresses
+  const checkAdminList = async () => {
+    setCheckingAdmins(true)
+    try {
+      // For now, just show the owner address as admin
+      // TODO: Implement proper admin checking with correct wagmi config
+      const ownerAddress = process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS
+      
+      if (ownerAddress) {
+        setCurrentAdmins([ownerAddress])
+      } else {
+        setCurrentAdmins([])
+      }
+    } catch (error) {
+      console.error('Error checking admin list:', error)
+      setCurrentAdmins([])
+    } finally {
+      setCheckingAdmins(false)
+    }
+  }
+
+  // Load admin list on component mount
+  useEffect(() => {
+    checkAdminList()
+  }, [])
 
   const handleWithdrawETH = async () => {
     if (!withdrawETH || Number(withdrawETH) <= 0) {
@@ -2033,6 +2064,38 @@ function TreasurySection() {
       </div>
 
       <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-white/10">
+        <label className="block text-xs md:text-sm text-blue-200 mb-2">Current Admins</label>
+        <div className="bg-gray-800/50 rounded-lg p-3 mb-4">
+          {checkingAdmins ? (
+            <div className="text-sm text-gray-400">🔍 Checking admin status...</div>
+          ) : currentAdmins.length > 0 ? (
+            <div className="space-y-2">
+              {currentAdmins.map((admin) => (
+                <div key={admin} className="flex items-center justify-between bg-gray-700/50 rounded p-2">
+                  <span className="text-sm font-mono text-green-400">
+                    {admin.slice(0, 6)}...{admin.slice(-4)}
+                  </span>
+                  <span className="text-xs text-green-300 bg-green-500/20 px-2 py-1 rounded">
+                    ✅ Owner/Admin
+                  </span>
+                </div>
+              ))}
+              <div className="text-xs text-gray-500 mt-2">
+                💡 Showing contract owner. Additional admins can be added below.
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-400">No owner address configured</div>
+          )}
+          <button
+            onClick={checkAdminList}
+            disabled={checkingAdmins}
+            className="mt-2 text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 px-3 py-1 rounded transition-all"
+          >
+            🔄 Refresh
+          </button>
+        </div>
+
         <label className="block text-xs md:text-sm text-blue-200 mb-2">Admin Management</label>
         <div className="grid grid-cols-5 gap-2">
           <input
@@ -2989,7 +3052,8 @@ function MultiTokenLeaderboardRewardsSection() {
 }
 
 // Match-3 Game Section  
-function Match3GameSection() {
+function Match3GameSection({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
+  const { address } = useAccount()
   const [playFee, setPlayFee] = useState('')
   const [levelRewardLevel, setLevelRewardLevel] = useState('')
   const [levelRewardAmount, setLevelRewardAmount] = useState('')
@@ -3002,8 +3066,7 @@ function Match3GameSection() {
     colorBombPack: ''
   })
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
-  const [pendingCompletions, setPendingCompletions] = useState<any[]>([])
-  
+
   const { writeContractAsync: writeContract, isPending } = useWriteContract()
   const { isLoading: isProcessing, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
@@ -3021,22 +3084,6 @@ function Match3GameSection() {
       setLevelRewardAmount('')
     }
   }, [isSuccess])
-
-  // Load pending level completions
-  useEffect(() => {
-    const loadPendingCompletions = async () => {
-      try {
-        const response = await fetch('/api/level-completions?pending=true')
-        if (response.ok) {
-          const data = await response.json()
-          setPendingCompletions(data)
-        }
-      } catch (error) {
-        console.error('Failed to load pending completions:', error)
-      }
-    }
-    loadPendingCompletions()
-  }, [])
 
   const handleSetPlayFee = async () => {
     if (!playFee || Number(playFee) < 0) {
@@ -3100,71 +3147,6 @@ function Match3GameSection() {
     } catch (error) {
       console.error(error)
       alert('❌ Transaction rejected')
-    }
-  }
-
-  const handleDistributeRewards = async () => {
-    if (pendingCompletions.length === 0) {
-      alert('❌ No pending rewards to distribute')
-      return
-    }
-
-    try {
-      // Group completions by address for batch processing
-      const addressRewards: Record<string, { totalAmount: bigint; completionIds: number[] }> = {}
-      
-      pendingCompletions.forEach((completion: any) => {
-        const address = completion.address
-        const amount = BigInt(completion.reward_amount)
-        
-        if (!addressRewards[address]) {
-          addressRewards[address] = { totalAmount: 0n, completionIds: [] }
-        }
-        
-        addressRewards[address].totalAmount += amount
-        addressRewards[address].completionIds.push(completion.id)
-      })
-
-      // Distribute rewards for each address
-      for (const [address, data] of Object.entries(addressRewards)) {
-        console.log(`🎁 Distributing ${data.totalAmount} JOYB to ${address}`)
-        
-        const hash = await writeContract({
-          address: CONTRACT_ADDRESSES.treasury,
-          abi: TREASURY_ABI,
-          functionName: 'creditReward',
-          args: [
-            address as `0x${string}`,
-            CONTRACT_ADDRESSES.joybitToken as `0x${string}`,
-            data.totalAmount
-          ],
-        })
-        
-        // Wait for transaction to complete
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        
-        // Mark completions as distributed
-        await fetch('/api/level-completions', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: data.completionIds })
-        })
-        
-        console.log(`✅ Distributed rewards to ${address}`)
-      }
-      
-      alert(`✅ Successfully distributed rewards to ${Object.keys(addressRewards).length} players!`)
-      
-      // Reload pending completions
-      const response = await fetch('/api/level-completions?pending=true')
-      if (response.ok) {
-        const data = await response.json()
-        setPendingCompletions(data)
-      }
-      
-    } catch (error) {
-      console.error('Failed to distribute rewards:', error)
-      alert('❌ Failed to distribute rewards')
     }
   }
 
@@ -3288,46 +3270,6 @@ function Match3GameSection() {
           >
             {isPending || isProcessing ? '⏳ Processing...' : 'Update All Booster Prices'}
           </button>
-        </div>
-
-        {/* Level Reward Distribution */}
-        <div className="pt-4 border-t border-white/10">
-          <label className="block text-sm text-purple-200 mb-2">🎁 Level Reward Distribution</label>
-          <div className="bg-gray-800/50 rounded-lg p-3 mb-3">
-            <div className="text-sm text-gray-300 mb-2">
-              Pending distributions: <span className="text-yellow-400 font-bold">{pendingCompletions.length}</span>
-            </div>
-            {pendingCompletions.length > 0 && (
-              <div className="space-y-1 max-h-32 overflow-y-auto">
-                {pendingCompletions.slice(0, 5).map((completion: any) => (
-                  <div key={completion.id} className="text-xs bg-gray-700/50 rounded p-2">
-                    <div className="flex justify-between">
-                      <span>Level {completion.level}</span>
-                      <span className="text-green-400">{completion.reward_amount} JOYB</span>
-                    </div>
-                    <div className="text-gray-400 text-[10px] mt-1">
-                      {completion.address.slice(0, 6)}...{completion.address.slice(-4)}
-                    </div>
-                  </div>
-                ))}
-                {pendingCompletions.length > 5 && (
-                  <div className="text-xs text-gray-400 text-center">
-                    ...and {pendingCompletions.length - 5} more
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <button 
-            onClick={handleDistributeRewards}
-            disabled={isPending || isProcessing || pendingCompletions.length === 0}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 px-4 py-3 rounded-lg font-bold transition-all"
-          >
-            {isPending || isProcessing ? '⏳ Distributing...' : `🎁 Distribute ${pendingCompletions.length} Rewards`}
-          </button>
-          <p className="text-xs text-gray-400 mt-1">
-            💰 Distribute pending level rewards to players via smart contract
-          </p>
         </div>
       </div>
     </motion.div>
@@ -3621,6 +3563,262 @@ function ContractAddresses() {
           <span className="text-yellow-300">{CONTRACT_ADDRESSES.joybitToken}</span>
         </div>
       </div>
+    </motion.div>
+  )
+}
+
+// Level Reward Distribution Section
+function LevelRewardDistributionSection() {
+  const [pendingCompletions, setPendingCompletions] = useState<any[]>([])
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
+  const [currentProcessingIndex, setCurrentProcessingIndex] = useState(-1)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [isTreasuryAdmin, setIsTreasuryAdmin] = useState(false)
+
+  const { address } = useAccount()
+  const { writeContractAsync: creditReward, isPending } = useWriteContract()
+  const { isLoading: isProcessing, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+
+  const { data: isTreasuryAdminData } = useReadContract({
+    address: CONTRACT_ADDRESSES.treasury,
+    abi: TREASURY_ABI,
+    functionName: 'isAdmin',
+    args: address ? [address] : undefined,
+  })
+
+  useEffect(() => {
+    setIsTreasuryAdmin(!!isTreasuryAdminData)
+  }, [isTreasuryAdminData])
+
+  // Load pending level completions
+  useEffect(() => {
+    const loadPendingCompletions = async () => {
+      try {
+        console.log('🔍 Admin: Fetching pending level completions...')
+        const response = await fetch('/api/level-completions?pending=true')
+        if (response.ok) {
+          const data = await response.json()
+          console.log('✅ Admin: Pending completions loaded:', data.length, 'items')
+          setPendingCompletions(data)
+          setLastUpdated(new Date())
+        } else {
+          console.error('❌ Admin: Failed to fetch pending completions:', response.status)
+        }
+      } catch (error) {
+        console.error('❌ Admin: Error loading pending completions:', error)
+      }
+    }
+
+    // Load immediately
+    loadPendingCompletions()
+
+    // Set up automatic refresh every 5 seconds
+    const interval = setInterval(loadPendingCompletions, 5000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (isSuccess && currentProcessingIndex >= 0) {
+      // Mark current completion as distributed
+      markCompletionDistributed(pendingCompletions[currentProcessingIndex].id)
+
+      // Process next reward if there are more
+      const nextIndex = currentProcessingIndex + 1
+      if (nextIndex < pendingCompletions.length) {
+        setCurrentProcessingIndex(nextIndex)
+        processNextReward(nextIndex)
+      } else {
+        // All rewards processed
+        setCurrentProcessingIndex(-1)
+        alert('✅ All level rewards distributed successfully!')
+        // Reload pending completions
+        fetch('/api/level-completions?pending=true')
+          .then(response => response.ok ? response.json() : [])
+          .then(data => {
+            setPendingCompletions(data)
+            setLastUpdated(new Date())
+          })
+      }
+    }
+  }, [isSuccess, currentProcessingIndex, pendingCompletions])
+
+  const markCompletionDistributed = async (completionId: number) => {
+    try {
+      await fetch('/api/level-completions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [completionId] })
+      })
+    } catch (error) {
+      console.error('Failed to mark completion as distributed:', error)
+    }
+  }
+
+  const processNextReward = async (index: number) => {
+    const completion = pendingCompletions[index]
+    if (!completion) return
+
+    try {
+      const hash = await creditReward({
+        address: CONTRACT_ADDRESSES.treasury,
+        abi: TREASURY_ABI,
+        functionName: 'creditReward',
+        args: [
+          completion.address as `0x${string}`,
+          CONTRACT_ADDRESSES.joybitToken,
+          parseEther(completion.reward_amount)
+        ],
+      })
+      setTxHash(hash)
+    } catch (error) {
+      console.error(`Error distributing reward for level ${completion.level}:`, error)
+      alert(`❌ Failed to distribute reward for level ${completion.level}`)
+      setCurrentProcessingIndex(-1)
+    }
+  }
+
+  const handleDistributeRewards = async () => {
+    if (pendingCompletions.length === 0) {
+      alert('❌ No pending rewards to distribute')
+      return
+    }
+
+    // Check if current wallet is an admin
+    if (!isTreasuryAdmin) {
+      alert('❌ Your wallet is not authorized to distribute rewards. Only admin wallets can perform this action.')
+      return
+    }
+
+    // Start processing from first reward
+    setCurrentProcessingIndex(0)
+    await processNextReward(0)
+  }
+
+  const fetchLevelCompletionsFromDB = async () => {
+    try {
+      console.log('🔍 Fetching level completions from database...')
+
+      // Fetch all level completions (not just pending)
+      const response = await fetch('/api/level-completions')
+      if (!response.ok) {
+        throw new Error('Failed to fetch level completions')
+      }
+
+      const allCompletions = await response.json()
+      console.log('📊 All level completions:', allCompletions)
+
+      // Also fetch pending completions
+      const pendingResponse = await fetch('/api/level-completions?pending=true')
+      if (pendingResponse.ok) {
+        const pendingData = await pendingResponse.json()
+        setPendingCompletions(pendingData)
+        setLastUpdated(new Date())
+      }
+
+      // Display results
+      const message = `📊 Database Results:\n` +
+        `Total completions: ${allCompletions.length}\n` +
+        `Pending distributions: ${pendingCompletions.length}\n\n` +
+        `Sample completions:\n${allCompletions.slice(0, 3).map((c: any) =>
+          `Level ${c.level}: ${c.reward_amount} JOYB (${c.distributed ? '✅ Distributed' : '⏳ Pending'})`
+        ).join('\n')}`
+
+      alert(message)
+
+    } catch (error) {
+      console.error('Error fetching level completions:', error)
+      alert(`❌ Error: ${error}`)
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-purple-500/20 border border-purple-500/30 rounded-xl p-6"
+    >
+      <h2 className="text-2xl font-bold mb-4">🎮 Level Reward Distribution</h2>
+      <p className="text-sm text-gray-300 mb-4">
+        Distribute pending level completion rewards to players via smart contract
+      </p>
+
+      {/* Status */}
+      <div className="mb-4 p-4 bg-black/40 rounded-lg">
+        <div className="flex items-center justify-between mb-2">
+          <span>Admin Status:</span>
+          <span className={`px-2 py-1 rounded text-xs font-bold ${isTreasuryAdmin ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+            {isTreasuryAdmin ? '✅ Authorized' : '❌ Not Authorized'}
+          </span>
+        </div>
+        <div className="text-sm text-gray-300 mb-2">
+          Pending distributions: <span className="text-yellow-400 font-bold">{pendingCompletions.length}</span>
+          <span className="text-xs text-gray-500 ml-2">
+            🔄 Updated {lastUpdated.toLocaleTimeString()}
+          </span>
+        </div>
+        {pendingCompletions.length > 0 && (
+          <div className="space-y-1 max-h-32 overflow-y-auto">
+            {pendingCompletions.slice(0, 5).map((completion: any) => (
+              <div key={completion.id} className="text-xs bg-gray-700/50 rounded p-2">
+                <div className="flex justify-between">
+                  <span>Level {completion.level}</span>
+                  <span className="text-green-400">{completion.reward_amount} JOYB</span>
+                </div>
+                <div className="text-gray-400 text-[10px] mt-1">
+                  {completion.address.slice(0, 6)}...{completion.address.slice(-4)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={handleDistributeRewards}
+          disabled={pendingCompletions.length === 0 || isPending || isProcessing || currentProcessingIndex >= 0}
+          className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-500 px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-2"
+        >
+          {currentProcessingIndex >= 0 ? (
+            <>
+              <span>⏳ Processing {currentProcessingIndex + 1}/{pendingCompletions.length}</span>
+            </>
+          ) : (
+            <>
+              <span>🎁 Distribute {pendingCompletions.length} Rewards</span>
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={fetchLevelCompletionsFromDB}
+          className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-bold transition-all"
+        >
+          🔍 Fetch DB Results
+        </button>
+      </div>
+
+      {/* Processing Status */}
+      {(isPending || isProcessing) && (
+        <div className="mt-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <span>⚙️ Processing transaction...</span>
+            {txHash && (
+              <a
+                href={`https://sepolia.etherscan.io/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 text-sm underline"
+              >
+                View on Etherscan
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </motion.div>
   )
 }

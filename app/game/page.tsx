@@ -214,7 +214,7 @@ export default function Match3Game() {
           // Record the level completion in database
           console.log(`🎁 Recording level ${gameState.level} completion with ${rewardAmount} JOYB reward`)
           
-          await fetch('/api/level-completions', {
+          const response = await fetch('/api/level-completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -225,6 +225,12 @@ export default function Match3Game() {
               rewardAmount: rewardAmount.toString()
             })
           })
+          
+          if (response.ok) {
+            console.log(`✅ Level ${gameState.level} completion saved to database`)
+          } else {
+            console.error(`❌ Failed to save level ${gameState.level} completion:`, response.status)
+          }
           
           // Send notification about the reward
           await notifyAdminReward(rewardAmount.toString(), 'JOYB')

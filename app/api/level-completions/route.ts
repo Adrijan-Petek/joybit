@@ -42,14 +42,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (pendingOnly) {
-      query += (address ? ' AND' : ' WHERE') + ' distributed = FALSE'
+      query += (address ? ' AND' : ' WHERE') + ' (distributed = 0 OR distributed IS NULL)'
     }
 
     query += ' ORDER BY completed_at DESC'
 
     const result = await client.execute(query, args)
 
-    console.log('✅ API: Level completions retrieved:', result.rows.length)
+    console.log('✅ API: Level completions retrieved:', result.rows.length, 'rows')
+    console.log('📊 Sample rows:', result.rows.slice(0, 3))
+
     return NextResponse.json(result.rows)
   } catch (error) {
     console.error('❌ API: Error fetching level completions:', error)
@@ -67,14 +69,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Address, level, and rewardAmount are required' }, { status: 400 })
     }
 
-    // Insert or update the level completion
+    // Insert or replace the level completion
     await client.execute({
       sql: `
-        INSERT INTO level_completions (address, level, reward_amount, completed_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(address, level) DO UPDATE SET
-          reward_amount = excluded.reward_amount,
-          completed_at = CURRENT_TIMESTAMP
+        INSERT OR REPLACE INTO level_completions (address, level, reward_amount, completed_at, distributed)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP, 0)
       `,
       args: [address, level, rewardAmount]
     })
