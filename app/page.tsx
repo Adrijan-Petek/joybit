@@ -15,6 +15,64 @@ import { notifyPlayGame } from '@/lib/utils/farcasterNotifications'
 import { sdk } from '@farcaster/miniapp-sdk'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 
+function SeasonDisplay() {
+  const [activeSeason, setActiveSeason] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const loadActiveSeason = async () => {
+      try {
+        const response = await fetch('/api/seasons')
+        if (response.ok) {
+          const data = await response.json()
+          // Show active season, or if no active season, show the most recent one
+          setActiveSeason(data.activeSeason || (data.seasons && data.seasons.length > 0 ? data.seasons[0] : null))
+        }
+      } catch (error) {
+        console.error('Failed to load active season:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadActiveSeason()
+  }, [])
+
+  if (isLoading || !activeSeason) return null
+
+  const now = new Date()
+  const endDate = new Date(activeSeason.end_date)
+  const timeLeft = endDate.getTime() - now.getTime()
+  const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24))
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full"
+    >
+      <div className={`bg-gradient-to-r ${activeSeason.is_active ? 'from-purple-500/20 to-blue-500/20 border-purple-500/30' : 'from-gray-500/20 to-gray-600/20 border-gray-500/30'} border rounded-lg p-4 backdrop-blur-sm`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">{activeSeason.is_active ? '🌟' : '⏸️'}</div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-white font-bold text-lg">{activeSeason.name}</h4>
+                {!activeSeason.is_active && <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded">Inactive</span>}
+              </div>
+              <p className={`text-sm ${activeSeason.is_active ? 'text-purple-200' : 'text-gray-300'}`}>{activeSeason.description}</p>
+            </div>
+          </div>
+          <div className={`flex items-center gap-4 text-sm ${activeSeason.is_active ? 'text-purple-300' : 'text-gray-400'}`}>
+            <span className="flex items-center gap-1">⏰ {daysLeft > 0 ? `${daysLeft}d left` : 'Ended'}</span>
+            <span className="flex items-center gap-1">🎁 {activeSeason.rewards_multiplier}x rewards</span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 export default function Home() {
   const router = useRouter()
   const { playMusic } = useAudio()
@@ -268,66 +326,71 @@ export default function Home() {
           </motion.div>
         </motion.header>
 
-        {/* Announcement Banner */}
-        {announcements.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-6 md:mb-8"
-          >
-            <motion.div 
-              className="bg-black border-2 border-yellow-500 rounded-lg px-4 py-3 md:px-6 md:py-4 shadow-lg shadow-yellow-500/20 overflow-hidden"
-              animate={{
-                boxShadow: [
-                  '0 0 10px rgba(234, 179, 8, 0.2)',
-                  '0 0 20px rgba(234, 179, 8, 0.4)',
-                  '0 0 10px rgba(234, 179, 8, 0.2)',
-                ]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              <style jsx>{`
-                @keyframes carouselScroll {
-                  0% {
-                    transform: translateX(0);
-                  }
-                  100% {
-                    transform: translateX(-50%);
-                  }
-                }
-                .carousel-track {
-                  animation: carouselScroll 35s linear infinite;
-                  display: inline-flex;
-                  will-change: transform;
-                }
-              `}</style>
-              <div className="carousel-track">
-                {[...Array(2)].map((_, setIndex) => (
-                  <div key={setIndex} className="flex items-center whitespace-nowrap">
-                    {announcements.map((msg, i) => (
-                      <span 
-                        key={`${setIndex}-${i}`} 
-                        className="text-yellow-400 font-mono text-sm md:text-base tracking-wide px-4"
-                        style={{ textShadow: '0 0 10px rgba(234, 179, 8, 0.5)' }}
-                      >
-                        📢 {msg}
-                        <span className="mx-4">•</span>
-                      </span>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
+          {/* Announcement Banner */}
+          {announcements.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-6 md:mb-8"
+            >
+              <motion.div 
+                className="bg-black border-2 border-yellow-500 rounded-lg px-4 py-3 md:px-6 md:py-4 shadow-lg shadow-yellow-500/20 overflow-hidden"
+                animate={{
+                  boxShadow: [
+                    '0 0 10px rgba(234, 179, 8, 0.2)',
+                    '0 0 20px rgba(234, 179, 8, 0.4)',
+                    '0 0 10px rgba(234, 179, 8, 0.2)',
+                  ]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <style jsx>{`
+                  @keyframes carouselScroll {
+                    0% {
+                      transform: translateX(0);
+                    }
+                    100% {
+                      transform: translateX(-50%);
+                    }
+                  }
+                  .carousel-track {
+                    animation: carouselScroll 35s linear infinite;
+                    display: inline-flex;
+                    will-change: transform;
+                  }
+                `}</style>
+                <div className="carousel-track">
+                  {[...Array(2)].map((_, setIndex) => (
+                    <div key={setIndex} className="flex items-center whitespace-nowrap">
+                      {announcements.map((msg, i) => (
+                        <span 
+                          key={`${setIndex}-${i}`} 
+                          className="text-yellow-400 font-mono text-sm md:text-base tracking-wide px-4"
+                          style={{ textShadow: '0 0 10px rgba(234, 179, 8, 0.5)' }}
+                        >
+                          📢 {msg}
+                          <span className="mx-4">•</span>
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Season Display - Full Width */}
+          <div className="mb-6 md:mb-8">
+            <SeasonDisplay />
+          </div>
+
           <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-8 md:mb-12">
             {/* Play Match-3 Game */}
             <motion.div

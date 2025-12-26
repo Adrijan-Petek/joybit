@@ -147,6 +147,7 @@ export default function AdminPage() {
               transition={{ duration: 0.3 }}
               className="space-y-4 md:space-y-6"
             >
+              <SeasonSettings />
               <AnnouncementManager />
               <NotificationsManager />
               <ScheduledNotificationsManager />
@@ -196,6 +197,374 @@ export default function AdminPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Season Settings Section
+function SeasonSettings() {
+  const [seasons, setSeasons] = useState<any[]>([])
+  const [activeSeason, setActiveSeason] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [editingSeason, setEditingSeason] = useState<any>(null)
+
+  // Form state
+  const [seasonName, setSeasonName] = useState('')
+  const [seasonDescription, setSeasonDescription] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [isActive, setIsActive] = useState(false)
+  const [rewardsMultiplier, setRewardsMultiplier] = useState('1.0')
+
+  useEffect(() => {
+    loadSeasons()
+  }, [])
+
+  const loadSeasons = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch('/api/seasons')
+      if (response.ok) {
+        const data = await response.json()
+        setSeasons(data.seasons || [])
+        setActiveSeason(data.activeSeason)
+      }
+    } catch (error) {
+      console.error('Failed to load seasons:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const resetForm = () => {
+    setSeasonName('')
+    setSeasonDescription('')
+    setStartDate('')
+    setEndDate('')
+    setIsActive(false)
+    setRewardsMultiplier('1.0')
+    setEditingSeason(null)
+    setShowCreateForm(false)
+  }
+
+  const handleCreateSeason = async () => {
+    if (!seasonName.trim() || !startDate || !endDate) {
+      alert('❌ Please fill in all required fields')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/seasons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: seasonName.trim(),
+          description: seasonDescription.trim(),
+          startDate,
+          endDate,
+          isActive,
+          rewardsMultiplier: parseFloat(rewardsMultiplier)
+        })
+      })
+
+      if (response.ok) {
+        alert('✅ Season created successfully!')
+        resetForm()
+        loadSeasons()
+      } else {
+        alert('❌ Failed to create season')
+      }
+    } catch (error) {
+      console.error('Error creating season:', error)
+      alert('❌ Error creating season')
+    }
+  }
+
+  const handleUpdateSeason = async () => {
+    if (!editingSeason || !seasonName.trim() || !startDate || !endDate) {
+      alert('❌ Please fill in all required fields')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/seasons', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingSeason.id,
+          name: seasonName.trim(),
+          description: seasonDescription.trim(),
+          startDate,
+          endDate,
+          isActive,
+          rewardsMultiplier: parseFloat(rewardsMultiplier)
+        })
+      })
+
+      if (response.ok) {
+        alert('✅ Season updated successfully!')
+        resetForm()
+        loadSeasons()
+      } else {
+        alert('❌ Failed to update season')
+      }
+    } catch (error) {
+      console.error('Error updating season:', error)
+      alert('❌ Error updating season')
+    }
+  }
+
+  const handleDeleteSeason = async (seasonId: number) => {
+    if (!confirm('Are you sure you want to delete this season?')) return
+
+    try {
+      const response = await fetch(`/api/seasons?id=${seasonId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        alert('✅ Season deleted successfully!')
+        loadSeasons()
+      } else {
+        alert('❌ Failed to delete season')
+      }
+    } catch (error) {
+      console.error('Error deleting season:', error)
+      alert('❌ Error deleting season')
+    }
+  }
+
+  const handleEditSeason = (season: any) => {
+    setEditingSeason(season)
+    setSeasonName(season.name)
+    setSeasonDescription(season.description || '')
+    setStartDate(season.start_date.split(' ')[0]) // Extract date part
+    setEndDate(season.end_date.split(' ')[0]) // Extract date part
+    setIsActive(season.is_active === 1)
+    setRewardsMultiplier(season.rewards_multiplier?.toString() || '1.0')
+    setShowCreateForm(true)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const getSeasonStatus = (season: any) => {
+    const now = new Date()
+    const start = new Date(season.start_date)
+    const end = new Date(season.end_date)
+
+    if (season.is_active === 1) return '🟢 Active'
+    if (now < start) return '⏳ Upcoming'
+    if (now > end) return '🔴 Ended'
+    return '⏸️ Inactive'
+  }
+
+  if (isLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-xl p-6"
+      >
+        <h2 className="text-2xl font-bold mb-4">🌟 Season Settings</h2>
+        <div className="text-center py-8">⏳ Loading seasons...</div>
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-xl p-6"
+    >
+      <h2 className="text-2xl font-bold mb-4">🌟 Season Settings</h2>
+
+      {/* Active Season Display */}
+      {activeSeason && (
+        <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+          <h3 className="text-lg font-bold text-green-300 mb-2">🎯 Current Active Season</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xl font-bold text-white">{activeSeason.name}</p>
+              <p className="text-sm text-green-200">{activeSeason.description}</p>
+            </div>
+            <div className="text-sm text-green-200">
+              <p>📅 {formatDate(activeSeason.start_date)} - {formatDate(activeSeason.end_date)}</p>
+              <p>🎁 Rewards Multiplier: {activeSeason.rewards_multiplier}x</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create/Edit Form */}
+      {showCreateForm && (
+        <div className="mb-6 p-4 bg-gray-800/50 border border-gray-600 rounded-lg">
+          <h3 className="text-lg font-bold mb-4">
+            {editingSeason ? '✏️ Edit Season' : '➕ Create New Season'}
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm text-blue-200 mb-1">Season Name *</label>
+              <input
+                type="text"
+                value={seasonName}
+                onChange={(e) => setSeasonName(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                placeholder="e.g., Winter Championship 2025"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-blue-200 mb-1">Rewards Multiplier</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0.1"
+                max="10"
+                value={rewardsMultiplier}
+                onChange={(e) => setRewardsMultiplier(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                placeholder="1.0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-blue-200 mb-1">Start Date *</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-blue-200 mb-1">End Date *</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+              />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm text-blue-200 mb-1">Description</label>
+            <textarea
+              value={seasonDescription}
+              onChange={(e) => setSeasonDescription(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white h-20"
+              placeholder="Season description..."
+            />
+          </div>
+
+          <div className="flex items-center gap-2 mb-4">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="rounded"
+            />
+            <label htmlFor="isActive" className="text-sm text-blue-200">
+              Set as Active Season (only one can be active at a time)
+            </label>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={editingSeason ? handleUpdateSeason : handleCreateSeason}
+              className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-bold transition-all"
+            >
+              {editingSeason ? '💾 Update Season' : '➕ Create Season'}
+            </button>
+            <button
+              onClick={resetForm}
+              className="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded-lg font-bold transition-all"
+            >
+              ❌ Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Seasons List */}
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold">📋 All Seasons</h3>
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-bold transition-all"
+          >
+            {showCreateForm ? '❌ Close Form' : '➕ New Season'}
+          </button>
+        </div>
+
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {seasons.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              No seasons created yet. Click "New Season" to create your first season!
+            </div>
+          ) : (
+            seasons.map((season: any) => (
+              <div key={season.id} className="bg-gray-800/50 border border-gray-600 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h4 className="text-lg font-bold text-white">{season.name}</h4>
+                    <p className="text-sm text-gray-300">{season.description}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="px-2 py-1 rounded text-xs font-bold bg-gray-700">
+                      {getSeasonStatus(season)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-400">📅 Duration:</span>
+                    <p className="text-white">
+                      {formatDate(season.start_date)} - {formatDate(season.end_date)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">🎁 Multiplier:</span>
+                    <p className="text-white">{season.rewards_multiplier}x</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">📊 Status:</span>
+                    <p className="text-white">{getSeasonStatus(season)}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => handleEditSeason(season)}
+                    className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm font-bold transition-all"
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteSeason(season.id)}
+                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-bold transition-all"
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </motion.div>
   )
 }
 
