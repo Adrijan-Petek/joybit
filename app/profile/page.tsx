@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAccount } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { WalletButton } from '@/components/WalletButton'
@@ -25,6 +25,11 @@ export default function ProfilePage() {
   const [tokenImages, setTokenImages] = useState<Record<string, { image: string; symbol: string }>>({})
   const [showSharePrompt, setShowSharePrompt] = useState(false)
   const [claimCooldown, setClaimCooldown] = useState(false)
+  const [selectedAchievement, setSelectedAchievement] = useState<any>(null)
+  const [showAchievementModal, setShowAchievementModal] = useState(false)
+  const [achievements, setAchievements] = useState<any[]>([])
+  const [userAchievements, setUserAchievements] = useState<any[]>([])
+  const [userStats, setUserStats] = useState<any>(null)
 
   const { claimRewards, isClaiming } = useTreasury()
   const { allPendingRewards, refetch: refetchTreasury } = useTreasuryData(address)
@@ -33,10 +38,153 @@ export default function ProfilePage() {
   const { playerData: claimData, refetch: refetchClaim } = useClaimData(address)
   const { stats: match3Stats, fetchStats: refetchMatch3Stats } = useMatch3Stats(address)
 
+  // Fetch achievements and user data from database
+  const fetchAchievementsData = async () => {
+    try {
+      console.log('Fetching achievements data for address:', address)
+
+      // Fetch all achievements
+      const achievementsResponse = await fetch(`/api/achievements?action=all`)
+      const allAchievements = await achievementsResponse.json()
+      console.log('All achievements:', allAchievements)
+
+      if (!address) {
+        // Show all achievements as locked if no wallet connected
+        const achievementsWithStatus = allAchievements.map((achievement: any) => {
+          // Add visual styling based on rarity
+          let gradient = 'from-gray-500/20 to-gray-600/20'
+          let border = 'border-gray-500/30'
+          let textColor = 'text-gray-400'
+
+          switch (achievement.rarity) {
+            case 'Common':
+              gradient = 'from-yellow-500/20 to-orange-500/20'
+              border = 'border-yellow-500/30'
+              textColor = 'text-yellow-400'
+              break
+            case 'Rare':
+              gradient = 'from-blue-500/20 to-cyan-500/20'
+              border = 'border-blue-500/30'
+              textColor = 'text-blue-400'
+              break
+            case 'Epic':
+              gradient = 'from-purple-500/20 to-pink-500/20'
+              border = 'border-purple-500/30'
+              textColor = 'text-purple-400'
+              break
+            case 'Legendary':
+              gradient = 'from-teal-500/20 to-cyan-500/20'
+              border = 'border-teal-500/30'
+              textColor = 'text-teal-400'
+              break
+            case 'Mythic':
+              gradient = 'from-rose-500/20 to-red-500/20'
+              border = 'border-rose-500/30'
+              textColor = 'text-rose-400'
+              break
+          }
+
+          return {
+            ...achievement,
+            unlocked: false,
+            gradient,
+            border,
+            textColor,
+            unlocked_at: null,
+            minted: false
+          }
+        })
+        setAchievements(achievementsWithStatus)
+        setUserAchievements([])
+        setUserStats(null)
+        return
+      }
+
+      // Fetch user achievements
+      const userAchievementsResponse = await fetch(`/api/achievements?action=achievements&address=${address}`)
+      const userAchievementData = await userAchievementsResponse.json()
+      console.log('User achievements:', userAchievementData)
+
+      // Fetch user stats
+      const userStatsResponse = await fetch(`/api/achievements?action=stats&address=${address}`)
+      const userStatsData = await userStatsResponse.json()
+      console.log('User stats:', userStatsData)
+
+      // Combine achievements with unlock status
+      const achievementsWithStatus = allAchievements.map((achievement: any) => {
+        const userAchievement = userAchievementData.find((ua: any) => ua.achievement_id === achievement.id)
+        const unlocked = !!userAchievement
+
+        // Add visual styling based on rarity
+        let gradient = 'from-gray-500/20 to-gray-600/20'
+        let border = 'border-gray-500/30'
+        let textColor = 'text-gray-400'
+
+        switch (achievement.rarity) {
+          case 'Common':
+            gradient = 'from-yellow-500/20 to-orange-500/20'
+            border = 'border-yellow-500/30'
+            textColor = 'text-yellow-400'
+            break
+          case 'Rare':
+            gradient = 'from-blue-500/20 to-cyan-500/20'
+            border = 'border-blue-500/30'
+            textColor = 'text-blue-400'
+            break
+          case 'Epic':
+            gradient = 'from-purple-500/20 to-pink-500/20'
+            border = 'border-purple-500/30'
+            textColor = 'text-purple-400'
+            break
+          case 'Legendary':
+            gradient = 'from-teal-500/20 to-cyan-500/20'
+            border = 'border-teal-500/30'
+            textColor = 'text-teal-400'
+            break
+          case 'Mythic':
+            gradient = 'from-rose-500/20 to-red-500/20'
+            border = 'border-rose-500/30'
+            textColor = 'text-rose-400'
+            break
+        }
+
+        return {
+          ...achievement,
+          unlocked,
+          gradient,
+          border,
+          textColor,
+          unlocked_at: userAchievement?.unlocked_at,
+          minted: userAchievement?.minted || false
+        }
+      })
+
+      setAchievements(achievementsWithStatus)
+      setUserAchievements(userAchievementData)
+      setUserStats(userStatsData)
+
+      console.log('Final achievements with status:', achievementsWithStatus)
+      console.log('Achievements array length:', achievementsWithStatus.length)
+    } catch (error) {
+      console.error('Error fetching achievements data:', error)
+    }
+  }
+
+  // Sort achievements: unlocked first, then by rarity
+  const sortedAchievements = achievements.sort((a, b) => {
+    // Unlocked achievements come first
+    if (a.unlocked && !b.unlocked) return -1
+    if (!a.unlocked && b.unlocked) return 1
+    
+    // Then sort by rarity (Mythic > Legendary > Epic > Rare > Common)
+    const rarityOrder = { 'Mythic': 5, 'Legendary': 4, 'Epic': 3, 'Rare': 2, 'Common': 1 }
+    return (rarityOrder[b.rarity as keyof typeof rarityOrder] || 0) - (rarityOrder[a.rarity as keyof typeof rarityOrder] || 0)
+  })
+
   useEffect(() => {
     setMounted(true)
     playMusic('main-menu')
-    
+
     // Initialize Farcaster SDK
     const initSDK = async () => {
       try {
@@ -46,9 +194,12 @@ export default function ProfilePage() {
         console.log('Not in Farcaster Mini App context')
       }
     }
-    
+
     initSDK()
-  }, [playMusic])
+
+    // Fetch achievements data
+    fetchAchievementsData()
+  }, [playMusic, address])
 
   // Load token metadata
   useEffect(() => {
@@ -134,6 +285,50 @@ export default function ProfilePage() {
       }
     }
   }, [allPendingRewards, mounted, address, tokenImages])
+
+  // Sync blockchain stats with database
+  useEffect(() => {
+    const syncStatsWithDatabase = async () => {
+      if (!address || !match3Stats || !cardData || !claimData) return
+
+      try {
+        const currentStats = {
+          match3_games_played: match3Stats.gamesPlayed || 0,
+          match3_high_score: match3Stats.highScore || 0,
+          match3_high_score_level: match3Stats.highScoreLevel || 0,
+          match3_last_played: match3Stats.lastPlayed || 0,
+          card_games_played: cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0,
+          card_games_won: cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0,
+          card_last_played: Date.now(),
+          daily_total_claims: claimData && Array.isArray(claimData) ? Number(claimData[3]) || 0 : 0,
+          daily_current_streak: claimData && Array.isArray(claimData) ? Number(claimData[1]) || 0 : 0,
+          daily_last_claim: Date.now(),
+          last_login: Date.now()
+        }
+
+        const response = await fetch('/api/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_stats',
+            userAddress: address,
+            stats: currentStats
+          })
+        })
+
+        const result = await response.json()
+        if (result.unlockedAchievements && result.unlockedAchievements.length > 0) {
+          console.log('New achievements unlocked:', result.unlockedAchievements)
+          // Refresh achievements data
+          fetchAchievementsData()
+        }
+      } catch (error) {
+        console.error('Error syncing stats with database:', error)
+      }
+    }
+
+    syncStatsWithDatabase()
+  }, [address, match3Stats, cardData, claimData])
 
   const handleRefresh = () => {
     refetchMatch3?.()
@@ -508,6 +703,92 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
+        {/* Achievements */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 border border-gray-800 mb-3"
+        >
+          <h3 className="text-sm md:text-base font-bold mb-3">🏆 Achievements</h3>
+          {sortedAchievements.length === 0 ? (
+            <div className="text-center text-gray-400 py-8">
+              <div className="text-4xl mb-2">🏆</div>
+              <div>Loading achievements...</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {sortedAchievements.map((achievement) => (
+              <div
+                key={achievement.id}
+                className={`relative group cursor-pointer transition-all duration-300 hover:scale-105 ${
+                  achievement.unlocked
+                    ? 'hover:shadow-2xl hover:shadow-current/20'
+                    : 'hover:shadow-lg hover:shadow-gray-500/20'
+                }`}
+                onClick={() => {
+                  setSelectedAchievement(achievement)
+                  setShowAchievementModal(true)
+                }}
+              >
+                {/* Glow effect for unlocked achievements */}
+                {achievement.unlocked && (
+                  <div className={`absolute inset-0 rounded-lg ${achievement.gradient} opacity-20 blur-sm group-hover:opacity-40 transition-opacity`} />
+                )}
+
+                {/* Main badge container */}
+                <div className={`relative p-3 rounded-lg border backdrop-blur-sm transition-all duration-300 ${
+                  achievement.unlocked
+                    ? `${achievement.gradient} ${achievement.border} bg-black/30 shadow-lg`
+                    : 'bg-gray-900/60 border-gray-700/40 grayscale group-hover:grayscale-25'
+                }`}>
+
+                  {/* Rarity indicator - smaller and more subtle */}
+                  <div className={`absolute -top-1.5 left-1/2 transform -translate-x-1/2 px-1.5 py-0.5 rounded-full text-xs font-bold text-xs ${
+                    achievement.rarity === 'Mythic' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' :
+                    achievement.rarity === 'Legendary' ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black' :
+                    achievement.rarity === 'Epic' ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' :
+                    achievement.rarity === 'Rare' ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white' :
+                    'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
+                  }`}>
+                    {achievement.rarity[0]}
+                  </div>
+
+                  {/* Lock overlay for locked achievements */}
+                  {!achievement.unlocked && (
+                    <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                      <div className="text-2xl">🔒</div>
+                    </div>
+                  )}
+
+                  {/* Achievement icon */}
+                  <div className={`text-3xl mb-2 text-center relative ${achievement.unlocked ? '' : 'opacity-50'}`}>
+                    {achievement.emoji}
+                    {achievement.unlocked && (
+                      <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Achievement name */}
+                  <div className={`text-xs font-bold text-center mb-1 leading-tight ${achievement.unlocked ? achievement.textColor : 'text-gray-400'}`}>
+                    {achievement.name}
+                  </div>
+
+                  {/* NFT mint indicator for unlocked achievements */}
+                  {achievement.unlocked && (
+                    <div className="absolute bottom-1 right-1 w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-black text-xs font-bold shadow-sm">
+                      🏆
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            </div>
+          )}
+        </motion.div>
+
         {/* Quick Actions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -541,6 +822,154 @@ export default function ProfilePage() {
           </button>
         </motion.div>
       </div>
+
+      {/* Achievement Modal */}
+      <AnimatePresence>
+        {showAchievementModal && selectedAchievement && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAchievementModal(false)}
+          >
+            {/* Subtle animated background */}
+            <div className="absolute inset-0 overflow-hidden">
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full opacity-10"
+                  initial={{
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    scale: 0
+                  }}
+                  animate={{
+                    y: [null, -50],
+                    scale: [0, 1, 0],
+                    opacity: [0, 0.2, 0]
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    delay: Math.random() * 3
+                  }}
+                />
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl rounded-xl p-6 max-w-sm w-full border border-gray-700/50 shadow-2xl relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Subtle glow effect */}
+              <div className={`absolute inset-0 ${selectedAchievement.gradient} opacity-5 blur-xl`} />
+
+              <div className="relative z-10">
+                {/* Close button */}
+                <button
+                  onClick={() => setShowAchievementModal(false)}
+                  className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
+                {/* Achievement header */}
+                <div className="text-center mb-4">
+                  <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-3 ${
+                    selectedAchievement.rarity === 'Mythic' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' :
+                    selectedAchievement.rarity === 'Legendary' ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black' :
+                    selectedAchievement.rarity === 'Epic' ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' :
+                    selectedAchievement.rarity === 'Rare' ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white' :
+                    'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
+                  }`}>
+                    {selectedAchievement.rarity} Achievement
+                  </div>
+
+                  {/* Achievement icon */}
+                  <motion.div
+                    className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-3 ${selectedAchievement.gradient} border-2 ${selectedAchievement.border} shadow-lg`}
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  >
+                    <span className="text-3xl">{selectedAchievement.emoji}</span>
+                  </motion.div>
+
+                  <h3 className="text-xl font-bold text-white mb-1">{selectedAchievement.name}</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">{selectedAchievement.description}</p>
+                </div>
+
+                {/* Achievement details */}
+                <div className="bg-gray-800/30 rounded-lg p-3 mb-4">
+                  <div className="text-xs text-gray-400 mb-1">
+                    <strong className="text-white">Requirement:</strong>
+                  </div>
+                  <div className="text-sm text-gray-300">{selectedAchievement.requirement}</div>
+                </div>
+
+                {/* Status indicator */}
+                <div className={`text-center mb-4 px-3 py-2 rounded-lg text-sm font-medium ${
+                  selectedAchievement.unlocked
+                    ? 'bg-gradient-to-r from-green-600/20 to-emerald-600/20 text-green-400 border border-green-600/30'
+                    : 'bg-gradient-to-r from-red-600/20 to-rose-600/20 text-red-400 border border-red-600/30'
+                }`}>
+                  {selectedAchievement.unlocked ? '✅ Achievement Unlocked' : '🔒 Achievement Locked'}
+                </div>
+
+                {/* Mint button for unlocked achievements */}
+                {selectedAchievement.unlocked && (
+                  <motion.button
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-purple-500/25 relative overflow-hidden group"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/achievements', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            action: 'mint_achievement',
+                            userAddress: address,
+                            achievementId: selectedAchievement.id,
+                            transactionHash: `mock_tx_${Date.now()}`
+                          })
+                        })
+
+                        if (response.ok) {
+                          alert('Achievement NFT minted successfully! (Mock implementation)')
+                          setShowAchievementModal(false)
+                          fetchAchievementsData()
+                        } else {
+                          alert('Failed to mint achievement NFT')
+                        }
+                      } catch (error) {
+                        console.error('Error minting achievement:', error)
+                        alert('Error minting achievement NFT')
+                      }
+                    }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      🪙 Mint NFT
+                      <motion.span
+                        animate={{ rotate: [0, 360] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                      >
+                        ✨
+                      </motion.span>
+                    </span>
+                  </motion.button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
