@@ -83,7 +83,7 @@ export default function Match3Game() {
 
   // Get level reward for current level
   const levelReward = useMatch3LevelReward(gameState.level)
-  const { getRewardForLevel, getRewardAmount } = useLevelRewardsManager()
+  const { getRewardForLevel, getRewardAmount, levelRewards } = useLevelRewardsManager()
 
   const [animating, setAnimating] = useState(false)
   const [showShuffleMessage, setShowShuffleMessage] = useState(false)
@@ -95,6 +95,7 @@ export default function Match3Game() {
   const [buyingBooster, setBuyingBooster] = useState<string | null>(null)
   const [activeBooster, setActiveBooster] = useState<'hammer' | 'colorBomb' | null>(null)
   const [userData, setUserData] = useState<{ username?: string; pfpUrl?: string }>({})
+  const [allLevelRewards, setAllLevelRewards] = useState<Array<{level: number, amount: string}>>([])
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -140,6 +141,29 @@ export default function Match3Game() {
     }
   }, [address])
 
+  // Load level rewards from database
+  useEffect(() => {
+    const fetchLevelRewards = async () => {
+      try {
+        const response = await fetch('/api/level-rewards')
+        if (response.ok) {
+          const rewardsObj = await response.json()
+          // Convert object to array: {5: "100"} -> [{level: 5, amount: "100"}]
+          const rewardsArray = Object.entries(rewardsObj).map(([level, amount]) => ({
+            level: parseInt(level),
+            amount: amount as string
+          }))
+          // Sort by level ascending
+          const sortedRewards = rewardsArray.sort((a, b) => a.level - b.level)
+          setAllLevelRewards(sortedRewards)
+        }
+      } catch (error) {
+        console.error('Failed to fetch level rewards:', error)
+      }
+    }
+    fetchLevelRewards()
+  }, [])
+
   // Start game
   const startGame = useCallback(async (level: number, isPaid: boolean = false) => {
     if (!isConnected || !address) return
@@ -182,20 +206,30 @@ export default function Match3Game() {
     setGameState(prev => ({ ...prev, isPlaying: false }))
     setGameResult(won ? 'win' : 'lose')
     setShowResultPopup(true)
-    // If player won, distribute level reward
+    // If player won, record level completion in database
     if (won) {
       const rewardAmount = getRewardAmount(gameState.level)
       if (rewardAmount > 0) {
         try {
-          // Complete the level and credit the reward
-          console.log(`🎁 Completing level ${gameState.level} and crediting ${rewardAmount} JOYB reward`)
+          // Record the level completion in database
+          console.log(`🎁 Recording level ${gameState.level} completion with ${rewardAmount} JOYB reward`)
           
-          await completeLevel(sessionId, gameState.level)
+          await fetch('/api/level-completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              address,
+              level: gameState.level,
+              rewardAmount: rewardAmount.toString()
+            })
+          })
           
           // Send notification about the reward
           await notifyAdminReward(rewardAmount.toString(), 'JOYB')
         } catch (error) {
-          console.error('Failed to complete level and credit reward:', error)
+          console.error('Failed to record level completion:', error)
         }
       }
     }
@@ -656,52 +690,87 @@ export default function Match3Game() {
           </button>
         </div>
 
-        {/* Game Stats */}
-        <div className="grid grid-cols-4 gap-1.5 mb-2">
-          <div className="bg-blue-500/80 backdrop-blur rounded-lg p-2 text-center">
-            <div className="text-[10px] text-blue-200">Level</div>
-            <div className="text-sm font-bold">{gameState.level}</div>
+        {/* Game Info Panel */}
+        <div className="bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur rounded-xl p-2 mb-2 border border-gray-700/50 shadow-lg">
+          {/* Single Row: All Game Stats */}
+          <div className="flex items-center justify-between gap-1 text-center">
+            <div className="flex flex-col items-center">
+              <div className="text-[8px] text-blue-300 font-medium">Level</div>
+              <div className="text-xs font-bold text-blue-400">{gameState.level}</div>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="text-[8px] text-green-300 font-medium">Score</div>
+              <div className="text-xs font-bold text-green-400">{gameState.score.toLocaleString()}</div>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="text-[8px] text-purple-300 font-medium">Moves</div>
+              <div className="text-xs font-bold text-purple-400">{gameState.moves}</div>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="text-[8px] text-orange-300 font-medium">Time</div>
+              <div className="text-xs font-bold text-orange-400">{gameState.timeLeft}s</div>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="text-[8px] text-cyan-300 font-medium">Target</div>
+              <div className="text-xs font-bold text-cyan-400">{gameState.targetScore.toLocaleString()}</div>
+            </div>
           </div>
-          <div className="bg-green-500/80 backdrop-blur rounded-lg p-2 text-center">
-            <div className="text-[10px] text-green-200">Score</div>
-            <div className="text-sm font-bold">{gameState.score}</div>
-          </div>
-          <div className="bg-purple-500/80 backdrop-blur rounded-lg p-2 text-center">
-            <div className="text-[10px] text-purple-200">Moves</div>
-            <div className="text-sm font-bold">{gameState.moves}</div>
-          </div>
-          <div className="bg-orange-500/80 backdrop-blur rounded-lg p-2 text-center">
-            <div className="text-[10px] text-orange-200">Time</div>
-            <div className="text-sm font-bold">{gameState.timeLeft}s</div>
-          </div>
-        </div>
 
-        {/* Target Progress */}
-        <div className="bg-gray-800/50 backdrop-blur rounded-lg p-2 mb-2">
-          <div className="flex justify-between text-[10px] mb-1">
-            <span>Target: {gameState.targetScore}</span>
-            <span className={gameState.score >= gameState.targetScore ? 'text-green-400' : 'text-gray-400'}>
-              {Math.round((gameState.score / gameState.targetScore) * 100)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-1.5">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 rounded-full transition-all"
-              style={{ width: `${Math.min(100, (gameState.score / gameState.targetScore) * 100)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Level Rewards Progress */}
-        <div className="bg-gray-800/50 backdrop-blur rounded-lg p-2 mb-2">
-          <div className="flex justify-between text-[10px] mb-1">
-            <span>Level {gameState.level} Reward:</span>
-            <span className="text-green-400 font-bold">
-              {getRewardForLevel(gameState.level)} JOYB
-            </span>
-          </div>
-          <div className="text-center text-[9px] text-gray-400 mb-1">
-            🎁 Complete level to claim reward
+          {/* Bottom Row: Level Rewards */}
+          <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-3">
+            <div className="text-center text-[10px] font-bold text-yellow-400 mb-2">
+              🎁 Level Rewards
+            </div>
+            {/* Progress Bar */}
+            {(() => {
+              const configuredRewards = allLevelRewards.filter(reward => reward.level >= 1 && reward.level <= 100)
+              const maxLevel = configuredRewards.length > 0 ? Math.max(...configuredRewards.map(r => r.level)) : 100
+              const progressPercent = maxLevel > 0 ? Math.min((gameState.level / maxLevel) * 100, 100) : 0
+              
+              return (
+                <div className="relative w-full h-2 bg-gray-600 rounded-full mb-2">
+                  <div 
+                    className="h-full bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full transition-all duration-300"
+                    style={{ width: `${progressPercent}%` }}
+                  ></div>
+                  {/* Milestones */}
+                  {configuredRewards.map((reward) => {
+                    const position = maxLevel > 0 ? (reward.level / maxLevel) * 100 : 0
+                    const isUnlocked = gameState.level >= reward.level
+                    const isClaimed = gameState.level > reward.level // Assume claimed if past level
+                    return (
+                      <div
+                        key={reward.level}
+                        className="absolute top-1/2 transform -translate-y-1/2 w-3 h-3 rounded-full border-2 cursor-pointer"
+                        style={{ left: `${position}%`, transform: 'translate(-50%, -50%)' }}
+                        title={`Level ${reward.level}\nReward: ${reward.amount} JOYB`}
+                      >
+                        <div className={`w-full h-full rounded-full ${isClaimed ? 'bg-green-500 border-green-300' : isUnlocked ? 'bg-yellow-400 border-yellow-300' : 'bg-gray-500 border-gray-400'}`}>
+                          {isClaimed && <span className="absolute inset-0 flex items-center justify-center text-white text-[8px]">✔</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+            {/* Milestone Labels */}
+            <div className="relative w-full h-4 mt-1">
+              {allLevelRewards.filter(reward => reward.level >= 1 && reward.level <= 100).map((reward) => {
+                const configuredRewards = allLevelRewards.filter(r => r.level >= 1 && r.level <= 100)
+                const maxLevel = configuredRewards.length > 0 ? Math.max(...configuredRewards.map(r => r.level)) : 100
+                const position = maxLevel > 0 ? (reward.level / maxLevel) * 100 : 0
+                return (
+                  <div
+                    key={`label-${reward.level}`}
+                    className="absolute top-0 text-[8px] text-gray-400 font-medium"
+                    style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
+                  >
+                    Lv.{reward.level}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
@@ -830,6 +899,32 @@ export default function Match3Game() {
                     <span className={canPlayFree ? 'text-green-400' : 'text-red-400'}>
                       {canPlayFree ? '✅ Available' : '❌ Not Available'}
                     </span>
+                  </div>
+                </div>
+
+                {/* Level Rewards Preview */}
+                <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-2 md:p-3">
+                  <div className="text-center text-yellow-400 font-bold text-xs md:text-sm mb-2">
+                    🎁 Level Rewards
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-center text-center">
+                    {allLevelRewards.filter(reward => reward.level >= 1 && reward.level <= 100).map((reward) => {
+                      return (
+                        <div key={reward.level} className="flex flex-col items-center min-w-[40px]">
+                          <div className={`text-[10px] font-bold ${lastPlayedLevel >= reward.level ? 'text-green-400' : 'text-gray-400'}`}>
+                            Lv.{reward.level}
+                          </div>
+                          <div className={`text-[9px] ${lastPlayedLevel >= reward.level ? 'text-green-300' : 'text-gray-500'}`}>
+                            {reward.amount !== '0' && reward.amount !== '' ? (
+                              parseFloat(reward.amount) >= 1000 ? `${(parseFloat(reward.amount) / 1000).toFixed(1)}K` : reward.amount
+                            ) : '-'}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="text-center text-[9px] text-gray-400 mt-1">
+                    Complete levels to earn JOYB rewards!
                   </div>
                 </div>
               </div>

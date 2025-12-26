@@ -52,7 +52,7 @@ export const getLevelConfig = (level: number) => {
   }
 
   // Target Score: Increases exponentially but more gradually
-  const baseScore = 1000
+  const baseScore = 1500
   const scoreMultiplier = clampedLevel <= 10
     ? 1 + (clampedLevel - 1) * 0.2  // Very slow increase for levels 1-10
     : 1 + (clampedLevel - 1) * 0.4  // Moderate increase after level 10

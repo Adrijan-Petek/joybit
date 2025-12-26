@@ -206,37 +206,77 @@ function AnnouncementManager() {
   const [message4, setMessage4] = useState('')
   const [message5, setMessage5] = useState('')
   const [currentMessages, setCurrentMessages] = useState<string[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Load current announcements
-    const saved = localStorage.getItem('joybit_announcements')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      setCurrentMessages(parsed)
-      setMessage1(parsed[0] || '')
-      setMessage2(parsed[1] || '')
-      setMessage3(parsed[2] || '')
-      setMessage4(parsed[3] || '')
-      setMessage5(parsed[4] || '')
+    // Load current announcements from database
+    const loadAnnouncements = async () => {
+      try {
+        const response = await fetch('/api/announcements')
+        if (response.ok) {
+          const messages = await response.json()
+          setCurrentMessages(messages)
+          setMessage1(messages[0] || '')
+          setMessage2(messages[1] || '')
+          setMessage3(messages[2] || '')
+          setMessage4(messages[3] || '')
+          setMessage5(messages[4] || '')
+        }
+      } catch (error) {
+        console.error('Failed to load announcements:', error)
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    loadAnnouncements()
   }, [])
 
-  const handleSave = () => {
-    const messages = [message1, message2, message3, message4, message5].filter(m => m.trim())
-    localStorage.setItem('joybit_announcements', JSON.stringify(messages))
-    setCurrentMessages(messages)
-    alert('✅ Announcements updated!')
+  const handleSave = async () => {
+    try {
+      const messages = [message1, message2, message3, message4, message5].filter(m => m.trim())
+
+      const response = await fetch('/api/announcements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages }),
+      })
+
+      if (response.ok) {
+        setCurrentMessages(messages)
+        alert('✅ Announcements saved to database!')
+      } else {
+        alert('❌ Failed to save announcements')
+      }
+    } catch (error) {
+      console.error('Error saving announcements:', error)
+      alert('❌ Failed to save announcements')
+    }
   }
 
-  const handleClear = () => {
-    localStorage.removeItem('joybit_announcements')
-    setMessage1('')
-    setMessage2('')
-    setMessage3('')
-    setMessage4('')
-    setMessage5('')
-    setCurrentMessages([])
-    alert('✅ Announcements cleared!')
+  const handleClear = async () => {
+    try {
+      const response = await fetch('/api/announcements', {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setMessage1('')
+        setMessage2('')
+        setMessage3('')
+        setMessage4('')
+        setMessage5('')
+        setCurrentMessages([])
+        alert('✅ Announcements cleared from database!')
+      } else {
+        alert('❌ Failed to clear announcements')
+      }
+    } catch (error) {
+      console.error('Error clearing announcements:', error)
+      alert('❌ Failed to clear announcements')
+    }
   }
 
   return (
@@ -979,19 +1019,31 @@ function ScheduledNotificationsManager() {
 
 // Level Rewards Manager Section
 function LevelRewardsManager() {
+  const { writeContractAsync } = useWriteContract()
   const [levelRewards, setLevelRewards] = useState<Record<number, string>>({})
   const [currentLevel, setCurrentLevel] = useState(1)
   const [rewardAmount, setRewardAmount] = useState('')
   const [savedRewards, setSavedRewards] = useState<Record<number, string>>({})
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Load saved level rewards
-    const saved = localStorage.getItem('joybit_level_rewards')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      setSavedRewards(parsed)
-      setLevelRewards(parsed)
+    // Load level rewards from database
+    const loadRewards = async () => {
+      try {
+        const response = await fetch('/api/level-rewards')
+        if (response.ok) {
+          const data = await response.json()
+          setSavedRewards(data)
+          setLevelRewards(data)
+        }
+      } catch (error) {
+        console.error('Failed to load level rewards:', error)
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    loadRewards()
   }, [])
 
   const handleSetReward = () => {
@@ -1007,17 +1059,65 @@ function LevelRewardsManager() {
     setLevelRewards(newRewards)
   }
 
-  const handleSave = () => {
-    localStorage.setItem('joybit_level_rewards', JSON.stringify(levelRewards))
-    setSavedRewards({ ...levelRewards })
-    alert('✅ Level rewards updated!')
+  const handleSave = async () => {
+    try {
+      // Save to database for each level reward
+      for (const [levelStr, rewardStr] of Object.entries(levelRewards)) {
+        const level = parseInt(levelStr)
+        const reward = rewardStr.trim()
+        if (reward && reward !== '0') {
+          await fetch('/api/level-rewards', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ level, reward }),
+          })
+        }
+      }
+
+      // Save to contract for each level reward
+      for (const [levelStr, rewardStr] of Object.entries(levelRewards)) {
+        const level = parseInt(levelStr)
+        const reward = parseFloat(rewardStr)
+        if (reward > 0) {
+          await writeContractAsync({
+            address: CONTRACT_ADDRESSES.match3Game as `0x${string}`,
+            abi: MATCH3_GAME_ABI,
+            functionName: 'setLevelReward',
+            args: [level, parseEther(reward.toString())],
+          })
+        }
+      }
+
+      setSavedRewards({ ...levelRewards })
+      alert('✅ Level rewards saved to database and contract!')
+    } catch (error) {
+      console.error('Failed to save level rewards:', error)
+      alert('❌ Failed to save level rewards')
+    }
   }
 
-  const handleClear = () => {
-    localStorage.removeItem('joybit_level_rewards')
-    setLevelRewards({})
-    setSavedRewards({})
-    alert('✅ Level rewards cleared!')
+  const handleClear = async () => {
+    try {
+      // Clear from database
+      for (const level of Object.keys(levelRewards)) {
+        await fetch('/api/level-rewards', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ level: parseInt(level) }),
+        })
+      }
+
+      setLevelRewards({})
+      setSavedRewards({})
+      alert('✅ Level rewards cleared from database!')
+    } catch (error) {
+      console.error('Failed to clear level rewards:', error)
+      alert('❌ Failed to clear level rewards')
+    }
   }
 
   const getRewardForLevel = (level: number) => {
@@ -1253,6 +1353,38 @@ function LevelRewardsManager() {
       )}
 
       {/* Action Buttons */}
+      <div className="flex gap-3 mb-4">
+        <button
+          onClick={() => {
+            const defaultRewards: Record<number, string> = {
+              1: '10',    // Level 1: 10 JOYB
+              2: '15',    // Level 2: 15 JOYB
+              3: '25',    // Level 3: 25 JOYB
+              4: '40',    // Level 4: 40 JOYB
+              5: '50',    // Level 5: 50 JOYB
+              6: '75',    // Level 6: 75 JOYB
+              7: '100',   // Level 7: 100 JOYB
+              8: '125',   // Level 8: 125 JOYB
+              9: '150',   // Level 9: 150 JOYB
+              10: '200',  // Level 10: 200 JOYB
+              11: '250',  // Level 11: 250 JOYB
+              12: '300',  // Level 12: 300 JOYB
+              13: '400',  // Level 13: 400 JOYB
+              14: '500',  // Level 14: 500 JOYB
+              15: '600',  // Level 15: 600 JOYB
+              16: '750',  // Level 16: 750 JOYB
+              17: '900',  // Level 17: 900 JOYB
+              18: '1100', // Level 18: 1100 JOYB
+              19: '1300', // Level 19: 1300 JOYB
+              20: '1500', // Level 20: 1500 JOYB
+            }
+            setLevelRewards(defaultRewards)
+          }}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-bold transition-all"
+        >
+          🎁 Set Default Rewards
+        </button>
+      </div>
       <div className="flex gap-3">
         <button
           onClick={handleSave}
@@ -2870,6 +3002,7 @@ function Match3GameSection() {
     colorBombPack: ''
   })
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
+  const [pendingCompletions, setPendingCompletions] = useState<any[]>([])
   
   const { writeContractAsync: writeContract, isPending } = useWriteContract()
   const { isLoading: isProcessing, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
@@ -2888,6 +3021,22 @@ function Match3GameSection() {
       setLevelRewardAmount('')
     }
   }, [isSuccess])
+
+  // Load pending level completions
+  useEffect(() => {
+    const loadPendingCompletions = async () => {
+      try {
+        const response = await fetch('/api/level-completions?pending=true')
+        if (response.ok) {
+          const data = await response.json()
+          setPendingCompletions(data)
+        }
+      } catch (error) {
+        console.error('Failed to load pending completions:', error)
+      }
+    }
+    loadPendingCompletions()
+  }, [])
 
   const handleSetPlayFee = async () => {
     if (!playFee || Number(playFee) < 0) {
@@ -2954,6 +3103,71 @@ function Match3GameSection() {
     }
   }
 
+  const handleDistributeRewards = async () => {
+    if (pendingCompletions.length === 0) {
+      alert('❌ No pending rewards to distribute')
+      return
+    }
+
+    try {
+      // Group completions by address for batch processing
+      const addressRewards: Record<string, { totalAmount: bigint; completionIds: number[] }> = {}
+      
+      pendingCompletions.forEach((completion: any) => {
+        const address = completion.address
+        const amount = BigInt(completion.reward_amount)
+        
+        if (!addressRewards[address]) {
+          addressRewards[address] = { totalAmount: 0n, completionIds: [] }
+        }
+        
+        addressRewards[address].totalAmount += amount
+        addressRewards[address].completionIds.push(completion.id)
+      })
+
+      // Distribute rewards for each address
+      for (const [address, data] of Object.entries(addressRewards)) {
+        console.log(`🎁 Distributing ${data.totalAmount} JOYB to ${address}`)
+        
+        const hash = await writeContract({
+          address: CONTRACT_ADDRESSES.treasury,
+          abi: TREASURY_ABI,
+          functionName: 'creditReward',
+          args: [
+            address as `0x${string}`,
+            CONTRACT_ADDRESSES.joybitToken as `0x${string}`,
+            data.totalAmount
+          ],
+        })
+        
+        // Wait for transaction to complete
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        
+        // Mark completions as distributed
+        await fetch('/api/level-completions', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: data.completionIds })
+        })
+        
+        console.log(`✅ Distributed rewards to ${address}`)
+      }
+      
+      alert(`✅ Successfully distributed rewards to ${Object.keys(addressRewards).length} players!`)
+      
+      // Reload pending completions
+      const response = await fetch('/api/level-completions?pending=true')
+      if (response.ok) {
+        const data = await response.json()
+        setPendingCompletions(data)
+      }
+      
+    } catch (error) {
+      console.error('Failed to distribute rewards:', error)
+      alert('❌ Failed to distribute rewards')
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -2989,13 +3203,13 @@ function Match3GameSection() {
 
         {/* Level Rewards */}
         <div className="pt-4 border-t border-white/10">
-          <label className="block text-sm text-purple-200 mb-2">Level Rewards (1-1000)</label>
+          <label className="block text-sm text-purple-200 mb-2">Level Rewards (1-100)</label>
           <div className="grid grid-cols-5 gap-2">
             <input
               type="text"
               value={levelRewardLevel}
               onChange={(e) => setLevelRewardLevel(e.target.value)}
-              placeholder="Level (1-1000)"
+              placeholder="Level (1-100)"
               className="col-span-2 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white"
             />
             <input
@@ -3074,6 +3288,46 @@ function Match3GameSection() {
           >
             {isPending || isProcessing ? '⏳ Processing...' : 'Update All Booster Prices'}
           </button>
+        </div>
+
+        {/* Level Reward Distribution */}
+        <div className="pt-4 border-t border-white/10">
+          <label className="block text-sm text-purple-200 mb-2">🎁 Level Reward Distribution</label>
+          <div className="bg-gray-800/50 rounded-lg p-3 mb-3">
+            <div className="text-sm text-gray-300 mb-2">
+              Pending distributions: <span className="text-yellow-400 font-bold">{pendingCompletions.length}</span>
+            </div>
+            {pendingCompletions.length > 0 && (
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {pendingCompletions.slice(0, 5).map((completion: any) => (
+                  <div key={completion.id} className="text-xs bg-gray-700/50 rounded p-2">
+                    <div className="flex justify-between">
+                      <span>Level {completion.level}</span>
+                      <span className="text-green-400">{completion.reward_amount} JOYB</span>
+                    </div>
+                    <div className="text-gray-400 text-[10px] mt-1">
+                      {completion.address.slice(0, 6)}...{completion.address.slice(-4)}
+                    </div>
+                  </div>
+                ))}
+                {pendingCompletions.length > 5 && (
+                  <div className="text-xs text-gray-400 text-center">
+                    ...and {pendingCompletions.length - 5} more
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <button 
+            onClick={handleDistributeRewards}
+            disabled={isPending || isProcessing || pendingCompletions.length === 0}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 px-4 py-3 rounded-lg font-bold transition-all"
+          >
+            {isPending || isProcessing ? '⏳ Distributing...' : `🎁 Distribute ${pendingCompletions.length} Rewards`}
+          </button>
+          <p className="text-xs text-gray-400 mt-1">
+            💰 Distribute pending level rewards to players via smart contract
+          </p>
         </div>
       </div>
     </motion.div>

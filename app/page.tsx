@@ -52,21 +52,48 @@ export default function Home() {
     playMusic('main-menu')
     sdk.actions.ready()
     
-    // Load announcements from localStorage
-    const saved = localStorage.getItem('joybit_announcements')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      setAnnouncements(parsed.filter((a: string) => a.trim()))
-    } else {
-      // Set default announcements
-      setAnnouncements([
-        'Welcome to Joybit! Play Match-3 and earn JOYB tokens!',
-        'Connect your wallet to start playing and earning rewards!',
-        'Join our community and compete on the leaderboard!',
-        'Daily rewards available! Claim your free JOYB every 24 hours!',
-        'New players get one free game to try - no wallet needed!'
-      ])
+    // Load announcements from database
+    const loadAnnouncements = async () => {
+      try {
+        const response = await fetch('/api/announcements')
+        if (response.ok) {
+          const messages = await response.json()
+          if (messages.length > 0) {
+            setAnnouncements(messages.filter((a: string) => a.trim()))
+          } else {
+            // Set default announcements if none in database
+            setAnnouncements([
+              'Welcome to Joybit! Play Match-3 and earn JOYB tokens!',
+              'Connect your wallet to start playing and earning rewards!',
+              'Join our community and compete on the leaderboard!',
+              'Daily rewards available! Claim your free JOYB every 24 hours!',
+              'New players get one free game to try - no wallet needed!'
+            ])
+          }
+        } else {
+          // Fallback to default announcements
+          setAnnouncements([
+            'Welcome to Joybit! Play Match-3 and earn JOYB tokens!',
+            'Connect your wallet to start playing and earning rewards!',
+            'Join our community and compete on the leaderboard!',
+            'Daily rewards available! Claim your free JOYB every 24 hours!',
+            'New players get one free game to try - no wallet needed!'
+          ])
+        }
+      } catch (error) {
+        console.error('Failed to load announcements:', error)
+        // Fallback to default announcements
+        setAnnouncements([
+          'Welcome to Joybit! Play Match-3 and earn JOYB tokens!',
+          'Connect your wallet to start playing and earning rewards!',
+          'Join our community and compete on the leaderboard!',
+          'Daily rewards available! Claim your free JOYB every 24 hours!',
+          'New players get one free game to try - no wallet needed!'
+        ])
+      }
     }
+
+    loadAnnouncements()
 
     // Send periodic play encouragement notifications
     const sendPlayNotification = async () => {
