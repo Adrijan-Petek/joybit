@@ -19,6 +19,7 @@ import {
 } from '@/lib/contracts/abis'
 import { notifyAdminReward } from '@/lib/utils/farcasterNotifications'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
+import { toast } from 'react-hot-toast'
 
 // Professional Tab Button Component
 function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
@@ -4214,6 +4215,7 @@ function ContractSettings() {
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
   const [bulkPrice, setBulkPrice] = useState('')
   const [bulkActive, setBulkActive] = useState<boolean | null>(null)
+  const [syncingPrices, setSyncingPrices] = useState(false)
   
   const { address } = useAccount()
   const { writeContractAsync: updateAchievement, isPending } = useWriteContract()
@@ -4457,6 +4459,30 @@ function ContractSettings() {
     }
   }
 
+  // Sync prices from contract to database
+  const syncPricesFromContract = async () => {
+    try {
+      setSyncingPrices(true)
+      const response = await fetch('/api/sync-achievement-prices', {
+        method: 'POST'
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        toast.success(`✅ Synced ${result.synced} achievement prices to database`)
+        // Refresh the achievements list to show updated prices
+        loadAchievements()
+      } else {
+        toast.error('❌ Failed to sync prices')
+      }
+    } catch (error) {
+      console.error('Error syncing prices:', error)
+      toast.error('❌ Error syncing prices')
+    } finally {
+      setSyncingPrices(false)
+    }
+  }
+
   const getRarityColor = (rarity: number) => {
     switch (rarity) {
       case 0: return 'text-gray-400'
@@ -4505,23 +4531,42 @@ function ContractSettings() {
         <h2 className="text-2xl font-bold mb-4">🏆 Achievement NFT Settings</h2>
         <div className="flex items-center justify-between mb-6">
           <p className="text-gray-400">Manage achievement prices and availability</p>
-          <button
-            onClick={loadAchievements}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Loading...
-              </>
-            ) : (
-              <>
-                <span>🔄</span>
-                Refresh
-              </>
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={syncPricesFromContract}
+              disabled={loading || syncingPrices}
+              className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            >
+              {syncingPrices ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <span>📊</span>
+                  Sync Prices
+                </>
+              )}
+            </button>
+            <button
+              onClick={loadAchievements}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <span>🔄</span>
+                  Refresh
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4 max-h-96 overflow-y-auto">

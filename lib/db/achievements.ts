@@ -14,6 +14,7 @@ export interface Achievement {
   emoji: string
   rarity: string
   category: string
+  price?: string
   created_at?: string
 }
 
@@ -51,6 +52,7 @@ export async function initAchievementTables() {
           emoji TEXT NOT NULL,
           rarity TEXT NOT NULL,
           category TEXT NOT NULL,
+          price TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `)
@@ -469,6 +471,36 @@ async function isAchievementUnlocked(userAddress: string, achievementId: string)
   } catch (error) {
     console.error('Error checking achievement status:', error)
     return false
+  }
+}
+
+// Sync achievement prices from contract to database
+export async function syncAchievementPricesFromContract(contractPrices: Record<string, string>) {
+  try {
+    for (const [achievementId, price] of Object.entries(contractPrices)) {
+      await client.execute({
+        sql: `UPDATE achievements SET price = ? WHERE id = ?`,
+        args: [price, achievementId]
+      })
+    }
+    console.log('✅ Achievement prices synced to database')
+  } catch (error) {
+    console.error('Error syncing achievement prices:', error)
+    throw error
+  }
+}
+
+// Get achievement price from database
+export async function getAchievementPrice(achievementId: string): Promise<string | null> {
+  try {
+    const result = await client.execute({
+      sql: `SELECT price FROM achievements WHERE id = ?`,
+      args: [achievementId]
+    })
+    return result.rows.length > 0 ? result.rows[0].price as string : null
+  } catch (error) {
+    console.error('Error getting achievement price:', error)
+    return null
   }
 }
 

@@ -7,7 +7,8 @@ import {
   unlockAchievement,
   markAchievementMinted,
   getAllAchievements,
-  checkAndUnlockAchievements
+  checkAndUnlockAchievements,
+  getAchievementPrice
 } from '@/lib/db/achievements'
 
 // Initialize tables on first request
@@ -27,10 +28,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const action = searchParams.get('action')
     const userAddress = searchParams.get('address')
+    const achievementId = searchParams.get('id')
 
     if (action === 'all') {
       const allAchievements = await getAllAchievements()
       return NextResponse.json(allAchievements)
+    }
+
+    if (action === 'price' && achievementId) {
+      const price = await getAchievementPrice(achievementId)
+      return NextResponse.json({ price })
     }
 
     if (!userAddress) {

@@ -32,14 +32,36 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
   const [isChecking, setIsChecking] = useState(false)
   const [contractData, setContractData] = useState<{rarity: number, active: boolean, price: string} | null>(null)
   const [isLoadingContractData, setIsLoadingContractData] = useState(true)
+  const [price, setPrice] = useState<string>('Loading...')
 
   // Contract address - this should come from environment or deployment config
   const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_NFT_ADDRESS || '0x0000000000000000000000000000000000000000'
 
-  // Load contract data on mount
+  // Load contract data on mount - fetch price from database first
   useEffect(() => {
+    const loadPrice = async () => {
+      try {
+        // First try to get price from database
+        const dbResponse = await fetch(`/api/achievements?action=price&id=${achievement.id}`)
+        if (dbResponse.ok) {
+          const dbData = await dbResponse.json()
+          if (dbData.price) {
+            setPrice(dbData.price)
+            setIsLoadingContractData(false)
+            return
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching price from database:', error)
+      }
+
+      // Fallback to contract if database doesn't have price
+      await loadContractData()
+    }
+
     const loadContractData = async () => {
       if (contractAddress === '0x0000000000000000000000000000000000000000') {
+        setPrice('0.0001')
         setIsLoadingContractData(false)
         return
       }
@@ -53,13 +75,17 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
         const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_NFT_ABI, provider)
 
         const result = await contract.achievements(achievement.id)
-        const [rarity, active, price] = result
+        const [rarity, active, priceWei] = result
+        const formattedPrice = ethers.formatEther(priceWei)
 
         setContractData({
           rarity: Number(rarity),
           active: active,
-          price: ethers.formatEther(price)
+          price: formattedPrice
         })
+        
+        // Set price immediately
+        setPrice(formattedPrice)
       } catch (error) {
         console.error('Error loading contract data:', error)
         // Fallback to default values
@@ -68,13 +94,14 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
           active: true,
           price: '0.0001'
         })
+        setPrice('0.0001')
       } finally {
         setIsLoadingContractData(false)
       }
     }
 
-    loadContractData()
-  }, [achievement.id, isConnected, contractAddress])
+    loadPrice()
+  }, [achievement.id, contractAddress])
 
   // Prepare contract write
   const { data: hash, writeContract, isPending: isWriteLoading } = useWriteContract()
@@ -121,7 +148,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
       return
     }
 
-    if (!writeContract || !contractData) {
+    if (!writeContract || !contractData || price === 'Loading...') {
       toast.error('Unable to prepare minting transaction')
       return
     }
@@ -131,7 +158,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
       return
     }
 
-    const priceInWei = ethers.parseEther(contractData.price)
+    const priceInWei = ethers.parseEther(price)
 
     writeContract({
       address: contractAddress as `0x${string}`,
@@ -145,9 +172,8 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
 
   const isLoading = isWriteLoading || isTxLoading || isChecking || isLoadingContractData
   const isOnBaseNetwork = chainId === 8453
-  const canMint = isConnected && hasAchievement && !isMinted && !isLoading && contractData?.active && isOnBaseNetwork
+  const canMint = isConnected && hasAchievement && !isMinted && !isLoading && contractData?.active && isOnBaseNetwork && price !== 'Loading...'
 
-  const price = contractData?.price || '0.0001'
   const isActive = contractData?.active ?? true
 
   return (
@@ -168,6 +194,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-600">
           <span className="font-medium">Price: {price} ETH</span>
+          {price === 'Loading...' && <span className="ml-2 animate-pulse">⏳</span>}
           {!isActive && <span className="text-red-500 ml-2">(Disabled)</span>}
         </div>
 
