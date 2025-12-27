@@ -10,7 +10,11 @@ export function AudioButtons() {
       {/* Music Toggle Button */}
       <button
         onClick={toggleMusicMute}
-        className="bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm text-white p-1.5 md:p-2 rounded-lg transition-all duration-200 shadow-lg border border-gray-700 hover:border-gray-600"
+        className="backdrop-blur-sm text-white p-1.5 md:p-2 rounded-lg transition-all duration-200 shadow-lg border hover:border-gray-600"
+        style={{
+          backgroundColor: 'var(--theme-surface)',
+          borderColor: 'var(--theme-border)'
+        }}
         title={isMusicMuted ? 'Unmute Music' : 'Mute Music'}
       >
         <span className="text-sm md:text-base">
@@ -21,7 +25,11 @@ export function AudioButtons() {
       {/* Sound Effects Toggle Button */}
       <button
         onClick={toggleSoundMute}
-        className="bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm text-white p-1.5 md:p-2 rounded-lg transition-all duration-200 shadow-lg border border-gray-700 hover:border-gray-600"
+        className="backdrop-blur-sm text-white p-1.5 md:p-2 rounded-lg transition-all duration-200 shadow-lg border hover:border-gray-600"
+        style={{
+          backgroundColor: 'var(--theme-surface)',
+          borderColor: 'var(--theme-border)'
+        }}
         title={isSoundMuted ? 'Unmute Sounds' : 'Mute Sounds'}
       >
         <span className="text-sm md:text-base">

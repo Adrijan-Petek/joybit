@@ -106,10 +106,6 @@ export default function AdminPage() {
         <AudioButtons />
         <WalletButton />
       </div>
-      <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50 flex items-center gap-2">
-        <AudioButtons />
-        <WalletButton />
-      </div>
       
       <div className="container mx-auto max-w-4xl pt-14 md:pt-16 pb-8 px-2">
         <div className="flex justify-between items-center mb-4 md:mb-6">

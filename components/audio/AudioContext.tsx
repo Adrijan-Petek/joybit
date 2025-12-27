@@ -14,7 +14,11 @@ interface AudioContextType {
   isSoundMuted: boolean
   currentTrack: string | null
   setVolume: (volume: number) => void
+  setMusicVolume: (volume: number) => void
+  setSoundVolume: (volume: number) => void
   volume: number
+  musicVolume: number
+  soundVolume: number
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined)
@@ -37,6 +41,8 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const [isSoundMuted, setIsSoundMuted] = useState(false)
   const [currentTrack, setCurrentTrack] = useState<string | null>(null)
   const [volume, setVolumeState] = useState(0.5)
+  const [musicVolume, setMusicVolumeState] = useState(0.5)
+  const [soundVolume, setSoundVolumeState] = useState(0.7)
   
   const musicRef = useRef<HTMLAudioElement | null>(null)
   const soundRefs = useRef<Map<string, HTMLAudioElement>>(new Map())
@@ -75,12 +81,12 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (musicRef.current) {
-      musicRef.current.volume = (isMuted || isMusicMuted) ? 0 : volume
+      musicRef.current.volume = (isMuted || isMusicMuted) ? 0 : musicVolume
     }
     soundRefs.current.forEach(audio => {
-      audio.volume = (isMuted || isSoundMuted) ? 0 : volume
+      audio.volume = (isMuted || isSoundMuted) ? 0 : soundVolume
     })
-  }, [isMuted, isMusicMuted, isSoundMuted, volume])
+  }, [isMuted, isMusicMuted, isSoundMuted, musicVolume, soundVolume])
 
   const playMusic = (track: string) => {
     if (currentTrack === track && musicRef.current && !musicRef.current.paused) {
@@ -93,7 +99,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
 
     musicRef.current = new Audio(`/audio/music/${track}.mp3`)
     musicRef.current.loop = true
-    musicRef.current.volume = (isMuted || isMusicMuted) ? 0 : volume
+    musicRef.current.volume = (isMuted || isMusicMuted) ? 0 : musicVolume
     
     // Try to play with user interaction workaround
     const playPromise = musicRef.current.play()
@@ -152,6 +158,16 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
     setVolumeState(clampedVolume)
   }
 
+  const setMusicVolume = (newVolume: number) => {
+    const clampedVolume = Math.max(0, Math.min(1, newVolume))
+    setMusicVolumeState(clampedVolume)
+  }
+
+  const setSoundVolume = (newVolume: number) => {
+    const clampedVolume = Math.max(0, Math.min(1, newVolume))
+    setSoundVolumeState(clampedVolume)
+  }
+
   return (
     <AudioContext.Provider
       value={{
@@ -166,7 +182,11 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
         isSoundMuted,
         currentTrack,
         setVolume,
+        setMusicVolume,
+        setSoundVolume,
         volume,
+        musicVolume,
+        soundVolume,
       }}
     >
       {children}
