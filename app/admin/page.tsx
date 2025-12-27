@@ -13,7 +13,8 @@ import {
   TREASURY_ABI, 
   MATCH3_GAME_ABI, 
   CARD_GAME_ABI,
-  DAILY_CLAIM_ABI
+  DAILY_CLAIM_ABI,
+  ACHIEVEMENT_N_F_T_ABI
 } from '@/lib/contracts/abis'
 import { notifyAdminReward } from '@/lib/utils/farcasterNotifications'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
@@ -124,6 +125,7 @@ export default function AdminPage() {
             <TabButton active={activeTab === 'content'} onClick={() => setActiveTab('content')} icon="📢" label="Content" />
             <TabButton active={activeTab === 'games'} onClick={() => setActiveTab('games')} icon="🎮" label="Games" />
             <TabButton active={activeTab === 'rewards'} onClick={() => setActiveTab('rewards')} icon="💰" label="Rewards" />
+            <TabButton active={activeTab === 'contracts'} onClick={() => setActiveTab('contracts')} icon="📋" label="Contracts" />
             <TabButton active={activeTab === 'system'} onClick={() => setActiveTab('system')} icon="⚙️" label="System" />
           </div>
         </div>
@@ -180,6 +182,17 @@ export default function AdminPage() {
               <LeaderboardRewardsSection />
               <MultiTokenLeaderboardRewardsSection />
               <LevelRewardDistributionSection />
+            </motion.div>
+          )}
+
+          {activeTab === 'contracts' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 md:space-y-6"
+            >
+              <ContractSettings />
             </motion.div>
           )}
 
@@ -3928,8 +3941,8 @@ function ContractAddresses() {
           <span className="text-green-300">{CONTRACT_ADDRESSES.dailyClaim}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">JoybitToken:</span>
-          <span className="text-yellow-300">{CONTRACT_ADDRESSES.joybitToken}</span>
+          <span className="text-gray-400">AchievementNFT:</span>
+          <span className="text-orange-300">{CONTRACT_ADDRESSES.achievementNFT}</span>
         </div>
       </div>
     </motion.div>
@@ -4189,5 +4202,325 @@ function LevelRewardDistributionSection() {
         </div>
       )}
     </motion.div>
+  )
+}
+
+// Contract Settings Section
+function ContractSettings() {
+  const [achievements, setAchievements] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [updatingAchievement, setUpdatingAchievement] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
+  
+  const { address } = useAccount()
+  const { writeContractAsync: updateAchievement, isPending } = useWriteContract()
+  const { isLoading: isProcessing, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+
+  // Achievement data for reference
+  const achievementData = [
+    { id: 'first_win', name: 'First Win', rarity: 'Common' },
+    { id: 'hot_streak', name: 'Hot Streak', rarity: 'Rare' },
+    { id: 'gem_master', name: 'Gem Master', rarity: 'Epic' },
+    { id: 'star_player', name: 'Star Player', rarity: 'Rare' },
+    { id: 'speed_demon', name: 'Speed Demon', rarity: 'Epic' },
+    { id: 'combo_king', name: 'Combo King', rarity: 'Legendary' },
+    { id: 'champion', name: 'Champion', rarity: 'Legendary' },
+    { id: 'artist', name: 'Artist', rarity: 'Rare' },
+    { id: 'rainbow', name: 'Rainbow', rarity: 'Epic' },
+    { id: 'heart_breaker', name: 'Heart Breaker', rarity: 'Rare' },
+    { id: 'royal', name: 'Royal', rarity: 'Legendary' },
+    { id: 'mystic', name: 'Mystic', rarity: 'Epic' },
+    { id: 'lucky', name: 'Lucky', rarity: 'Rare' },
+    { id: 'inferno', name: 'Inferno', rarity: 'Epic' },
+    { id: 'frost', name: 'Frost', rarity: 'Rare' },
+    { id: 'thespian', name: 'Thespian', rarity: 'Legendary' },
+    { id: 'unicorn', name: 'Unicorn', rarity: 'Mythic' },
+    { id: 'summit', name: 'Summit', rarity: 'Epic' },
+    { id: 'tempest', name: 'Tempest', rarity: 'Legendary' },
+    { id: 'phantom', name: 'Phantom', rarity: 'Mythic' },
+    { id: 'daily_starter', name: 'Daily Starter', rarity: 'Common' },
+    { id: 'streak_master', name: 'Streak Master', rarity: 'Rare' },
+    { id: 'dedicated_player', name: 'Dedicated Player', rarity: 'Epic' },
+    { id: 'loyal_supporter', name: 'Loyal Supporter', rarity: 'Legendary' },
+    { id: 'eternal_claimant', name: 'Eternal Claimant', rarity: 'Mythic' },
+    { id: 'card_novice', name: 'Card Novice', rarity: 'Common' },
+    { id: 'card_winner', name: 'Card Winner', rarity: 'Common' },
+    { id: 'card_expert', name: 'Card Expert', rarity: 'Rare' },
+    { id: 'card_master', name: 'Card Master', rarity: 'Epic' },
+    { id: 'card_legend', name: 'Card Legend', rarity: 'Legendary' },
+    { id: 'card_god', name: 'Card God', rarity: 'Mythic' },
+    { id: 'card_addict', name: 'Card Addict', rarity: 'Epic' },
+    { id: 'well_rounded', name: 'Well Rounded', rarity: 'Rare' },
+    { id: 'high_scorer', name: 'High Scorer', rarity: 'Rare' },
+    { id: 'level_climber', name: 'Level Climber', rarity: 'Rare' },
+    { id: 'consistent_player', name: 'Consistent Player', rarity: 'Rare' },
+    { id: 'early_adopter', name: 'Early Adopter', rarity: 'Epic' },
+    { id: 'social_butterfly', name: 'Social Butterfly', rarity: 'Rare' },
+    { id: 'perfectionist', name: 'Perfectionist', rarity: 'Legendary' },
+    { id: 'marathon_player', name: 'Marathon Player', rarity: 'Epic' }
+  ]
+
+  useEffect(() => {
+    loadAchievements()
+  }, [])
+
+  const loadAchievements = async () => {
+    try {
+      setLoading(true)
+      // For now, just set some mock data since useReadContract needs to be used as a hook
+      const mockAchievements = achievementData.map(achievement => ({
+        ...achievement,
+        rarity: achievement.rarity === 'Common' ? 0 : achievement.rarity === 'Rare' ? 1 : achievement.rarity === 'Epic' ? 2 : achievement.rarity === 'Legendary' ? 3 : 4,
+        active: true,
+        price: '0.001',
+        rawPrice: parseEther('0.001')
+      }))
+      setAchievements(mockAchievements)
+    } catch (error) {
+      console.error('Failed to load achievements:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdateAchievement = async (achievementId: string, newPrice: string, active: boolean) => {
+    if (!address) return
+
+    try {
+      setUpdatingAchievement(achievementId)
+      const priceInWei = parseEther(newPrice)
+      
+      const hash = await updateAchievement({
+        address: CONTRACT_ADDRESSES.achievementNFT,
+        abi: ACHIEVEMENT_N_F_T_ABI,
+        functionName: 'updateAchievement',
+        args: [achievementId, priceInWei, active]
+      })
+      
+      setTxHash(hash)
+    } catch (error) {
+      console.error('Failed to update achievement:', error)
+    } finally {
+      setUpdatingAchievement(null)
+    }
+  }
+
+  const getRarityColor = (rarity: number) => {
+    switch (rarity) {
+      case 0: return 'text-gray-400'
+      case 1: return 'text-green-400'
+      case 2: return 'text-blue-400'
+      case 3: return 'text-purple-400'
+      case 4: return 'text-yellow-400'
+      default: return 'text-gray-400'
+    }
+  }
+
+  const getRarityName = (rarity: number) => {
+    switch (rarity) {
+      case 0: return 'Common'
+      case 1: return 'Rare'
+      case 2: return 'Epic'
+      case 3: return 'Legendary'
+      case 4: return 'Mythic'
+      default: return 'Unknown'
+    }
+  }
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6"
+      >
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+          <span className="ml-3 text-gray-300">Loading achievements...</span>
+        </div>
+      </motion.div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Achievement NFT Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6"
+      >
+        <h2 className="text-2xl font-bold mb-4">🏆 Achievement NFT Settings</h2>
+        <p className="text-gray-400 mb-6">Manage achievement prices and availability</p>
+
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {achievements.map((achievement) => (
+            <div key={achievement.id} className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-semibold text-white">{achievement.name}</h3>
+                  <p className="text-sm text-gray-400">{achievement.id}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`text-sm font-medium ${getRarityColor(achievement.rarity)}`}>
+                    {getRarityName(achievement.rarity)}
+                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`w-2 h-2 rounded-full ${achievement.active ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                    <span className="text-xs text-gray-400">{achievement.active ? 'Active' : 'Inactive'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-400 mb-1">Price (ETH)</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    defaultValue={achievement.price}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                    placeholder="0.001"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-400">
+                    <input
+                      type="checkbox"
+                      defaultChecked={achievement.active}
+                      className="rounded border-gray-600 text-cyan-400 focus:ring-cyan-400"
+                    />
+                    Active
+                  </label>
+                </div>
+                <button
+                  onClick={() => {
+                    const input = document.querySelector(`input[type="number"][defaultValue="${achievement.price}"]`) as HTMLInputElement
+                    const checkbox = document.querySelector(`input[type="checkbox"][defaultChecked="${achievement.active}"]`) as HTMLInputElement
+                    handleUpdateAchievement(achievement.id, input?.value || achievement.price, checkbox?.checked || achievement.active)
+                  }}
+                  disabled={updatingAchievement === achievement.id || isPending}
+                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                >
+                  {updatingAchievement === achievement.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    'Update'
+                  )}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Transaction Status */}
+        {isProcessing && (
+          <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+              <span className="text-blue-300">⚙️ Processing transaction...</span>
+              {txHash && (
+                <a
+                  href={`https://basescan.org/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 text-sm underline"
+                >
+                  View on BaseScan
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isSuccess && (
+          <div className="mt-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <span className="text-green-300">✅ Achievement updated successfully!</span>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Game Contract Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6"
+      >
+        <h2 className="text-2xl font-bold mb-4">🎮 Game Contract Settings</h2>
+        <p className="text-gray-400 mb-6">Manage game fees and rewards</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Match3 Game Settings */}
+          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+            <h3 className="font-semibold text-white mb-3">Match-3 Game</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Play Fee (ETH)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  defaultValue="0.01"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <button className="w-full px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-medium transition-colors duration-200">
+                Update Fee
+              </button>
+            </div>
+          </div>
+
+          {/* Card Game Settings */}
+          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+            <h3 className="font-semibold text-white mb-3">Card Game</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Play Fee (ETH)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  defaultValue="0.01"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <button className="w-full px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-medium transition-colors duration-200">
+                Update Fee
+              </button>
+            </div>
+          </div>
+
+          {/* Daily Claim Settings */}
+          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+            <h3 className="font-semibold text-white mb-3">Daily Claim</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Base Reward</label>
+                <input
+                  type="number"
+                  step="1"
+                  defaultValue="10"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Streak Bonus</label>
+                <input
+                  type="number"
+                  step="1"
+                  defaultValue="5"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <button className="w-full px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-medium transition-colors duration-200">
+                Update Rewards
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   )
 }

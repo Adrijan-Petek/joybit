@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Joybit Achievement Gallery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .achievement-card {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
+      backdrop-filter: blur(20px);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .achievement-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .achievement-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        0 0 40px rgba(102, 126, 234, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .achievement-card:hover::before {
+      opacity: 1;
+    }
+
+    .achievement-card .card-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .rarity-common {
+      border-color: #6B7280;
+      box-shadow: 0 0 20px rgba(107, 114, 128, 0.3);
+    }
+
+    .rarity-rare {
+      border-color: #3B82F6;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .rarity-epic {
+      border-color: #8B5CF6;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .rarity-legendary {
+      border-color: #F59E0B;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .rarity-mythic {
+      border-color: #EF4444;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-image {
+      border-radius: 16px 16px 0 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .category-badge {
+      backdrop-filter: blur(10px);
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .rarity-badge {
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .filter-btn {
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .filter-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .filter-btn.active {
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body class="py-8 px-4">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-12">
+      <h1 class="text-4xl md:text-6xl font-bold text-white mb-4">
+        🏆 Joybit Achievements
+      </h1>
+      <p class="text-xl text-white/80 max-w-2xl mx-auto">
+        Discover all the amazing achievements you can unlock in Joybit!
+      </p>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="flex flex-wrap justify-center gap-4 mb-8">
+      <button class="filter-btn active px-6 py-2 bg-white/20 text-white rounded-full font-medium hover:bg-white/30 transition-colors" data-category="all">
+        All Achievements
+      </button>
+      <button class="filter-btn px-6 py-2 bg-white/20 text-white rounded-full font-medium hover:bg-white/30 transition-colors" data-category="match3">
+        🎮 Match-3
+      </button>
+      <button class="filter-btn px-6 py-2 bg-white/20 text-white rounded-full font-medium hover:bg-white/30 transition-colors" data-category="daily">
+        📅 Daily
+      </button>
+      <button class="filter-btn px-6 py-2 bg-white/20 text-white rounded-full font-medium hover:bg-white/30 transition-colors" data-category="card">
+        🃏 Card Games
+      </button>
+      <button class="filter-btn px-6 py-2 bg-white/20 text-white rounded-full font-medium hover:bg-white/30 transition-colors" data-category="general">
+        🏆 General
+      </button>
+    </div>
+
+    <!-- Achievement Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 achievement-grid">
+      <div class="achievement-card rarity-common">
+  <div class="relative">
+    <img src="/achievement-badges/first_win.png" alt="First Win" class="w-full h-48 object-cover badge-image">
+    <div class="absolute top-2 left-2 category-badge text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 rarity-badge text-gray-800 px-2 py-1 rounded-full text-xs font-bold">
+      COMMON
+    </div>
+  </div>
+
+  <div class="card-content p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🎯</span>
+      <h3 class="text-lg font-bold text-gray-900">First Win</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Win your first Match-3 game</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #6B7280"></div>
+        <span class="text-xs text-gray-500">Common</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card rarity-rare">
+  <div class="relative">
+    <img src="/achievement-badges/hot_streak.png" alt="Hot Streak" class="w-full h-48 object-cover badge-image">
+    <div class="absolute top-2 left-2 category-badge text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 rarity-badge text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
+      RARE
+    </div>
+  </div>
+
+  <div class="card-content p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🔥</span>
+      <h3 class="text-lg font-bold text-gray-900">Hot Streak</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Win 5 games in a row</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/gem_master.png" alt="Gem Master" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">💎</span>
+      <h3 class="text-lg font-bold text-gray-900">Gem Master</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Collect 1000 gems</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/star_player.png" alt="Star Player" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🌟</span>
+      <h3 class="text-lg font-bold text-gray-900">Star Player</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Reach level 10</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/speed_demon.png" alt="Speed Demon" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">⚡</span>
+      <h3 class="text-lg font-bold text-gray-900">Speed Demon</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Complete a level in under 30 seconds</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/combo_king.png" alt="Combo King" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-300 px-2 py-1 rounded-full text-xs font-bold border">
+      LEGENDARY
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🎪</span>
+      <h3 class="text-lg font-bold text-gray-900">Combo King</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Achieve a 10x combo</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #F59E0B"></div>
+        <span class="text-xs text-gray-500">Legendary</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/champion.png" alt="Champion" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-300 px-2 py-1 rounded-full text-xs font-bold border">
+      LEGENDARY
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🏆</span>
+      <h3 class="text-lg font-bold text-gray-900">Champion</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Win 100 games</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #F59E0B"></div>
+        <span class="text-xs text-gray-500">Legendary</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/artist.png" alt="Artist" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🎨</span>
+      <h3 class="text-lg font-bold text-gray-900">Artist</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Create beautiful patterns</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/rainbow.png" alt="Rainbow" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🌈</span>
+      <h3 class="text-lg font-bold text-gray-900">Rainbow</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Match all colors in one move</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/heart_breaker.png" alt="Heart Breaker" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">💖</span>
+      <h3 class="text-lg font-bold text-gray-900">Heart Breaker</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Break 10,000 hearts</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/royal.png" alt="Royal" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-300 px-2 py-1 rounded-full text-xs font-bold border">
+      LEGENDARY
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">👑</span>
+      <h3 class="text-lg font-bold text-gray-900">Royal</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Reach the top of the leaderboard</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #F59E0B"></div>
+        <span class="text-xs text-gray-500">Legendary</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/mystic.png" alt="Mystic" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🔮</span>
+      <h3 class="text-lg font-bold text-gray-900">Mystic</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Unlock all power-ups</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/lucky.png" alt="Lucky" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🍀</span>
+      <h3 class="text-lg font-bold text-gray-900">Lucky</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Win with lucky bonuses</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/inferno.png" alt="Inferno" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🔥</span>
+      <h3 class="text-lg font-bold text-gray-900">Inferno</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Create massive chain reactions</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/frost.png" alt="Frost" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">❄️</span>
+      <h3 class="text-lg font-bold text-gray-900">Frost</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Freeze time perfectly</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/thespian.png" alt="Thespian" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-300 px-2 py-1 rounded-full text-xs font-bold border">
+      LEGENDARY
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🎭</span>
+      <h3 class="text-lg font-bold text-gray-900">Thespian</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Master all game modes</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #F59E0B"></div>
+        <span class="text-xs text-gray-500">Legendary</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/unicorn.png" alt="Unicorn" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-red-100 text-red-800 border-red-300 px-2 py-1 rounded-full text-xs font-bold border">
+      MYTHIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🦄</span>
+      <h3 class="text-lg font-bold text-gray-900">Unicorn</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Achieve the impossible</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #DC2626"></div>
+        <span class="text-xs text-gray-500">Mythic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/summit.png" alt="Summit" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🏔️</span>
+      <h3 class="text-lg font-bold text-gray-900">Summit</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Reach the highest peaks</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/tempest.png" alt="Tempest" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-300 px-2 py-1 rounded-full text-xs font-bold border">
+      LEGENDARY
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🌪️</span>
+      <h3 class="text-lg font-bold text-gray-900">Tempest</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Control the storm</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #F59E0B"></div>
+        <span class="text-xs text-gray-500">Legendary</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/phantom.png" alt="Phantom" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🎮 match3
+    </div>
+    <div class="absolute top-2 right-2 bg-red-100 text-red-800 border-red-300 px-2 py-1 rounded-full text-xs font-bold border">
+      MYTHIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">💀</span>
+      <h3 class="text-lg font-bold text-gray-900">Phantom</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Become untouchable</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">match3</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #DC2626"></div>
+        <span class="text-xs text-gray-500">Mythic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/daily_starter.png" alt="Daily Starter" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      📅 daily
+    </div>
+    <div class="absolute top-2 right-2 bg-gray-100 text-gray-800 border-gray-300 px-2 py-1 rounded-full text-xs font-bold border">
+      COMMON
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">📅</span>
+      <h3 class="text-lg font-bold text-gray-900">Daily Starter</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Claim your first daily reward</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">daily</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #6B7280"></div>
+        <span class="text-xs text-gray-500">Common</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/streak_master.png" alt="Streak Master" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      📅 daily
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🔥</span>
+      <h3 class="text-lg font-bold text-gray-900">Streak Master</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Maintain a 7-day claim streak</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">daily</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/dedicated_player.png" alt="Dedicated Player" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      📅 daily
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">💪</span>
+      <h3 class="text-lg font-bold text-gray-900">Dedicated Player</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Claim rewards for 30 days</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">daily</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/loyal_supporter.png" alt="Loyal Supporter" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      📅 daily
+    </div>
+    <div class="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-300 px-2 py-1 rounded-full text-xs font-bold border">
+      LEGENDARY
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">👑</span>
+      <h3 class="text-lg font-bold text-gray-900">Loyal Supporter</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Claim rewards for 100 days</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">daily</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #F59E0B"></div>
+        <span class="text-xs text-gray-500">Legendary</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/eternal_claimant.png" alt="Eternal Claimant" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      📅 daily
+    </div>
+    <div class="absolute top-2 right-2 bg-red-100 text-red-800 border-red-300 px-2 py-1 rounded-full text-xs font-bold border">
+      MYTHIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">♾️</span>
+      <h3 class="text-lg font-bold text-gray-900">Eternal Claimant</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Claim rewards for 365 days</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">daily</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #DC2626"></div>
+        <span class="text-xs text-gray-500">Mythic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/card_novice.png" alt="Card Novice" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🃏 card
+    </div>
+    <div class="absolute top-2 right-2 bg-gray-100 text-gray-800 border-gray-300 px-2 py-1 rounded-full text-xs font-bold border">
+      COMMON
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🃏</span>
+      <h3 class="text-lg font-bold text-gray-900">Card Novice</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Play your first card game</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">card</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #6B7280"></div>
+        <span class="text-xs text-gray-500">Common</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/card_winner.png" alt="Card Winner" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🃏 card
+    </div>
+    <div class="absolute top-2 right-2 bg-gray-100 text-gray-800 border-gray-300 px-2 py-1 rounded-full text-xs font-bold border">
+      COMMON
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🎯</span>
+      <h3 class="text-lg font-bold text-gray-900">Card Winner</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Win your first card game</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">card</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #6B7280"></div>
+        <span class="text-xs text-gray-500">Common</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/card_expert.png" alt="Card Expert" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🃏 card
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🎪</span>
+      <h3 class="text-lg font-bold text-gray-900">Card Expert</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Win 10 card games</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">card</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/card_master.png" alt="Card Master" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🃏 card
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🏆</span>
+      <h3 class="text-lg font-bold text-gray-900">Card Master</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Win 50 card games</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">card</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/card_legend.png" alt="Card Legend" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🃏 card
+    </div>
+    <div class="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-300 px-2 py-1 rounded-full text-xs font-bold border">
+      LEGENDARY
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">👑</span>
+      <h3 class="text-lg font-bold text-gray-900">Card Legend</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Win 100 card games</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">card</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #F59E0B"></div>
+        <span class="text-xs text-gray-500">Legendary</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/card_god.png" alt="Card God" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🃏 card
+    </div>
+    <div class="absolute top-2 right-2 bg-red-100 text-red-800 border-red-300 px-2 py-1 rounded-full text-xs font-bold border">
+      MYTHIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🗿</span>
+      <h3 class="text-lg font-bold text-gray-900">Card God</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Win 500 card games</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">card</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #DC2626"></div>
+        <span class="text-xs text-gray-500">Mythic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/card_addict.png" alt="Card Addict" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🃏 card
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🎰</span>
+      <h3 class="text-lg font-bold text-gray-900">Card Addict</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Play 1000 card games</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">card</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/well_rounded.png" alt="Well Rounded" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🏆 general
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🎭</span>
+      <h3 class="text-lg font-bold text-gray-900">Well Rounded</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Play all game types</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">general</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/high_scorer.png" alt="High Scorer" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🏆 general
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">📊</span>
+      <h3 class="text-lg font-bold text-gray-900">High Scorer</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Score over 1 million points</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">general</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/level_climber.png" alt="Level Climber" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🏆 general
+    </div>
+    <div class="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-300 px-2 py-1 rounded-full text-xs font-bold border">
+      LEGENDARY
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🪜</span>
+      <h3 class="text-lg font-bold text-gray-900">Level Climber</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Reach level 50</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">general</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #F59E0B"></div>
+        <span class="text-xs text-gray-500">Legendary</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/consistent_player.png" alt="Consistent Player" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🏆 general
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">📅</span>
+      <h3 class="text-lg font-bold text-gray-900">Consistent Player</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Play every day for a month</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">general</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/early_adopter.png" alt="Early Adopter" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🏆 general
+    </div>
+    <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-300 px-2 py-1 rounded-full text-xs font-bold border">
+      RARE
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🚀</span>
+      <h3 class="text-lg font-bold text-gray-900">Early Adopter</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Join during beta</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">general</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #3B82F6"></div>
+        <span class="text-xs text-gray-500">Rare</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/social_butterfly.png" alt="Social Butterfly" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🏆 general
+    </div>
+    <div class="absolute top-2 right-2 bg-gray-100 text-gray-800 border-gray-300 px-2 py-1 rounded-full text-xs font-bold border">
+      COMMON
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🦋</span>
+      <h3 class="text-lg font-bold text-gray-900">Social Butterfly</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Share achievements 10 times</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">general</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #6B7280"></div>
+        <span class="text-xs text-gray-500">Common</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/perfectionist.png" alt="Perfectionist" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🏆 general
+    </div>
+    <div class="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-300 px-2 py-1 rounded-full text-xs font-bold border">
+      LEGENDARY
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">💯</span>
+      <h3 class="text-lg font-bold text-gray-900">Perfectionist</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Complete a level with 100% score</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">general</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #F59E0B"></div>
+        <span class="text-xs text-gray-500">Legendary</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="achievement-card bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+  <div class="relative">
+    <img src="/achievement-badges/marathon_player.png" alt="Marathon Player" class="w-full h-48 object-cover">
+    <div class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs font-medium">
+      🏆 general
+    </div>
+    <div class="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-300 px-2 py-1 rounded-full text-xs font-bold border">
+      EPIC
+    </div>
+  </div>
+
+  <div class="p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-2xl">🏃</span>
+      <h3 class="text-lg font-bold text-gray-900">Marathon Player</h3>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-3">Play for 5 hours straight</p>
+
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wide">general</span>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full" style="background-color: #8B5CF6"></div>
+        <span class="text-xs text-gray-500">Epic</span>
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="text-center mt-12">
+      <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 max-w-md mx-auto">
+        <h3 class="text-2xl font-bold text-white mb-4">Achievement Stats</h3>
+        <div class="grid grid-cols-2 gap-4 text-white">
+          <div>
+            <div class="text-3xl font-bold">40</div>
+            <div class="text-sm opacity-80">Total Achievements</div>
+          </div>
+          <div>
+            <div class="text-3xl font-bold">4</div>
+            <div class="text-sm opacity-80">Categories</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Filter functionality
+    const filterButtons = document.querySelectorAll('.filter-btn')
+    const achievementCards = document.querySelectorAll('.achievement-card')
+
+    filterButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const category = button.dataset.category
+
+        // Update active button
+        filterButtons.forEach(btn => btn.classList.remove('active', 'bg-white/30'))
+        filterButtons.forEach(btn => btn.classList.add('bg-white/20'))
+        button.classList.add('active', 'bg-white/30')
+
+        // Filter cards
+        achievementCards.forEach(card => {
+          if (category === 'all') {
+            card.style.display = 'block'
+          } else {
+            const cardCategory = card.querySelector('[data-category]')?.dataset.category ||
+                               card.textContent.toLowerCase().includes(category) ? category : 'other'
+            card.style.display = cardCategory === category ? 'block' : 'none'
+          }
+        })
+      })
+    })
+
+    // Add category data attributes for filtering
+    achievementCards.forEach(card => {
+      const categoryText = card.querySelector('.text-xs.text-gray-500.uppercase')?.textContent.toLowerCase()
+      card.setAttribute('data-category', categoryText || 'general')
+    })
+  </script>
+</body>
+</html>

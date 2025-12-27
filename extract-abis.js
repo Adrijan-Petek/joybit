@@ -8,7 +8,8 @@ const contracts = [
   'BoosterShop',
   'Treasury',
   'TestERC20',
-  'JoybitAccessControl'
+  'JoybitAccessControl',
+  'AchievementNFT'
 ];
 
 let output = '';

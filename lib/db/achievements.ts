@@ -5,6 +5,18 @@ const client = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN!,
 })
 
+// Achievement type definition
+export interface Achievement {
+  id: string
+  name: string
+  description: string
+  requirement: string
+  emoji: string
+  rarity: string
+  category: string
+  created_at?: string
+}
+
 // Helper function to convert BigInts to numbers
 function convertBigInts(obj: any): any {
   if (obj === null || obj === undefined) return obj

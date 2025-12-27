@@ -1,0 +1,402 @@
+[
+  {
+    "id": "first_win",
+    "name": "First Win",
+    "description": "Win your first Match-3 game",
+    "rarity": "Common",
+    "emoji": "🎯",
+    "category": "match3",
+    "color": "#6B7280",
+    "imagePath": "/achievement-badges/first_win.png"
+  },
+  {
+    "id": "hot_streak",
+    "name": "Hot Streak",
+    "description": "Win 5 games in a row",
+    "rarity": "Rare",
+    "emoji": "🔥",
+    "category": "match3",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/hot_streak.png"
+  },
+  {
+    "id": "gem_master",
+    "name": "Gem Master",
+    "description": "Collect 1000 gems",
+    "rarity": "Epic",
+    "emoji": "💎",
+    "category": "match3",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/gem_master.png"
+  },
+  {
+    "id": "star_player",
+    "name": "Star Player",
+    "description": "Reach level 10",
+    "rarity": "Rare",
+    "emoji": "🌟",
+    "category": "match3",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/star_player.png"
+  },
+  {
+    "id": "speed_demon",
+    "name": "Speed Demon",
+    "description": "Complete a level in under 30 seconds",
+    "rarity": "Epic",
+    "emoji": "⚡",
+    "category": "match3",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/speed_demon.png"
+  },
+  {
+    "id": "combo_king",
+    "name": "Combo King",
+    "description": "Achieve a 10x combo",
+    "rarity": "Legendary",
+    "emoji": "🎪",
+    "category": "match3",
+    "color": "#F59E0B",
+    "imagePath": "/achievement-badges/combo_king.png"
+  },
+  {
+    "id": "champion",
+    "name": "Champion",
+    "description": "Win 100 games",
+    "rarity": "Legendary",
+    "emoji": "🏆",
+    "category": "match3",
+    "color": "#F59E0B",
+    "imagePath": "/achievement-badges/champion.png"
+  },
+  {
+    "id": "artist",
+    "name": "Artist",
+    "description": "Create beautiful patterns",
+    "rarity": "Rare",
+    "emoji": "🎨",
+    "category": "match3",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/artist.png"
+  },
+  {
+    "id": "rainbow",
+    "name": "Rainbow",
+    "description": "Match all colors in one move",
+    "rarity": "Epic",
+    "emoji": "🌈",
+    "category": "match3",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/rainbow.png"
+  },
+  {
+    "id": "heart_breaker",
+    "name": "Heart Breaker",
+    "description": "Break 10,000 hearts",
+    "rarity": "Rare",
+    "emoji": "💖",
+    "category": "match3",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/heart_breaker.png"
+  },
+  {
+    "id": "royal",
+    "name": "Royal",
+    "description": "Reach the top of the leaderboard",
+    "rarity": "Legendary",
+    "emoji": "👑",
+    "category": "match3",
+    "color": "#F59E0B",
+    "imagePath": "/achievement-badges/royal.png"
+  },
+  {
+    "id": "mystic",
+    "name": "Mystic",
+    "description": "Unlock all power-ups",
+    "rarity": "Epic",
+    "emoji": "🔮",
+    "category": "match3",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/mystic.png"
+  },
+  {
+    "id": "lucky",
+    "name": "Lucky",
+    "description": "Win with lucky bonuses",
+    "rarity": "Rare",
+    "emoji": "🍀",
+    "category": "match3",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/lucky.png"
+  },
+  {
+    "id": "inferno",
+    "name": "Inferno",
+    "description": "Create massive chain reactions",
+    "rarity": "Epic",
+    "emoji": "🔥",
+    "category": "match3",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/inferno.png"
+  },
+  {
+    "id": "frost",
+    "name": "Frost",
+    "description": "Freeze time perfectly",
+    "rarity": "Rare",
+    "emoji": "❄️",
+    "category": "match3",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/frost.png"
+  },
+  {
+    "id": "thespian",
+    "name": "Thespian",
+    "description": "Master all game modes",
+    "rarity": "Legendary",
+    "emoji": "🎭",
+    "category": "match3",
+    "color": "#F59E0B",
+    "imagePath": "/achievement-badges/thespian.png"
+  },
+  {
+    "id": "unicorn",
+    "name": "Unicorn",
+    "description": "Achieve the impossible",
+    "rarity": "Mythic",
+    "emoji": "🦄",
+    "category": "match3",
+    "color": "#DC2626",
+    "imagePath": "/achievement-badges/unicorn.png"
+  },
+  {
+    "id": "summit",
+    "name": "Summit",
+    "description": "Reach the highest peaks",
+    "rarity": "Epic",
+    "emoji": "🏔️",
+    "category": "match3",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/summit.png"
+  },
+  {
+    "id": "tempest",
+    "name": "Tempest",
+    "description": "Control the storm",
+    "rarity": "Legendary",
+    "emoji": "🌪️",
+    "category": "match3",
+    "color": "#F59E0B",
+    "imagePath": "/achievement-badges/tempest.png"
+  },
+  {
+    "id": "phantom",
+    "name": "Phantom",
+    "description": "Become untouchable",
+    "rarity": "Mythic",
+    "emoji": "💀",
+    "category": "match3",
+    "color": "#DC2626",
+    "imagePath": "/achievement-badges/phantom.png"
+  },
+  {
+    "id": "daily_starter",
+    "name": "Daily Starter",
+    "description": "Claim your first daily reward",
+    "rarity": "Common",
+    "emoji": "📅",
+    "category": "daily",
+    "color": "#6B7280",
+    "imagePath": "/achievement-badges/daily_starter.png"
+  },
+  {
+    "id": "streak_master",
+    "name": "Streak Master",
+    "description": "Maintain a 7-day claim streak",
+    "rarity": "Rare",
+    "emoji": "🔥",
+    "category": "daily",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/streak_master.png"
+  },
+  {
+    "id": "dedicated_player",
+    "name": "Dedicated Player",
+    "description": "Claim rewards for 30 days",
+    "rarity": "Epic",
+    "emoji": "💪",
+    "category": "daily",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/dedicated_player.png"
+  },
+  {
+    "id": "loyal_supporter",
+    "name": "Loyal Supporter",
+    "description": "Claim rewards for 100 days",
+    "rarity": "Legendary",
+    "emoji": "👑",
+    "category": "daily",
+    "color": "#F59E0B",
+    "imagePath": "/achievement-badges/loyal_supporter.png"
+  },
+  {
+    "id": "eternal_claimant",
+    "name": "Eternal Claimant",
+    "description": "Claim rewards for 365 days",
+    "rarity": "Mythic",
+    "emoji": "♾️",
+    "category": "daily",
+    "color": "#DC2626",
+    "imagePath": "/achievement-badges/eternal_claimant.png"
+  },
+  {
+    "id": "card_novice",
+    "name": "Card Novice",
+    "description": "Play your first card game",
+    "rarity": "Common",
+    "emoji": "🃏",
+    "category": "card",
+    "color": "#6B7280",
+    "imagePath": "/achievement-badges/card_novice.png"
+  },
+  {
+    "id": "card_winner",
+    "name": "Card Winner",
+    "description": "Win your first card game",
+    "rarity": "Common",
+    "emoji": "🎯",
+    "category": "card",
+    "color": "#6B7280",
+    "imagePath": "/achievement-badges/card_winner.png"
+  },
+  {
+    "id": "card_expert",
+    "name": "Card Expert",
+    "description": "Win 10 card games",
+    "rarity": "Rare",
+    "emoji": "🎪",
+    "category": "card",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/card_expert.png"
+  },
+  {
+    "id": "card_master",
+    "name": "Card Master",
+    "description": "Win 50 card games",
+    "rarity": "Epic",
+    "emoji": "🏆",
+    "category": "card",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/card_master.png"
+  },
+  {
+    "id": "card_legend",
+    "name": "Card Legend",
+    "description": "Win 100 card games",
+    "rarity": "Legendary",
+    "emoji": "👑",
+    "category": "card",
+    "color": "#F59E0B",
+    "imagePath": "/achievement-badges/card_legend.png"
+  },
+  {
+    "id": "card_god",
+    "name": "Card God",
+    "description": "Win 500 card games",
+    "rarity": "Mythic",
+    "emoji": "🗿",
+    "category": "card",
+    "color": "#DC2626",
+    "imagePath": "/achievement-badges/card_god.png"
+  },
+  {
+    "id": "card_addict",
+    "name": "Card Addict",
+    "description": "Play 1000 card games",
+    "rarity": "Epic",
+    "emoji": "🎰",
+    "category": "card",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/card_addict.png"
+  },
+  {
+    "id": "well_rounded",
+    "name": "Well Rounded",
+    "description": "Play all game types",
+    "rarity": "Rare",
+    "emoji": "🎭",
+    "category": "general",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/well_rounded.png"
+  },
+  {
+    "id": "high_scorer",
+    "name": "High Scorer",
+    "description": "Score over 1 million points",
+    "rarity": "Epic",
+    "emoji": "📊",
+    "category": "general",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/high_scorer.png"
+  },
+  {
+    "id": "level_climber",
+    "name": "Level Climber",
+    "description": "Reach level 50",
+    "rarity": "Legendary",
+    "emoji": "🪜",
+    "category": "general",
+    "color": "#F59E0B",
+    "imagePath": "/achievement-badges/level_climber.png"
+  },
+  {
+    "id": "consistent_player",
+    "name": "Consistent Player",
+    "description": "Play every day for a month",
+    "rarity": "Rare",
+    "emoji": "📅",
+    "category": "general",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/consistent_player.png"
+  },
+  {
+    "id": "early_adopter",
+    "name": "Early Adopter",
+    "description": "Join during beta",
+    "rarity": "Rare",
+    "emoji": "🚀",
+    "category": "general",
+    "color": "#3B82F6",
+    "imagePath": "/achievement-badges/early_adopter.png"
+  },
+  {
+    "id": "social_butterfly",
+    "name": "Social Butterfly",
+    "description": "Share achievements 10 times",
+    "rarity": "Common",
+    "emoji": "🦋",
+    "category": "general",
+    "color": "#6B7280",
+    "imagePath": "/achievement-badges/social_butterfly.png"
+  },
+  {
+    "id": "perfectionist",
+    "name": "Perfectionist",
+    "description": "Complete a level with 100% score",
+    "rarity": "Legendary",
+    "emoji": "💯",
+    "category": "general",
+    "color": "#F59E0B",
+    "imagePath": "/achievement-badges/perfectionist.png"
+  },
+  {
+    "id": "marathon_player",
+    "name": "Marathon Player",
+    "description": "Play for 5 hours straight",
+    "rarity": "Epic",
+    "emoji": "🏃",
+    "category": "general",
+    "color": "#8B5CF6",
+    "imagePath": "/achievement-badges/marathon_player.png"
+  }
+]

@@ -16,6 +16,7 @@ import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { notifyRewardAvailable } from '@/lib/utils/farcasterNotifications'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
+import AchievementNFTMinter from '@/components/AchievementNFTMinter'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -922,48 +923,16 @@ export default function ProfilePage() {
                   {selectedAchievement.unlocked ? '✅ Achievement Unlocked' : '🔒 Achievement Locked'}
                 </div>
 
-                {/* Mint button for unlocked achievements */}
+                {/* NFT Minter for unlocked achievements */}
                 {selectedAchievement.unlocked && (
-                  <motion.button
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-purple-500/25 relative overflow-hidden group"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch('/api/achievements', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            action: 'mint_achievement',
-                            userAddress: address,
-                            achievementId: selectedAchievement.id,
-                            transactionHash: `mock_tx_${Date.now()}`
-                          })
-                        })
-
-                        if (response.ok) {
-                          alert('Achievement NFT minted successfully! (Mock implementation)')
-                          setShowAchievementModal(false)
-                          fetchAchievementsData()
-                        } else {
-                          alert('Failed to mint achievement NFT')
-                        }
-                      } catch (error) {
-                        console.error('Error minting achievement:', error)
-                        alert('Error minting achievement NFT')
-                      }
+                  <AchievementNFTMinter
+                    achievement={selectedAchievement}
+                    hasAchievement={selectedAchievement.unlocked}
+                    onMintSuccess={() => {
+                      setShowAchievementModal(false)
+                      fetchAchievementsData()
                     }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <span className="flex items-center justify-center gap-2">
-                      🪙 Mint NFT
-                      <motion.span
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 3, repeat: Infinity }}
-                      >
-                        ✨
-                      </motion.span>
-                    </span>
-                  </motion.button>
+                  />
                 )}
               </div>
             </motion.div>
