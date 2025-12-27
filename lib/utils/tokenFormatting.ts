@@ -23,10 +23,10 @@ export function formatTokenBalance(balance: bigint | undefined | null): string {
 
   // For smaller amounts, use thousand separators and appropriate decimals
   if (num >= 100) {
-    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    return num.toLocaleString('en-US', { maximumFractionDigits: 2 })
   }
   if (num >= 1) {
-    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    return num.toLocaleString('en-US', { maximumFractionDigits: 2 })
   }
 
   // For very small amounts

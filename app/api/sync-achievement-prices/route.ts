@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
         const [, , price] = result
         contractPrices[achievementId] = ethers.formatEther(price)
       } catch (error) {
-        console.error(`Failed to get price for ${achievementId}:`, error)
+        console.error(`Failed to get price for ${achievementId}:`, error instanceof Error ? error.message : String(error))
+        // Skip achievements that don't exist in contract
+        continue
       }
     }
 
