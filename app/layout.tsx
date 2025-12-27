@@ -4,6 +4,7 @@ import './globals.css'
 import { Providers } from '@/components/providers'
 import { AudioProvider } from '@/components/audio/AudioContext'
 import { SplashScreen } from '@/components/SplashScreen'
+import { ThemeProvider } from '@/components/theme/ThemeContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -68,11 +69,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SplashScreen />
-        <Providers>
-          <AudioProvider>
-            {children}
-          </AudioProvider>
-        </Providers>
+        <ThemeProvider>
+          <Providers>
+            <AudioProvider>
+              {children}
+            </AudioProvider>
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   )

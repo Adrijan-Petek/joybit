@@ -20,6 +20,7 @@ import {
 import { notifyAdminReward } from '@/lib/utils/farcasterNotifications'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 import { toast } from 'react-hot-toast'
+import { useTheme, themes } from '@/components/theme/ThemeContext'
 
 // Professional Tab Button Component
 function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
@@ -100,7 +101,11 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-2 md:p-4">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}>
+      <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50 flex items-center gap-2">
+        <AudioButtons />
+        <WalletButton />
+      </div>
       <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50 flex items-center gap-2">
         <AudioButtons />
         <WalletButton />
@@ -114,7 +119,7 @@ export default function AdminPage() {
           >
             ← Back
           </button>
-          <h1 className="text-xl md:text-3xl font-bold">🛠️ Admin</h1>
+          <h1 className="text-xl md:text-3xl font-bold" style={{ color: 'var(--theme-text)' }}>🛠️ Admin</h1>
           <div className="bg-green-500/30 border border-green-500 px-2 py-1 md:px-4 md:py-2 rounded-lg text-xs md:text-base">
             Owner
           </div>
@@ -122,7 +127,7 @@ export default function AdminPage() {
 
         {/* Professional Tab Navigation */}
         <div className="mb-6 md:mb-8">
-          <div className="flex flex-wrap gap-1 md:gap-2 p-1 bg-gray-800/50 rounded-xl border border-gray-700/50 backdrop-blur-sm">
+          <div className="flex flex-wrap gap-1 md:gap-2 p-1 rounded-xl border" style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}>
             <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon="📊" label="Overview" />
             <TabButton active={activeTab === 'content'} onClick={() => setActiveTab('content')} icon="📢" label="Content" />
             <TabButton active={activeTab === 'games'} onClick={() => setActiveTab('games')} icon="🎮" label="Games" />
@@ -205,6 +210,7 @@ export default function AdminPage() {
               transition={{ duration: 0.3 }}
               className="space-y-4 md:space-y-6"
             >
+              <ThemeSettings />
               <LeaderboardSyncSection />
               <ContractAddresses />
             </motion.div>
@@ -4805,5 +4811,298 @@ function ContractSettings() {
         </motion.div>
       </motion.div>
     </div>
+  )
+}
+
+// Theme Settings Section
+function ThemeSettings() {
+  const { currentTheme, setTheme, customTheme, setCustomTheme, availableThemes } = useTheme()
+  const [activeSubTab, setActiveSubTab] = useState<'presets' | 'customize' | 'accessibility'>('presets')
+
+  const updateCustomTheme = (key: string, value: string) => {
+    setCustomTheme({ ...customTheme, [key]: value })
+  }
+
+  const resetCustomTheme = () => {
+    setCustomTheme({})
+    toast.success('Custom theme reset to defaults')
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="backdrop-blur-lg rounded-xl p-4 md:p-6 border"
+      style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
+    >
+      <div className="flex items-center gap-3 mb-6">
+        <div className="text-2xl">🎨</div>
+        <div>
+          <h2 className="text-xl md:text-2xl font-bold">Theme Settings</h2>
+          <p className="text-gray-400 text-sm">Customize the app appearance and theme</p>
+        </div>
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-2 mb-6 p-1 rounded-lg" style={{ backgroundColor: 'var(--theme-background)' }}>
+        {[
+          { id: 'presets', label: 'Presets' },
+          { id: 'customize', label: 'Customize' },
+          { id: 'accessibility', label: 'Accessibility' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSubTab(tab.id as any)}
+            className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+              activeSubTab === tab.id
+                ? 'text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+            style={{
+              backgroundColor: activeSubTab === tab.id ? 'var(--theme-primary)' : 'var(--theme-surface)',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Presets Tab */}
+      {activeSubTab === 'presets' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(availableThemes).map(([themeName, theme]) => (
+              <button
+                key={themeName}
+                onClick={() => {
+                  setTheme(themeName)
+                  toast.success(`Switched to ${theme.name} theme`)
+                }}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  currentTheme.name === theme.name
+                    ? 'border-cyan-500 bg-cyan-500/20'
+                    : 'border-gray-600 bg-gray-700/30 hover:border-gray-500'
+                }`}
+              >
+                <div className="flex items-center space-x-3 mb-3">
+                  <div
+                    className="w-4 h-4 rounded-full border border-gray-400"
+                    style={{ backgroundColor: theme.primary }}
+                  />
+                  <span className="text-white font-medium">{theme.name}</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex space-x-2">
+                    <div
+                      className="w-3 h-3 rounded"
+                      style={{ backgroundColor: theme.secondary }}
+                    />
+                    <div
+                      className="w-3 h-3 rounded"
+                      style={{ backgroundColor: theme.accent }}
+                    />
+                    <div
+                      className="w-3 h-3 rounded"
+                      style={{ backgroundColor: theme.success }}
+                    />
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Font: {theme.fontFamily.split(',')[0]}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Customize Tab */}
+      {activeSubTab === 'customize' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Customize Colors</h3>
+              <p className="text-gray-400 text-sm">Fine-tune your theme colors</p>
+            </div>
+            <button
+              onClick={resetCustomTheme}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
+            >
+              Reset
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Colors */}
+            <div className="space-y-4">
+              {[
+                { key: 'primary', label: 'Primary' },
+                { key: 'secondary', label: 'Secondary' },
+                { key: 'accent', label: 'Accent' },
+                { key: 'background', label: 'Background' },
+                { key: 'surface', label: 'Surface' },
+                { key: 'text', label: 'Text' },
+                { key: 'textSecondary', label: 'Text Secondary' },
+                { key: 'border', label: 'Border' },
+                { key: 'success', label: 'Success' },
+                { key: 'warning', label: 'Warning' },
+                { key: 'error', label: 'Error' }
+              ].map(({ key, label }) => (
+                <div key={key} className="flex items-center space-x-3">
+                  <label className="text-sm text-gray-300 w-24">{label}:</label>
+                  <input
+                    type="color"
+                    value={customTheme[key as keyof typeof customTheme] || currentTheme[key as keyof typeof currentTheme]}
+                    onChange={(e) => updateCustomTheme(key, e.target.value)}
+                    className="w-12 h-8 rounded border border-gray-600 bg-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={customTheme[key as keyof typeof customTheme] || currentTheme[key as keyof typeof currentTheme]}
+                    onChange={(e) => updateCustomTheme(key, e.target.value)}
+                    className="flex-1 px-3 py-1 rounded text-white text-sm"
+                    style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', border: '1px solid var(--theme-border)' }}
+                    placeholder="#000000"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Typography & Layout */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">Typography & Layout</h3>
+
+              {/* Font Family */}
+              <div className="flex items-center space-x-3">
+                <label className="text-sm text-gray-300 w-24">Font:</label>
+                <select
+                  value={customTheme.fontFamily || currentTheme.fontFamily}
+                  onChange={(e) => updateCustomTheme('fontFamily', e.target.value)}
+                  className="flex-1 px-3 py-2 rounded text-white"
+                  style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', border: '1px solid var(--theme-border)' }}
+                >
+                  <option value="Inter, sans-serif">Inter</option>
+                  <option value="Roboto, sans-serif">Roboto</option>
+                  <option value="Open Sans, sans-serif">Open Sans</option>
+                  <option value="Lato, sans-serif">Lato</option>
+                  <option value="Courier New, monospace">Courier New</option>
+                  <option value="Press Start 2P, monospace">Press Start 2P</option>
+                </select>
+              </div>
+
+              {/* Font Size */}
+              <div className="flex items-center space-x-3">
+                <label className="text-sm text-gray-300 w-24">Size:</label>
+                <select
+                  value={customTheme.fontSize || currentTheme.fontSize}
+                  onChange={(e) => updateCustomTheme('fontSize', e.target.value as any)}
+                  className="flex-1 px-3 py-2 rounded text-white"
+                  style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', border: '1px solid var(--theme-border)' }}
+                >
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
+
+              {/* Border Radius */}
+              <div className="flex items-center space-x-3">
+                <label className="text-sm text-gray-300 w-24">Corners:</label>
+                <select
+                  value={customTheme.borderRadius || currentTheme.borderRadius}
+                  onChange={(e) => updateCustomTheme('borderRadius', e.target.value as any)}
+                  className="flex-1 px-3 py-2 rounded text-white"
+                  style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', border: '1px solid var(--theme-border)' }}
+                >
+                  <option value="none">Sharp</option>
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
+
+              {/* Animation */}
+              <div className="flex items-center space-x-3">
+                <label className="text-sm text-gray-300 w-24">Animation:</label>
+                <select
+                  value={customTheme.animation || currentTheme.animation}
+                  onChange={(e) => updateCustomTheme('animation', e.target.value as any)}
+                  className="flex-1 px-3 py-2 rounded text-white"
+                  style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', border: '1px solid var(--theme-border)' }}
+                >
+                  <option value="none">None</option>
+                  <option value="minimal">Minimal</option>
+                  <option value="full">Full</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Accessibility Tab */}
+      {activeSubTab === 'accessibility' && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-4">Accessibility Settings</h3>
+            <p className="text-gray-400 text-sm mb-6">Customize your experience for better accessibility</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-surface)' }}>
+              <div>
+                <h4 className="text-white font-medium">High Contrast Mode</h4>
+                <p className="text-gray-400 text-sm">Increase contrast for better visibility</p>
+              </div>
+              <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-600">
+                <span className="inline-block h-4 w-4 transform rounded-full bg-white transition" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-surface)' }}>
+              <div>
+                <h4 className="text-white font-medium">Reduce Motion</h4>
+                <p className="text-gray-400 text-sm">Minimize animations and transitions</p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = currentTheme.animation === 'none' ? 'full' : 'none'
+                  updateCustomTheme('animation', newValue)
+                  toast.success(`Motion ${newValue === 'none' ? 'disabled' : 'enabled'}`)
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  currentTheme.animation === 'none' ? 'bg-cyan-600' : 'bg-gray-600'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  currentTheme.animation === 'none' ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-surface)' }}>
+              <div>
+                <h4 className="text-white font-medium">Large Text</h4>
+                <p className="text-gray-400 text-sm">Increase text size throughout the app</p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = currentTheme.fontSize === 'large' ? 'medium' : 'large'
+                  updateCustomTheme('fontSize', newValue)
+                  toast.success(`Text size set to ${newValue}`)
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  currentTheme.fontSize === 'large' ? 'bg-cyan-600' : 'bg-gray-600'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  currentTheme.fontSize === 'large' ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
   )
 }

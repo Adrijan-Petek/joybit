@@ -273,7 +273,7 @@ export default function Home() {
   if (!mounted) return null
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--theme-background)' }}>
       {/* Notification Toast */}
       <AnimatePresence>
         {showNotification && (
@@ -305,6 +305,18 @@ export default function Home() {
       {/* Audio Controls & Wallet Button */}
       <div className="fixed top-3 right-3 md:top-4 md:right-4 z-50 flex items-center gap-2">
         <AudioButtons />
+        <motion.button
+          onClick={() => router.push('/settings')}
+          className="bg-gray-800/80 hover:bg-gray-700/80 backdrop-blur-sm rounded-lg p-2 md:p-3 border border-gray-600 hover:border-gray-500 transition-all"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          title="Settings"
+        >
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </motion.button>
         <WalletButton />
       </div>
       
@@ -397,7 +409,9 @@ export default function Home() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
-              className="bg-gray-900/50 backdrop-blur-lg rounded-xl p-5 md:p-6 shadow-2xl border border-gray-800 hover:border-gray-700 transition-all"
+              className="backdrop-blur-lg rounded-xl p-5 md:p-6 shadow-2xl border hover:border-gray-700 transition-all"
+              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
+              onClick={() => router.push('/game')}
             >
               <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">🎮 Play. Win. Earn JOYB.</h2>
               <p className="text-gray-400 mb-4 md:mb-5 text-sm md:text-base">
@@ -450,7 +464,8 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
               onClick={() => router.push('/leaderboard')}
-              className="bg-gray-900/50 backdrop-blur-lg rounded-xl p-4 md:p-5 hover:bg-gray-800/50 transition-all border border-gray-800"
+              className="backdrop-blur-lg rounded-xl p-4 md:p-5 hover:bg-gray-800/50 transition-all border"
+              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
             >
               <div className="text-2xl md:text-3xl mb-1 md:mb-2">🏆</div>
               <h3 className="font-bold text-sm md:text-base">Leaderboard</h3>
@@ -462,7 +477,8 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
               onClick={() => router.push('/profile')}
-              className="bg-gray-900/50 backdrop-blur-lg rounded-xl p-4 md:p-5 hover:bg-gray-800/50 transition-all border border-gray-800"
+              className="backdrop-blur-lg rounded-xl p-4 md:p-5 hover:bg-gray-800/50 transition-all border"
+              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
             >
               <div className="text-2xl md:text-3xl mb-1 md:mb-2">👤</div>
               <h3 className="font-bold text-sm md:text-base">Profile</h3>
@@ -477,7 +493,8 @@ export default function Home() {
             transition={{ delay: 0.7 }}
             className="mt-8 md:mt-12"
           >
-            <div className="bg-cyan-500/20 backdrop-blur-lg border border-cyan-400/50 rounded-xl p-5 md:p-6">
+            <div className="backdrop-blur-lg border rounded-xl p-5 md:p-6"
+                 style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}>
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex-1 text-center md:text-left">
                   <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
