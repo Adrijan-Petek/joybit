@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
 import { parseEther, formatEther } from 'viem'
+import { ethers } from 'ethers'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { useAudio } from '@/components/audio/AudioContext'
@@ -125,7 +126,7 @@ export default function AdminPage() {
             <TabButton active={activeTab === 'content'} onClick={() => setActiveTab('content')} icon="📢" label="Content" />
             <TabButton active={activeTab === 'games'} onClick={() => setActiveTab('games')} icon="🎮" label="Games" />
             <TabButton active={activeTab === 'rewards'} onClick={() => setActiveTab('rewards')} icon="💰" label="Rewards" />
-            <TabButton active={activeTab === 'contracts'} onClick={() => setActiveTab('contracts')} icon="📋" label="Contracts" />
+            <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')} icon="🏆" label="Achievements" />
             <TabButton active={activeTab === 'system'} onClick={() => setActiveTab('system')} icon="⚙️" label="System" />
           </div>
         </div>
@@ -185,7 +186,7 @@ export default function AdminPage() {
             </motion.div>
           )}
 
-          {activeTab === 'contracts' && (
+          {activeTab === 'achievements' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -4211,97 +4212,248 @@ function ContractSettings() {
   const [loading, setLoading] = useState(true)
   const [updatingAchievement, setUpdatingAchievement] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
+  const [bulkPrice, setBulkPrice] = useState('')
+  const [bulkActive, setBulkActive] = useState<boolean | null>(null)
   
   const { address } = useAccount()
   const { writeContractAsync: updateAchievement, isPending } = useWriteContract()
   const { isLoading: isProcessing, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
-  // Achievement data for reference
-  const achievementData = [
-    { id: 'first_win', name: 'First Win', rarity: 'Common' },
-    { id: 'hot_streak', name: 'Hot Streak', rarity: 'Rare' },
-    { id: 'gem_master', name: 'Gem Master', rarity: 'Epic' },
-    { id: 'star_player', name: 'Star Player', rarity: 'Rare' },
-    { id: 'speed_demon', name: 'Speed Demon', rarity: 'Epic' },
-    { id: 'combo_king', name: 'Combo King', rarity: 'Legendary' },
-    { id: 'champion', name: 'Champion', rarity: 'Legendary' },
-    { id: 'artist', name: 'Artist', rarity: 'Rare' },
-    { id: 'rainbow', name: 'Rainbow', rarity: 'Epic' },
-    { id: 'heart_breaker', name: 'Heart Breaker', rarity: 'Rare' },
-    { id: 'royal', name: 'Royal', rarity: 'Legendary' },
-    { id: 'mystic', name: 'Mystic', rarity: 'Epic' },
-    { id: 'lucky', name: 'Lucky', rarity: 'Rare' },
-    { id: 'inferno', name: 'Inferno', rarity: 'Epic' },
-    { id: 'frost', name: 'Frost', rarity: 'Rare' },
-    { id: 'thespian', name: 'Thespian', rarity: 'Legendary' },
-    { id: 'unicorn', name: 'Unicorn', rarity: 'Mythic' },
-    { id: 'summit', name: 'Summit', rarity: 'Epic' },
-    { id: 'tempest', name: 'Tempest', rarity: 'Legendary' },
-    { id: 'phantom', name: 'Phantom', rarity: 'Mythic' },
-    { id: 'daily_starter', name: 'Daily Starter', rarity: 'Common' },
-    { id: 'streak_master', name: 'Streak Master', rarity: 'Rare' },
-    { id: 'dedicated_player', name: 'Dedicated Player', rarity: 'Epic' },
-    { id: 'loyal_supporter', name: 'Loyal Supporter', rarity: 'Legendary' },
-    { id: 'eternal_claimant', name: 'Eternal Claimant', rarity: 'Mythic' },
-    { id: 'card_novice', name: 'Card Novice', rarity: 'Common' },
-    { id: 'card_winner', name: 'Card Winner', rarity: 'Common' },
-    { id: 'card_expert', name: 'Card Expert', rarity: 'Rare' },
-    { id: 'card_master', name: 'Card Master', rarity: 'Epic' },
-    { id: 'card_legend', name: 'Card Legend', rarity: 'Legendary' },
-    { id: 'card_god', name: 'Card God', rarity: 'Mythic' },
-    { id: 'card_addict', name: 'Card Addict', rarity: 'Epic' },
-    { id: 'well_rounded', name: 'Well Rounded', rarity: 'Rare' },
-    { id: 'high_scorer', name: 'High Scorer', rarity: 'Rare' },
-    { id: 'level_climber', name: 'Level Climber', rarity: 'Rare' },
-    { id: 'consistent_player', name: 'Consistent Player', rarity: 'Rare' },
-    { id: 'early_adopter', name: 'Early Adopter', rarity: 'Epic' },
-    { id: 'social_butterfly', name: 'Social Butterfly', rarity: 'Rare' },
-    { id: 'perfectionist', name: 'Perfectionist', rarity: 'Legendary' },
-    { id: 'marathon_player', name: 'Marathon Player', rarity: 'Epic' }
-  ]
+  // Achievement data for reference - load from database
+  const [achievementData, setAchievementData] = useState<any[]>([])
+  const [metadataMap, setMetadataMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    loadAchievements()
+    // Load achievements from database
+    const loadAchievementData = async () => {
+      try {
+        const response = await fetch('/api/achievements?action=all')
+        const achievements = await response.json()
+        setAchievementData(achievements)
+      } catch (error) {
+        console.error('Failed to load achievements:', error)
+        // Fallback to basic data
+        setAchievementData([
+          { id: 'first_win', name: 'First Win', description: 'Win your first Match-3 game', emoji: '🎯', rarity: 'Common' },
+        ])
+      }
+    }
+
+    // Load metadata URLs
+    const loadMetadata = async () => {
+      try {
+        const response = await fetch('/achievement-upload-results.json')
+        const metadata = await response.json()
+        const map: Record<string, string> = {}
+        metadata.forEach((item: any) => {
+          map[item.id] = item.metadataUrl
+        })
+        setMetadataMap(map)
+      } catch (error) {
+        console.error('Failed to load metadata:', error)
+      }
+    }
+
+    loadAchievementData()
+    loadMetadata()
   }, [])
+
+  // Achievement data for reference (legacy - now loaded from DB)
+  // Achievement data is now loaded from database above
+
+  useEffect(() => {
+    if (achievementData.length > 0) {
+      loadAchievements()
+    }
+  }, [achievementData])
 
   const loadAchievements = async () => {
     try {
       setLoading(true)
-      // For now, just set some mock data since useReadContract needs to be used as a hook
+      
+      // Read achievements from contract using ethers
+      const contractAchievements = []
+      
+      if (window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum)
+        const contract = new ethers.Contract(CONTRACT_ADDRESSES.achievementNFT, ACHIEVEMENT_N_F_T_ABI, provider)
+        
+        // Get all achievement IDs from contract
+        const allIds = await contract.getAllAchievementIds()
+        
+        // Create a map of existing achievements
+        const existingAchievements = new Map()
+        
+        // Fetch all achievement data in parallel
+        const promises = allIds.map(async (id: string) => {
+          try {
+            const result = await contract.achievements(id)
+            const [rarity, active, price] = result
+            existingAchievements.set(id, {
+              rarity: Number(rarity),
+              active: active,
+              price: ethers.formatEther(price),
+              rawPrice: price,
+              exists: true
+            })
+          } catch (error) {
+            console.error(`Failed to load achievement ${id}:`, error)
+          }
+        })
+        
+        await Promise.all(promises)
+        
+        // Combine with database data
+        for (const achievement of achievementData) {
+          const existing = existingAchievements.get(achievement.id)
+          if (existing) {
+            contractAchievements.push({
+              ...achievement,
+              ...existing
+            })
+          } else {
+            // Achievement not in contract
+            contractAchievements.push({
+              ...achievement,
+              rarity: achievement.rarity === 'Common' ? 0 : achievement.rarity === 'Rare' ? 1 : achievement.rarity === 'Epic' ? 2 : achievement.rarity === 'Legendary' ? 3 : 4,
+              active: true,
+              price: '0.001',
+              rawPrice: parseEther('0.001'),
+              exists: false
+            })
+          }
+        }
+      } else {
+        // Fallback to mock data if no ethereum provider
+        const mockAchievements = achievementData.map(achievement => ({
+          ...achievement,
+          rarity: achievement.rarity === 'Common' ? 0 : achievement.rarity === 'Rare' ? 1 : achievement.rarity === 'Epic' ? 2 : achievement.rarity === 'Legendary' ? 3 : 4,
+          active: true,
+          price: '0.001',
+          rawPrice: parseEther('0.001'),
+          exists: false
+        }))
+        contractAchievements.push(...mockAchievements)
+      }
+      
+      setAchievements(contractAchievements)
+    } catch (error) {
+      console.error('Failed to load achievements:', error)
+      // Fallback to mock data
       const mockAchievements = achievementData.map(achievement => ({
         ...achievement,
         rarity: achievement.rarity === 'Common' ? 0 : achievement.rarity === 'Rare' ? 1 : achievement.rarity === 'Epic' ? 2 : achievement.rarity === 'Legendary' ? 3 : 4,
         active: true,
         price: '0.001',
-        rawPrice: parseEther('0.001')
+        rawPrice: parseEther('0.001'),
+        exists: false
       }))
       setAchievements(mockAchievements)
-    } catch (error) {
-      console.error('Failed to load achievements:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleUpdateAchievement = async (achievementId: string, newPrice: string, active: boolean) => {
+  const handleUpdateAchievement = async (achievementId: string, newPrice: string, active: boolean, exists: boolean) => {
     if (!address) return
 
     try {
       setUpdatingAchievement(achievementId)
       const priceInWei = parseEther(newPrice)
       
-      const hash = await updateAchievement({
-        address: CONTRACT_ADDRESSES.achievementNFT,
-        abi: ACHIEVEMENT_N_F_T_ABI,
-        functionName: 'updateAchievement',
-        args: [achievementId, priceInWei, active]
-      })
-      
-      setTxHash(hash)
+      if (!exists) {
+        // Achievement doesn't exist, need to add it first
+        const achievement = achievementData.find(a => a.id === achievementId)
+        if (!achievement) return
+        
+        // Get metadata URL from map or use default
+        const metadataUrl = metadataMap[achievementId] || `https://gateway.pinata.cloud/ipfs/QmDefaultMetadata/${achievementId}.json`
+        
+        const hash = await updateAchievement({
+          address: CONTRACT_ADDRESSES.achievementNFT,
+          abi: ACHIEVEMENT_N_F_T_ABI,
+          functionName: 'addAchievement',
+          args: [
+            achievementId,
+            achievement.name,
+            achievement.description || achievement.name, // Use description if available
+            achievement.rarity === 'Common' ? 0 : achievement.rarity === 'Rare' ? 1 : achievement.rarity === 'Epic' ? 2 : achievement.rarity === 'Legendary' ? 3 : 4,
+            achievement.emoji || '🏆', // Use emoji if available
+            metadataUrl,
+            priceInWei
+          ]
+        })
+        
+        setTxHash(hash)
+      } else {
+        // Achievement exists, update it
+        const hash = await updateAchievement({
+          address: CONTRACT_ADDRESSES.achievementNFT,
+          abi: ACHIEVEMENT_N_F_T_ABI,
+          functionName: 'updateAchievement',
+          args: [achievementId, priceInWei, active]
+        })
+        
+        setTxHash(hash)
+      }
     } catch (error) {
       console.error('Failed to update achievement:', error)
     } finally {
       setUpdatingAchievement(null)
+    }
+  }
+
+  // Bulk actions
+  const handleBulkSetPrice = async () => {
+    if (!bulkPrice || !address) return
+
+    try {
+      setUpdatingAchievement('bulk-price')
+      const priceInWei = parseEther(bulkPrice)
+      
+      // Update all achievements that exist in contract
+      const existingAchievements = achievements.filter(a => a.exists)
+      
+      for (const achievement of existingAchievements) {
+        const hash = await updateAchievement({
+          address: CONTRACT_ADDRESSES.achievementNFT,
+          abi: ACHIEVEMENT_N_F_T_ABI,
+          functionName: 'updateAchievement',
+          args: [achievement.id, priceInWei, achievement.active]
+        })
+        setTxHash(hash)
+      }
+    } catch (error) {
+      console.error('Failed to bulk update prices:', error)
+    } finally {
+      setUpdatingAchievement(null)
+      setBulkPrice('')
+    }
+  }
+
+  const handleBulkSetActive = async () => {
+    if (bulkActive === null || !address) return
+
+    try {
+      setUpdatingAchievement('bulk-active')
+      
+      // Update all achievements that exist in contract
+      const existingAchievements = achievements.filter(a => a.exists)
+      
+      for (const achievement of existingAchievements) {
+        const hash = await updateAchievement({
+          address: CONTRACT_ADDRESSES.achievementNFT,
+          abi: ACHIEVEMENT_N_F_T_ABI,
+          functionName: 'updateAchievement',
+          args: [achievement.id, parseEther(achievement.price), bulkActive]
+        })
+        setTxHash(hash)
+      }
+    } catch (error) {
+      console.error('Failed to bulk update status:', error)
+    } finally {
+      setUpdatingAchievement(null)
+      setBulkActive(null)
     }
   }
 
@@ -4351,7 +4503,26 @@ function ContractSettings() {
         className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6"
       >
         <h2 className="text-2xl font-bold mb-4">🏆 Achievement NFT Settings</h2>
-        <p className="text-gray-400 mb-6">Manage achievement prices and availability</p>
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-gray-400">Manage achievement prices and availability</p>
+          <button
+            onClick={loadAchievements}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Loading...
+              </>
+            ) : (
+              <>
+                <span>🔄</span>
+                Refresh
+              </>
+            )}
+          </button>
+        </div>
 
         <div className="space-y-4 max-h-96 overflow-y-auto">
           {achievements.map((achievement) => (
@@ -4368,6 +4539,9 @@ function ContractSettings() {
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`w-2 h-2 rounded-full ${achievement.active ? 'bg-green-400' : 'bg-red-400'}`}></span>
                     <span className="text-xs text-gray-400">{achievement.active ? 'Active' : 'Inactive'}</span>
+                    {!achievement.exists && (
+                      <span className="text-xs text-orange-400 ml-2">Not in contract</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -4397,7 +4571,7 @@ function ContractSettings() {
                   onClick={() => {
                     const input = document.querySelector(`input[type="number"][defaultValue="${achievement.price}"]`) as HTMLInputElement
                     const checkbox = document.querySelector(`input[type="checkbox"][defaultChecked="${achievement.active}"]`) as HTMLInputElement
-                    handleUpdateAchievement(achievement.id, input?.value || achievement.price, checkbox?.checked || achievement.active)
+                    handleUpdateAchievement(achievement.id, input?.value || achievement.price, checkbox?.checked || achievement.active, achievement.exists)
                   }}
                   disabled={updatingAchievement === achievement.id || isPending}
                   className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
@@ -4405,10 +4579,10 @@ function ContractSettings() {
                   {updatingAchievement === achievement.id ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Updating...
+                      Processing...
                     </>
                   ) : (
-                    'Update'
+                    achievement.exists ? 'Update Achievement' : 'Add Achievement'
                   )}
                 </button>
               </div>
@@ -4441,85 +4615,149 @@ function ContractSettings() {
             <span className="text-green-300">✅ Achievement updated successfully!</span>
           </div>
         )}
-      </motion.div>
 
-      {/* Game Contract Settings */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6"
-      >
-        <h2 className="text-2xl font-bold mb-4">🎮 Game Contract Settings</h2>
-        <p className="text-gray-400 mb-6">Manage game fees and rewards</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Match3 Game Settings */}
-          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
-            <h3 className="font-semibold text-white mb-3">Match-3 Game</h3>
-            <div className="space-y-3">
+        {/* Add New Achievement */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6 mt-6"
+        >
+          <h2 className="text-2xl font-bold mb-4">➕ Add New Achievement</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Play Fee (ETH)</label>
+                <label className="block text-sm text-gray-400 mb-1">Achievement ID</label>
+                <input
+                  type="text"
+                  placeholder="e.g., new_achievement"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Name</label>
+                <input
+                  type="text"
+                  placeholder="Achievement Name"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <input
+                  type="text"
+                  placeholder="Achievement description"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Emoji</label>
+                <input
+                  type="text"
+                  placeholder="🏆"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Rarity</label>
+                <select className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none">
+                  <option value="0">Common</option>
+                  <option value="1">Rare</option>
+                  <option value="2">Epic</option>
+                  <option value="3">Legendary</option>
+                  <option value="4">Mythic</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Price (ETH)</label>
                 <input
                   type="number"
                   step="0.001"
-                  defaultValue="0.01"
+                  placeholder="0.001"
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
                 />
               </div>
-              <button className="w-full px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-medium transition-colors duration-200">
-                Update Fee
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Metadata URL</label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <button className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors duration-200">
+                Add Achievement
               </button>
             </div>
           </div>
-
-          {/* Card Game Settings */}
-          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
-            <h3 className="font-semibold text-white mb-3">Card Game</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Play Fee (ETH)</label>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6 mt-6"
+        >
+          <h2 className="text-2xl font-bold mb-4">⚡ Bulk Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">Set All Prices</h3>
+              <div className="flex gap-2">
                 <input
                   type="number"
                   step="0.001"
-                  defaultValue="0.01"
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                  value={bulkPrice}
+                  onChange={(e) => setBulkPrice(e.target.value)}
+                  placeholder="0.001"
+                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
                 />
+                <button
+                  onClick={handleBulkSetPrice}
+                  disabled={!bulkPrice || updatingAchievement === 'bulk-price'}
+                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                >
+                  {updatingAchievement === 'bulk-price' ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Setting...
+                    </>
+                  ) : (
+                    'Set All'
+                  )}
+                </button>
               </div>
-              <button className="w-full px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-medium transition-colors duration-200">
-                Update Fee
-              </button>
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">Set All Status</h3>
+              <div className="flex gap-2">
+                <select
+                  value={bulkActive === null ? '' : bulkActive ? 'true' : 'false'}
+                  onChange={(e) => setBulkActive(e.target.value === '' ? null : e.target.value === 'true')}
+                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                >
+                  <option value="">Select Action</option>
+                  <option value="true">Activate All</option>
+                  <option value="false">Deactivate All</option>
+                </select>
+                <button
+                  onClick={handleBulkSetActive}
+                  disabled={bulkActive === null || updatingAchievement === 'bulk-active'}
+                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                >
+                  {updatingAchievement === 'bulk-active' ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Applying...
+                    </>
+                  ) : (
+                    'Apply'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-
-          {/* Daily Claim Settings */}
-          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
-            <h3 className="font-semibold text-white mb-3">Daily Claim</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Base Reward</label>
-                <input
-                  type="number"
-                  step="1"
-                  defaultValue="10"
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Streak Bonus</label>
-                <input
-                  type="number"
-                  step="1"
-                  defaultValue="5"
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
-                />
-              </div>
-              <button className="w-full px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-medium transition-colors duration-200">
-                Update Rewards
-              </button>
-            </div>
-          </div>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   )

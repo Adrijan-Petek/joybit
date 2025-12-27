@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const contracts = [
-  'JoybitGame',
+  'Match3Game',
   'CardGame',
   'DailyClaim',
   'BoosterShop',

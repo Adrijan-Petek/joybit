@@ -30,14 +30,14 @@ const rarityMap = {
 }
 
 /**
- * Price mapping based on rarity (in wei)
+ * Price mapping based on rarity (in wei) - REDUCED PRICES
  */
 const priceMap = {
-  'Common': ethers.parseEther('0.001'),
-  'Rare': ethers.parseEther('0.005'),
-  'Epic': ethers.parseEther('0.01'),
-  'Legendary': ethers.parseEther('0.05'),
-  'Mythic': ethers.parseEther('0.1')
+  'Common': ethers.parseEther('0.0001'),
+  'Rare': ethers.parseEther('0.0005'),
+  'Epic': ethers.parseEther('0.001'),
+  'Legendary': ethers.parseEther('0.005'),
+  'Mythic': ethers.parseEther('0.01')
 }
 
 /**

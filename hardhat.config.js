@@ -44,17 +44,6 @@ module.exports = {
         }
       }
     },
-    baseSepolia: {
-      url: process.env.NEXT_PUBLIC_BASE_TESTNET_RPC_URL || "https://sepolia.base.org",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 84532,
-      gasPrice: "auto",
-      verify: {
-        etherscan: {
-          apiUrl: "https://api-sepolia.basescan.org",
-        }
-      }
-    },
   },
   etherscan: {
     apiKey: process.env.BASESCAN_API_KEY || "",
@@ -65,14 +54,6 @@ module.exports = {
         urls: {
           apiURL: "https://api.basescan.org/api",
           browserURL: "https://basescan.org"
-        }
-      },
-      {
-        network: "baseSepolia",
-        chainId: 84532,
-        urls: {
-          apiURL: "https://api-sepolia.basescan.org/api",
-          browserURL: "https://sepolia.basescan.org"
         }
       }
     ]
