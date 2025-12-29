@@ -7,6 +7,7 @@ import { useAccount } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
+import { SettingsButton } from '@/components/SettingsButton'
 import { useAudio } from '@/components/audio/AudioContext'
 import { useTreasury, useTreasuryData } from '@/lib/hooks/useTreasury'
 import { useMatch3GameData } from '@/lib/hooks/useMatch3Game'
@@ -478,6 +479,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-2 md:p-3">
       <div className="fixed top-2 right-2 md:top-3 md:right-3 z-50 flex items-center gap-2">
         <AudioButtons />
+        <SettingsButton />
         <WalletButton />
       </div>
       

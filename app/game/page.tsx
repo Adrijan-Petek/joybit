@@ -8,6 +8,7 @@ import { formatEther, parseEther } from 'viem'
 import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
+import { SettingsButton } from '@/components/SettingsButton'
 import { useMatch3Game, useMatch3GameData, useMatch3LevelReward, useLevelRewardsManager } from '@/lib/hooks/useMatch3Game'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
@@ -675,6 +676,7 @@ export default function Match3Game() {
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-2">
       <div className="fixed top-2 right-2 z-50 flex items-center gap-2">
         <AudioButtons />
+        <SettingsButton />
         <WalletButton />
       </div>
 

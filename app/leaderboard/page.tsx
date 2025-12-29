@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { useAccount } from 'wagmi'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
+import { SettingsButton } from '@/components/SettingsButton'
 import { useAudio } from '@/components/audio/AudioContext'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 
@@ -61,6 +62,7 @@ export default function Leaderboard() {
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-2 md:p-3">
       <div className="fixed top-2 right-2 md:top-3 md:right-3 z-50 flex items-center gap-2">
         <AudioButtons />
+        <SettingsButton />
         <WalletButton />
       </div>
       <div className="container mx-auto max-w-xl md:max-w-2xl pt-12">

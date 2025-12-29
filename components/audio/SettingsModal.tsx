@@ -2,14 +2,15 @@
 
 import { useState } from 'react'
 import { useAudio } from './AudioContext'
+import { useTheme } from '../theme/ThemeContext'
 import { motion, AnimatePresence } from 'framer-motion'
 
-interface AudioSettingsModalProps {
+interface SettingsModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-export function AudioSettingsModal({ isOpen, onClose }: AudioSettingsModalProps) {
+export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const {
     isMuted,
     isMusicMuted,
@@ -23,6 +24,8 @@ export function AudioSettingsModal({ isOpen, onClose }: AudioSettingsModalProps)
     setSoundVolume
   } = useAudio()
 
+  const { currentTheme, setTheme, availableThemes } = useTheme()
+
   const [tempMusicVolume, setTempMusicVolume] = useState(musicVolume)
   const [tempSoundVolume, setTempSoundVolume] = useState(soundVolume)
 
@@ -35,6 +38,18 @@ export function AudioSettingsModal({ isOpen, onClose }: AudioSettingsModalProps)
     setTempSoundVolume(value)
     setSoundVolume(value)
   }
+
+  const toggleTheme = () => {
+    // Toggle between current theme and a light theme if available, or default/dark
+    const currentThemeName = Object.keys(availableThemes).find(key => availableThemes[key].name === currentTheme.name)
+    if (currentThemeName === 'minimal') {
+      setTheme('default') // Switch to dark theme
+    } else {
+      setTheme('minimal') // Switch to light theme
+    }
+  }
+
+  const isLightTheme = currentTheme.name === 'Minimal'
 
   return (
     <AnimatePresence>
@@ -67,8 +82,8 @@ export function AudioSettingsModal({ isOpen, onClose }: AudioSettingsModalProps)
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="text-2xl">🔊</div>
-                  <h2 className="text-xl font-bold">Audio Settings</h2>
+                  <div className="text-2xl">⚙️</div>
+                  <h2 className="text-xl font-bold">Settings</h2>
                 </div>
                 <button
                   onClick={onClose}
@@ -172,6 +187,36 @@ export function AudioSettingsModal({ isOpen, onClose }: AudioSettingsModalProps)
                     disabled={isMuted || isSoundMuted}
                   />
                 </div>
+              </div>
+
+              {/* Theme Toggle */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Theme</span>
+                  <button
+                    onClick={toggleTheme}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      isLightTheme ? 'bg-yellow-500' : 'bg-gray-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                      isLightTheme ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                    <span className={`absolute inset-0 flex items-center justify-center text-xs transition-opacity ${
+                      isLightTheme ? 'opacity-0' : 'opacity-100'
+                    }`}>
+                      🌙
+                    </span>
+                    <span className={`absolute inset-0 flex items-center justify-center text-xs transition-opacity ${
+                      isLightTheme ? 'opacity-100' : 'opacity-0'
+                    }`}>
+                      ☀️
+                    </span>
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  {isLightTheme ? 'Light theme active' : 'Dark theme active'}
+                </p>
               </div>
 
               {/* Footer */}

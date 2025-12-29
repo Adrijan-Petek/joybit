@@ -1,26 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { AudioSettingsModal } from './audio/AudioSettingsModal'
+import { SettingsModal } from './audio/SettingsModal'
 
-export function AudioSettingsButton() {
+export function SettingsButton() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   return (
     <>
       <button
         onClick={() => setIsSettingsOpen(true)}
-        className="backdrop-blur-sm text-white p-2 md:p-3 rounded-lg transition-all duration-200 shadow-lg border hover:border-gray-600"
+        className="backdrop-blur-sm text-white p-1.5 md:p-2 rounded-lg transition-all duration-200 shadow-lg border hover:border-gray-600"
         style={{
           backgroundColor: 'var(--theme-surface)',
           borderColor: 'var(--theme-border)'
         }}
-        title="Audio Settings"
+        title="Settings"
       >
-        <span className="text-lg md:text-xl">⚙️</span>
+        <span className="text-sm md:text-base">⚙️</span>
       </button>
 
-      <AudioSettingsModal
+      <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
-import { AudioSettingsButton } from '@/components/AudioSettingsButton'
+import { SettingsButton } from '@/components/SettingsButton'
 import { Logo } from '@/components/Logo'
 import Image from 'next/image'
 import { useAudio } from '@/components/audio/AudioContext'
@@ -306,7 +306,7 @@ export default function Home() {
       {/* Audio Controls & Wallet Button */}
       <div className="fixed top-3 right-3 md:top-4 md:right-4 z-50 flex items-center gap-2">
         <AudioButtons />
-        <AudioSettingsButton />
+        <SettingsButton />
         <WalletButton />
       </div>
       

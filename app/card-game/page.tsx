@@ -8,6 +8,7 @@ import { formatEther } from 'viem'
 import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
+import { SettingsButton } from '@/components/SettingsButton'
 import { useCardGame, useCardGameData } from '@/lib/hooks/useCardGame'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
@@ -153,6 +154,7 @@ export default function CardGame() {
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-4">
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <AudioButtons />
+        <SettingsButton />
         <WalletButton />
       </div>
       <div className="container mx-auto max-w-md pt-16 pb-8">

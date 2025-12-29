@@ -8,6 +8,7 @@ import { parseEther, formatEther } from 'viem'
 import { ethers } from 'ethers'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
+import { SettingsButton } from '@/components/SettingsButton'
 import { useAudio } from '@/components/audio/AudioContext'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { 
@@ -104,6 +105,7 @@ export default function AdminPage() {
     <div className="min-h-screen" style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}>
       <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50 flex items-center gap-2">
         <AudioButtons />
+        <SettingsButton />
         <WalletButton />
       </div>
       
