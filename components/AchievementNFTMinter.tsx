@@ -40,19 +40,26 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
   // Load contract data on mount - fetch price from database first
   useEffect(() => {
     const loadPrice = async () => {
+      console.log('🔄 Loading price for achievement:', achievement.id)
       try {
         // First try to get price from database
+        console.log('📡 Fetching price from database...')
         const dbResponse = await fetch(`/api/achievements?action=price&id=${achievement.id}`)
         if (dbResponse.ok) {
           const dbData = await dbResponse.json()
           if (dbData.price) {
+            console.log('✅ Price from database:', dbData.price)
             setPrice(dbData.price)
             setIsLoadingContractData(false)
             return
+          } else {
+            console.log('⚠️ No price in database, trying contract...')
           }
+        } else {
+          console.log('❌ Database request failed:', dbResponse.status)
         }
       } catch (error) {
-        console.error('Error fetching price from database:', error)
+        console.error('❌ Error fetching price from database:', error)
       }
 
       // Fallback to contract if database doesn't have price
@@ -60,7 +67,9 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
     }
 
     const loadContractData = async () => {
+      console.log('🔗 Loading contract data from blockchain...')
       if (contractAddress === '0x0000000000000000000000000000000000000000') {
+        console.log('⚠️ Contract address not set, using default price')
         setPrice('0.0001')
         setIsLoadingContractData(false)
         return
@@ -69,14 +78,22 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
       try {
         setIsLoadingContractData(true)
         
-        // Always use Base mainnet provider for contract data
-        const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
+        // Use appropriate RPC based on chain ID
+        const rpcUrl = chainId === 84532 
+          ? 'https://sepolia.base.org'  // Base Sepolia
+          : 'https://mainnet.base.org' // Base Mainnet
+        console.log('🌐 Using RPC:', rpcUrl)
+        
+        const provider = new ethers.JsonRpcProvider(rpcUrl)
         
         const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_NFT_ABI, provider)
-
+        
+        console.log('📞 Calling contract.achievements()...')
         const result = await contract.achievements(achievement.id)
         const [rarity, active, priceWei] = result
         const formattedPrice = ethers.formatEther(priceWei)
+
+        console.log('✅ Contract data:', { rarity: Number(rarity), active, price: formattedPrice })
 
         setContractData({
           rarity: Number(rarity),
@@ -87,7 +104,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
         // Set price immediately
         setPrice(formattedPrice)
       } catch (error) {
-        console.error('Error loading contract data:', error)
+        console.error('❌ Error loading contract data:', error)
         // Fallback to default values
         setContractData({
           rarity: 0,
@@ -118,8 +135,12 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
 
       setIsChecking(true)
       try {
-        // Use Base mainnet provider for checking mint status
-        const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
+        // Use appropriate RPC based on chain ID
+        const rpcUrl = chainId === 84532 
+          ? 'https://sepolia.base.org'  // Base Sepolia
+          : 'https://mainnet.base.org' // Base Mainnet
+        
+        const provider = new ethers.JsonRpcProvider(rpcUrl)
         const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_NFT_ABI, provider)
         const minted = await contract.hasAchievement(address, achievement.id)
         setIsMinted(minted)
@@ -135,44 +156,88 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
 
   // Handle successful transaction
   useEffect(() => {
-    if (isSuccess) {
+    if (isSuccess && hash) {
+      console.log('✅ Transaction successful! Hash:', hash)
+      // Mark achievement as minted in database
+      const markMinted = async () => {
+        try {
+          console.log('📝 Marking achievement as minted in database...')
+          await fetch('/api/achievements', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'mint_achievement',
+              userAddress: address,
+              achievementId: achievement.id,
+              transactionHash: hash
+            })
+          })
+          console.log('✅ Achievement marked as minted in database')
+        } catch (error) {
+          console.error('❌ Failed to mark achievement as minted:', error)
+        }
+      }
+      
+      markMinted()
       setIsMinted(true)
       toast.success(`🎉 ${achievement.name} NFT minted successfully!`)
       onMintSuccess?.()
     }
-  }, [isSuccess, achievement.name, onMintSuccess])
+  }, [isSuccess, hash, address, achievement.id, achievement.name, onMintSuccess])
 
   const handleMint = () => {
-    if (!isOnBaseNetwork) {
+    console.log('🎯 Starting mint process for:', achievement.id)
+    console.log('Network check - chainId:', chainId, 'isSupported:', isOnSupportedNetwork)
+    console.log('Contract address:', contractAddress)
+    
+    if (contractAddress === '0x0000000000000000000000000000000000000000') {
+      console.log('❌ Contract address not set')
+      toast.error('Contract address not configured')
+      return
+    }
+    
+    if (!isOnSupportedNetwork) {
+      console.log('❌ Not on supported network')
       toast.error('Please switch to Base network to mint NFTs')
       return
     }
 
+    console.log('Contract data:', contractData)
+    console.log('Price:', price)
+    console.log('Write contract available:', !!writeContract)
+    
     if (!writeContract || !contractData || price === 'Loading...') {
+      console.log('❌ Missing required data for minting')
       toast.error('Unable to prepare minting transaction')
       return
     }
 
     if (!contractData.active) {
+      console.log('❌ Achievement not active')
       toast.error('This achievement is not available for minting')
       return
     }
 
     const priceInWei = ethers.parseEther(price)
+    console.log('Price in wei:', priceInWei.toString())
+    console.log('Contract address:', contractAddress)
 
+    console.log('🚀 Calling writeContract...')
     writeContract({
       address: contractAddress as `0x${string}`,
       abi: ACHIEVEMENT_NFT_ABI,
       functionName: 'mintAchievement',
       args: [achievement.id],
       value: priceInWei,
-      gas: 300000n, // Set reasonable gas limit for minting
+      // Remove fixed gas limit to let wagmi estimate
     })
   }
 
   const isLoading = isWriteLoading || isTxLoading || isChecking || isLoadingContractData
-  const isOnBaseNetwork = chainId === 8453
-  const canMint = isConnected && hasAchievement && !isMinted && !isLoading && contractData?.active && isOnBaseNetwork && price !== 'Loading...'
+  const isOnSupportedNetwork = chainId === 8453 || chainId === 84532 // Base mainnet or Base Sepolia
+  const canMint = isConnected && hasAchievement && !isMinted && !isLoading && contractData?.active && isOnSupportedNetwork && price !== 'Loading...'
 
   const isActive = contractData?.active ?? true
 
@@ -204,8 +269,14 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
               <span className="text-sm font-medium">✅ NFT Minted</span>
             </div>
           ) : hasAchievement ? (
-            !isOnBaseNetwork ? (
+            !isConnected ? (
+              <span className="text-sm text-red-500">Connect wallet to mint</span>
+            ) : !isOnSupportedNetwork ? (
               <span className="text-sm text-red-500">Please switch to Base network</span>
+            ) : !contractData?.active ? (
+              <span className="text-sm text-red-500">Achievement not available</span>
+            ) : price === 'Loading...' ? (
+              <span className="text-sm text-gray-500">Loading price...</span>
             ) : isActive ? (
               <button
                 onClick={handleMint}
@@ -216,7 +287,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {isLoading ? 'Processing...' : 'Mint NFT'}
+                {isLoading ? 'Processing...' : `Mint NFT (${price} ETH)`}
               </button>
             ) : (
               <span className="text-sm text-red-500">Achievement disabled</span>
