@@ -7,6 +7,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 import '@rainbow-me/rainbowkit/styles.css'
+import { ThemeProvider } from './theme/ThemeContext'
+import { AccessibilityProvider } from './accessibility/AccessibilityContext'
 
 const config = createConfig({
   chains: [base],
@@ -47,7 +49,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config} reconnectOnMount={true}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider 
+        <ThemeProvider>
+          <AccessibilityProvider>
+            <RainbowKitProvider 
           theme={darkTheme({
             accentColor: '#ee3dff',
             accentColorForeground: 'white',
@@ -63,6 +67,8 @@ export function Providers({ children }: { children: ReactNode }) {
         >
           {children}
         </RainbowKitProvider>
+        </AccessibilityProvider>
+      </ThemeProvider>
       </QueryClientProvider>
     </WagmiProvider>
   )
