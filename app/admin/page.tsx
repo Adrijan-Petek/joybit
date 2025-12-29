@@ -5017,18 +5017,50 @@ function ThemeSettings() {
                 </select>
               </div>
 
-              {/* Animation */}
+              {/* Headline Size */}
               <div className="flex items-center space-x-3">
-                <label className="text-sm text-gray-300 w-24">Animation:</label>
+                <label className="text-sm text-gray-300 w-24">Headlines:</label>
                 <select
-                  value={customTheme.animation || currentTheme.animation}
-                  onChange={(e) => updateCustomTheme('animation', e.target.value as any)}
+                  value={customTheme.headlineSize || currentTheme.headlineSize}
+                  onChange={(e) => updateCustomTheme('headlineSize', e.target.value as any)}
+                  className="flex-1 px-3 py-2 rounded text-white"
+                  style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', border: '1px solid var(--theme-border)' }}
+                >
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                  <option value="extra-large">Extra Large</option>
+                </select>
+              </div>
+
+              {/* Spacing */}
+              <div className="flex items-center space-x-3">
+                <label className="text-sm text-gray-300 w-24">Spacing:</label>
+                <select
+                  value={customTheme.spacing || currentTheme.spacing}
+                  onChange={(e) => updateCustomTheme('spacing', e.target.value as any)}
+                  className="flex-1 px-3 py-2 rounded text-white"
+                  style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', border: '1px solid var(--theme-border)' }}
+                >
+                  <option value="compact">Compact</option>
+                  <option value="normal">Normal</option>
+                  <option value="relaxed">Relaxed</option>
+                </select>
+              </div>
+
+              {/* Shadow */}
+              <div className="flex items-center space-x-3">
+                <label className="text-sm text-gray-300 w-24">Shadows:</label>
+                <select
+                  value={customTheme.shadow || currentTheme.shadow}
+                  onChange={(e) => updateCustomTheme('shadow', e.target.value as any)}
                   className="flex-1 px-3 py-2 rounded text-white"
                   style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', border: '1px solid var(--theme-border)' }}
                 >
                   <option value="none">None</option>
-                  <option value="minimal">Minimal</option>
-                  <option value="full">Full</option>
+                  <option value="subtle">Subtle</option>
+                  <option value="medium">Medium</option>
+                  <option value="strong">Strong</option>
                 </select>
               </div>
             </div>

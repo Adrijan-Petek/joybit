@@ -17,8 +17,11 @@ export interface Theme {
   error: string
   fontFamily: string
   fontSize: 'small' | 'medium' | 'large'
+  headlineSize: 'small' | 'medium' | 'large' | 'extra-large'
   borderRadius: 'none' | 'small' | 'medium' | 'large'
   animation: 'none' | 'minimal' | 'full'
+  spacing: 'compact' | 'normal' | 'relaxed'
+  shadow: 'none' | 'subtle' | 'medium' | 'strong'
 }
 
 export const themes: Record<string, Theme> = {
@@ -37,8 +40,11 @@ export const themes: Record<string, Theme> = {
     error: '#ef4444',
     fontFamily: 'Inter, sans-serif',
     fontSize: 'medium',
+    headlineSize: 'large',
     borderRadius: 'medium',
-    animation: 'full'
+    animation: 'full',
+    spacing: 'normal',
+    shadow: 'medium'
   },
   dark: {
     name: 'Dark',
@@ -55,8 +61,11 @@ export const themes: Record<string, Theme> = {
     error: '#ef4444',
     fontFamily: 'Inter, sans-serif',
     fontSize: 'medium',
+    headlineSize: 'large',
     borderRadius: 'medium',
-    animation: 'full'
+    animation: 'full',
+    spacing: 'normal',
+    shadow: 'medium'
   },
   neon: {
     name: 'Neon',
@@ -73,8 +82,11 @@ export const themes: Record<string, Theme> = {
     error: '#ff0080',
     fontFamily: 'Courier New, monospace',
     fontSize: 'medium',
+    headlineSize: 'large',
     borderRadius: 'small',
-    animation: 'full'
+    animation: 'full',
+    spacing: 'normal',
+    shadow: 'strong'
   },
   retro: {
     name: 'Retro',
@@ -91,8 +103,11 @@ export const themes: Record<string, Theme> = {
     error: '#ff6b35',
     fontFamily: 'Press Start 2P, monospace',
     fontSize: 'small',
+    headlineSize: 'medium',
     borderRadius: 'none',
-    animation: 'minimal'
+    animation: 'minimal',
+    spacing: 'compact',
+    shadow: 'subtle'
   },
   ocean: {
     name: 'Ocean',
@@ -109,8 +124,11 @@ export const themes: Record<string, Theme> = {
     error: '#ff4444',
     fontFamily: 'Inter, sans-serif',
     fontSize: 'medium',
+    headlineSize: 'large',
     borderRadius: 'large',
-    animation: 'full'
+    animation: 'full',
+    spacing: 'normal',
+    shadow: 'medium'
   },
   forest: {
     name: 'Forest',
@@ -127,8 +145,221 @@ export const themes: Record<string, Theme> = {
     error: '#ef4444',
     fontFamily: 'Inter, sans-serif',
     fontSize: 'medium',
+    headlineSize: 'large',
     borderRadius: 'medium',
-    animation: 'full'
+    animation: 'full',
+    spacing: 'normal',
+    shadow: 'medium'
+  },
+  professional: {
+    name: 'Professional',
+    primary: '#1e40af',
+    secondary: '#3b82f6',
+    accent: '#f59e0b',
+    background: '#0f172a',
+    surface: '#1e293b',
+    text: '#f8fafc',
+    textSecondary: '#cbd5e1',
+    border: '#334155',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 'medium',
+    headlineSize: 'large',
+    borderRadius: 'medium',
+    animation: 'minimal',
+    spacing: 'normal',
+    shadow: 'subtle'
+  },
+  corporate: {
+    name: 'Corporate',
+    primary: '#059669',
+    secondary: '#10b981',
+    accent: '#f59e0b',
+    background: '#0f172a',
+    surface: '#1e293b',
+    text: '#f8fafc',
+    textSecondary: '#cbd5e1',
+    border: '#334155',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 'medium',
+    headlineSize: 'large',
+    borderRadius: 'small',
+    animation: 'minimal',
+    spacing: 'relaxed',
+    shadow: 'subtle'
+  },
+  minimal: {
+    name: 'Minimal',
+    primary: '#374151',
+    secondary: '#6b7280',
+    accent: '#9ca3af',
+    background: '#ffffff',
+    surface: '#f9fafb',
+    text: '#111827',
+    textSecondary: '#6b7280',
+    border: '#d1d5db',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 'medium',
+    headlineSize: 'large',
+    borderRadius: 'small',
+    animation: 'none',
+    spacing: 'normal',
+    shadow: 'none'
+  },
+  elegant: {
+    name: 'Elegant',
+    primary: '#7c3aed',
+    secondary: '#a855f7',
+    accent: '#f59e0b',
+    background: '#0f0a19',
+    surface: '#1a103d',
+    text: '#f8fafc',
+    textSecondary: '#c4b5fd',
+    border: '#5b21b6',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 'medium',
+    headlineSize: 'extra-large',
+    borderRadius: 'large',
+    animation: 'full',
+    spacing: 'relaxed',
+    shadow: 'strong'
+  },
+  tech: {
+    name: 'Tech',
+    primary: '#06b6d4',
+    secondary: '#0891b2',
+    accent: '#f59e0b',
+    background: '#0f172a',
+    surface: '#1e293b',
+    text: '#f8fafc',
+    textSecondary: '#7dd3fc',
+    border: '#334155',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    fontFamily: 'JetBrains Mono, monospace',
+    fontSize: 'medium',
+    headlineSize: 'large',
+    borderRadius: 'small',
+    animation: 'minimal',
+    spacing: 'compact',
+    shadow: 'medium'
+  },
+  sunset: {
+    name: 'Sunset',
+    primary: '#ea580c',
+    secondary: '#dc2626',
+    accent: '#f59e0b',
+    background: '#1c1917',
+    surface: '#292524',
+    text: '#fef7ed',
+    textSecondary: '#fed7aa',
+    border: '#57534e',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 'medium',
+    headlineSize: 'large',
+    borderRadius: 'large',
+    animation: 'full',
+    spacing: 'normal',
+    shadow: 'strong'
+  },
+  midnight: {
+    name: 'Midnight',
+    primary: '#1e1b4b',
+    secondary: '#312e81',
+    accent: '#f59e0b',
+    background: '#0f0a19',
+    surface: '#1a103d',
+    text: '#f8fafc',
+    textSecondary: '#c4b5fd',
+    border: '#3730a3',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 'medium',
+    headlineSize: 'large',
+    borderRadius: 'medium',
+    animation: 'minimal',
+    spacing: 'normal',
+    shadow: 'subtle'
+  },
+  aurora: {
+    name: 'Aurora',
+    primary: '#06b6d4',
+    secondary: '#8b5cf6',
+    accent: '#f59e0b',
+    background: '#0c0a09',
+    surface: '#1c1917',
+    text: '#f8fafc',
+    textSecondary: '#a5f3fc',
+    border: '#374151',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 'medium',
+    headlineSize: 'large',
+    borderRadius: 'large',
+    animation: 'full',
+    spacing: 'relaxed',
+    shadow: 'strong'
+  },
+  cyberpunk: {
+    name: 'Cyberpunk',
+    primary: '#ff0080',
+    secondary: '#00ffff',
+    accent: '#ffff00',
+    background: '#000000',
+    surface: '#0a0a0a',
+    text: '#ffffff',
+    textSecondary: '#00ffff',
+    border: '#ff0080',
+    success: '#00ff88',
+    warning: '#ffff00',
+    error: '#ff4444',
+    fontFamily: 'Courier New, monospace',
+    fontSize: 'small',
+    headlineSize: 'medium',
+    borderRadius: 'small',
+    animation: 'full',
+    spacing: 'compact',
+    shadow: 'strong'
+  },
+  nature: {
+    name: 'Nature',
+    primary: '#059669',
+    secondary: '#10b981',
+    accent: '#84cc16',
+    background: '#0f172a',
+    surface: '#1e293b',
+    text: '#f8fafc',
+    textSecondary: '#86efac',
+    border: '#065f46',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 'medium',
+    headlineSize: 'large',
+    borderRadius: 'large',
+    animation: 'full',
+    spacing: 'relaxed',
+    shadow: 'medium'
   }
 }
 
@@ -191,23 +422,34 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty('--theme-error', theme.error)
     root.style.setProperty('--theme-font-family', theme.fontFamily)
 
-    // Font size classes
-    root.classList.remove('text-sm', 'text-base', 'text-lg')
-    if (theme.fontSize === 'small') root.classList.add('text-sm')
-    else if (theme.fontSize === 'large') root.classList.add('text-lg')
-    else root.classList.add('text-base')
+    // Font size
+    const fontSizeMap = { small: '0.875rem', medium: '1rem', large: '1.125rem' }
+    root.style.setProperty('--theme-font-size', fontSizeMap[theme.fontSize] || '1rem')
 
-    // Border radius classes
-    root.classList.remove('rounded-none', 'rounded-sm', 'rounded-md', 'rounded-lg')
-    if (theme.borderRadius === 'none') root.classList.add('rounded-none')
-    else if (theme.borderRadius === 'small') root.classList.add('rounded-sm')
-    else if (theme.borderRadius === 'large') root.classList.add('rounded-lg')
-    else root.classList.add('rounded-md')
+    // Headline size
+    const headlineSizeMap = { small: '1.5rem', medium: '2rem', large: '2.5rem', 'extra-large': '3rem' }
+    root.style.setProperty('--theme-headline-size', headlineSizeMap[theme.headlineSize] || '2.5rem')
 
-    // Animation classes
-    root.classList.remove('motion-reduce', 'motion-safe')
-    if (theme.animation === 'none') root.classList.add('motion-reduce')
-    else root.classList.add('motion-safe')
+    // Border radius
+    const borderRadiusMap = { none: '0', small: '0.25rem', medium: '0.5rem', large: '0.75rem' }
+    root.style.setProperty('--theme-border-radius', borderRadiusMap[theme.borderRadius] || '0.5rem')
+
+    // Animation duration
+    const animationMap = { none: '0s', minimal: '0.1s', full: '0.3s' }
+    root.style.setProperty('--theme-animation-duration', animationMap[theme.animation] || '0.3s')
+
+    // Spacing
+    const spacingMap = { compact: '0.75rem', normal: '1rem', relaxed: '1.25rem' }
+    root.style.setProperty('--theme-spacing', spacingMap[theme.spacing] || '1rem')
+
+    // Shadow
+    const shadowMap = {
+      none: 'none',
+      subtle: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      medium: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      strong: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+    }
+    root.style.setProperty('--theme-shadow', shadowMap[theme.shadow] || '0 4px 6px -1px rgba(0, 0, 0, 0.1)')
 
   }, [currentThemeName, customTheme])
 

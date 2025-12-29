@@ -4,7 +4,7 @@
 
 **A Decentralized Gaming Platform on Base Blockchain**
 
-[![Next.js](https://img.shields.io/badge/Next.js-14.0+-000000?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1+-000000?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.22+-363636?style=for-the-badge&logo=solidity)](https://soliditylang.org/)
 [![Base](https://img.shields.io/badge/Base-Blockchain-0052FF?style=for-the-badge&logo=ethereum)](https://base.org/)
@@ -27,6 +27,8 @@
 - **🎮 Three Unique Games**: Match-3 puzzles, 3-card strategy, and daily rewards
 - **💎 Unified Token Economy**: All games reward in JOYB tokens
 - **🏆 Achievement System**: Unlock NFTs and track progress
+- **🎨 Advanced Theme System**: 18+ professional themes with full customization
+- **🔊 Audio Controls**: Separate volume controls for music and sound effects
 - **🔐 Decentralized Rewards**: Players claim their own earnings
 - **📱 Modern UI/UX**: Responsive design with smooth animations
 - **⚡ Fast Transactions**: Optimized for Base network
@@ -117,11 +119,13 @@ Visit **[http://localhost:3000](http://localhost:3000)** to start playing!
 ### Tech Stack
 
 **Frontend:**
-- Next.js 14 with App Router
+- Next.js 16.1+ with App Router
 - TypeScript for type safety
 - TailwindCSS for styling
 - Framer Motion for animations
 - Wagmi v2 + RainbowKit for Web3
+- Advanced theme system with CSS variables
+- Audio context with separate volume controls
 
 **Blockchain:**
 - Solidity 0.8.22+
@@ -182,6 +186,69 @@ Unlock exclusive NFTs and track your gaming progress:
 - **Epic** (Purple): Advanced goals
 - **Legendary** (Teal): Expert level
 - **Mythic** (Rose): Ultimate challenges
+
+---
+
+## 🎨 Theme System
+
+**Comprehensive theming with 18+ professional themes and full customization**
+
+### 🎯 Available Themes
+
+- **Default**: Classic Joybit purple theme
+- **Dark**: Deep dark theme for night gaming
+- **Neon**: Cyberpunk neon aesthetic
+- **Retro**: 80s arcade style
+- **Ocean**: Cool blue aquatic theme
+- **Forest**: Natural green theme
+- **Professional**: Corporate blue theme
+- **Corporate**: Clean business theme
+- **Minimal**: Simple black and white
+- **Elegant**: Purple luxury theme
+- **Tech**: Monospace developer theme
+- **Sunset**: Warm orange theme
+- **Midnight**: Deep blue night theme
+- **Aurora**: Northern lights inspired
+- **Cyberpunk**: Futuristic neon theme
+- **Nature**: Earthy green theme
+
+### ⚙️ Customization Options
+
+- **Colors**: Primary, secondary, accent, background, surface, text, borders
+- **Typography**: Font family, size, headline size
+- **Layout**: Border radius, spacing, shadows
+- **Animation**: None, minimal, or full animations
+- **Persistence**: Themes saved to localStorage
+
+### 🔧 Admin Controls
+
+Admin panel includes:
+- Theme preset selection
+- Full color customization
+- Typography settings
+- Accessibility options
+- Live preview functionality
+
+---
+
+## 🔊 Audio System
+
+**Professional audio controls with separate volume management**
+
+### 🎵 Features
+
+- **Music Volume**: Background music control
+- **Sound Effects**: Game sound effects volume
+- **Mute Controls**: Individual mute toggles
+- **Persistent Settings**: Volume preferences saved
+- **Theme Integration**: Audio controls match current theme
+
+### 🎮 Audio Context
+
+- Global audio state management
+- Separate volume controls for different audio types
+- Smooth volume transitions
+- Accessibility-friendly controls
 
 ---
 

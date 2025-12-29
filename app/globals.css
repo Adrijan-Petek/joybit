@@ -15,6 +15,12 @@
   --theme-warning: #f59e0b;
   --theme-error: #ef4444;
   --theme-font-family: 'Inter', sans-serif;
+  --theme-font-size: 1rem;
+  --theme-headline-size: 2rem;
+  --theme-border-radius: 0.5rem;
+  --theme-animation-duration: 0.3s;
+  --theme-spacing: 1rem;
+  --theme-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 @layer utilities {
@@ -28,7 +34,21 @@ body {
   color: var(--theme-text);
   background: var(--theme-background);
   font-family: var(--theme-font-family);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-size: var(--theme-font-size);
+  transition: background-color var(--theme-animation-duration) ease, color var(--theme-animation-duration) ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-size: var(--theme-headline-size);
+  margin-bottom: var(--theme-spacing);
+}
+
+* {
+  border-radius: var(--theme-border-radius);
+}
+
+.shadow-theme {
+  box-shadow: var(--theme-shadow);
 }
 
 ::-webkit-scrollbar {
