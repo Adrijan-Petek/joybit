@@ -84,7 +84,7 @@ export default function Leaderboard() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/50 rounded-lg p-2 md:p-3 mb-3 text-xs"
         >
-          <h3 className="font-bold mb-1 text-purple-300">📊 Scoring System</h3>
+          <h3 className="text-lg font-semibold mb-1 text-purple-300">📊 Scoring System</h3>
           <div className="grid grid-cols-2 gap-1 text-gray-300">
             <div>• Match-3 Win: <span className="text-green-400">100 pts</span></div>
             <div>• Match-3 Game: <span className="text-green-400">50 pts</span></div>
@@ -102,7 +102,7 @@ export default function Leaderboard() {
           transition={{ delay: 0.1 }}
           className="bg-gradient-to-r from-green-600/20 to-blue-600/20 border border-green-500/50 rounded-lg p-2 md:p-3 mb-3"
         >
-          <h3 className="font-bold mb-2 text-green-300">✅ Daily Tasks</h3>
+          <h3 className="text-lg font-semibold mb-2 text-green-300">✅ Daily Tasks</h3>
           <div className="space-y-1 text-xs md:text-sm">
             <div className="flex items-center gap-2">
               <span className="text-green-400">🎮</span>
@@ -175,7 +175,7 @@ export default function Leaderboard() {
                     }`}
                   >
                     <td className="px-2 md:px-3 py-2">
-                      <div className="text-base md:text-lg font-bold">{getRankEmoji(index + 1)}</div>
+                      <div className="text-sm md:text-base font-bold">{getRankEmoji(index + 1)}</div>
                     </td>
                     <td className="px-2 md:px-3 py-2 font-mono text-[10px] md:text-xs flex items-center gap-2">
                       {entry.pfp && (
@@ -214,11 +214,11 @@ export default function Leaderboard() {
             <h2 className="text-sm md:text-base font-bold mb-2">Your Rank</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-2xl md:text-3xl font-bold">#{myRank}</div>
+                <div className="text-xl md:text-2xl font-bold">#{myRank}</div>
                 <div className="text-xs md:text-sm text-cyan-200">Global Rank</div>
               </div>
               <div>
-                <div className="text-2xl md:text-3xl font-bold">
+                <div className="text-xl md:text-2xl font-bold">
                   {globalLeaderboard.find(p => p.address.toLowerCase() === address.toLowerCase())?.score.toLocaleString() || 0}
                 </div>
                 <div className="text-xs md:text-sm text-cyan-200">Total Score</div>
