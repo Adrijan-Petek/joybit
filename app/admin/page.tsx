@@ -4815,7 +4815,7 @@ function ContractSettings() {
 // Theme Settings Section
 function ThemeSettings() {
   const { currentTheme, setTheme, customTheme, setCustomTheme, availableThemes } = useTheme()
-  const [activeSubTab, setActiveSubTab] = useState<'presets' | 'customize' | 'accessibility'>('presets')
+  const [activeSubTab, setActiveSubTab] = useState<'presets' | 'customize'>('presets')
 
   const updateCustomTheme = (key: string, value: string) => {
     setCustomTheme({ ...customTheme, [key]: value })
@@ -4845,8 +4845,7 @@ function ThemeSettings() {
       <div className="flex gap-2 mb-6 p-1 rounded-lg" style={{ backgroundColor: 'var(--theme-background)' }}>
         {[
           { id: 'presets', label: 'Presets' },
-          { id: 'customize', label: 'Customize' },
-          { id: 'accessibility', label: 'Accessibility' }
+          { id: 'customize', label: 'Customize' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -5065,70 +5064,6 @@ function ThemeSettings() {
                   <option value="strong">Strong</option>
                 </select>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Accessibility Tab */}
-      {activeSubTab === 'accessibility' && (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Accessibility Settings</h3>
-            <p className="text-gray-400 text-sm mb-6">Customize your experience for better accessibility</p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <div>
-                <h4 className="text-white font-medium">High Contrast Mode</h4>
-                <p className="text-gray-400 text-sm">Increase contrast for better visibility</p>
-              </div>
-              <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-600">
-                <span className="inline-block h-4 w-4 transform rounded-full bg-white transition" />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <div>
-                <h4 className="text-white font-medium">Reduce Motion</h4>
-                <p className="text-gray-400 text-sm">Minimize animations and transitions</p>
-              </div>
-              <button
-                onClick={() => {
-                  const newValue = currentTheme.animation === 'none' ? 'full' : 'none'
-                  updateCustomTheme('animation', newValue)
-                  toast.success(`Motion ${newValue === 'none' ? 'disabled' : 'enabled'}`)
-                }}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  currentTheme.animation === 'none' ? 'bg-cyan-600' : 'bg-gray-600'
-                }`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                  currentTheme.animation === 'none' ? 'translate-x-6' : 'translate-x-1'
-                }`} />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <div>
-                <h4 className="text-white font-medium">Large Text</h4>
-                <p className="text-gray-400 text-sm">Increase text size throughout the app</p>
-              </div>
-              <button
-                onClick={() => {
-                  const newValue = currentTheme.fontSize === 'large' ? 'medium' : 'large'
-                  updateCustomTheme('fontSize', newValue)
-                  toast.success(`Text size set to ${newValue}`)
-                }}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  currentTheme.fontSize === 'large' ? 'bg-cyan-600' : 'bg-gray-600'
-                }`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                  currentTheme.fontSize === 'large' ? 'translate-x-6' : 'translate-x-1'
-                }`} />
-              </button>
             </div>
           </div>
         </div>
