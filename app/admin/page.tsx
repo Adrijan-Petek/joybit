@@ -4532,9 +4532,41 @@ function ContractSettings() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6"
       >
-        <h2 className="text-2xl font-bold mb-4">🏆 Achievement NFT Settings</h2>
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-gray-400">Manage achievement prices and availability</p>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="text-2xl">🏆</div>
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold">Achievement NFT Settings</h2>
+            <p className="text-gray-400 text-sm">Manage achievement prices, availability, and NFT minting</p>
+          </div>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+            <div className="text-2xl font-bold text-cyan-400">{achievements.length}</div>
+            <div className="text-sm text-gray-400">Total Achievements</div>
+          </div>
+          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+            <div className="text-2xl font-bold text-green-400">{achievements.filter(a => a.active).length}</div>
+            <div className="text-sm text-gray-400">Active</div>
+          </div>
+          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+            <div className="text-2xl font-bold text-orange-400">{achievements.filter(a => !a.exists).length}</div>
+            <div className="text-sm text-gray-400">Not in Contract</div>
+          </div>
+          <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+            <div className="text-2xl font-bold text-purple-400">
+              {achievements.reduce((sum, a) => sum + parseFloat(a.price || '0'), 0).toFixed(3)}
+            </div>
+            <div className="text-sm text-gray-400">Total ETH Value</div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="text-sm text-gray-400">
+            Configure achievement NFTs and manage pricing
+          </div>
           <div className="flex gap-2">
             <button
               onClick={syncPricesFromContract}
@@ -4573,69 +4605,88 @@ function ContractSettings() {
           </div>
         </div>
 
-        <div className="space-y-4 max-h-96 overflow-y-auto">
+        {/* Achievement List */}
+        <div className="space-y-3 max-h-96 overflow-y-auto">
           {achievements.map((achievement) => (
-            <div key={achievement.id} className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="font-semibold text-white">{achievement.name}</h3>
-                  <p className="text-sm text-gray-400">{achievement.id}</p>
+            <motion.div
+              key={achievement.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30 min-h-[140px] flex flex-col hover:bg-gray-700/40 transition-colors duration-200"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">{achievement.emoji}</div>
+                  <div>
+                    <h3 className="font-semibold text-white text-lg">{achievement.name}</h3>
+                    <p className="text-sm text-gray-400 font-mono">{achievement.id}</p>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <span className={`text-sm font-medium ${getRarityColor(achievement.rarity)}`}>
+                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRarityColor(achievement.rarity)} bg-opacity-20 border border-opacity-30`}>
                     {getRarityName(achievement.rarity)}
-                  </span>
-                  <div className="flex items-center gap-2 mt-1">
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
                     <span className={`w-2 h-2 rounded-full ${achievement.active ? 'bg-green-400' : 'bg-red-400'}`}></span>
                     <span className="text-xs text-gray-400">{achievement.active ? 'Active' : 'Inactive'}</span>
                     {!achievement.exists && (
-                      <span className="text-xs text-orange-400 ml-2">Not in contract</span>
+                      <span className="text-xs text-orange-400 ml-2 flex items-center gap-1">
+                        <span>⚠️</span>
+                        Not in contract
+                      </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
+              {/* Description */}
+              <div className="text-sm text-gray-300 mb-3">
+                {achievement.description}
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-end gap-4 mt-auto">
                 <div className="flex-1">
-                  <label className="block text-sm text-gray-400 mb-1">Price (ETH)</label>
+                  <label className="block text-xs text-gray-400 mb-1 font-medium">Price (ETH)</label>
                   <input
                     type="number"
                     step="0.001"
                     defaultValue={achievement.price}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none text-sm"
                     placeholder="0.001"
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-400">
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
                     <input
                       type="checkbox"
                       defaultChecked={achievement.active}
                       className="rounded border-gray-600 text-cyan-400 focus:ring-cyan-400"
                     />
-                    Active
+                    <span className="text-xs font-medium">Active</span>
                   </label>
+                  <button
+                    onClick={() => {
+                      const input = document.querySelector(`input[type="number"][defaultValue="${achievement.price}"]`) as HTMLInputElement
+                      const checkbox = document.querySelector(`input[type="checkbox"][defaultChecked="${achievement.active}"]`) as HTMLInputElement
+                      handleUpdateAchievement(achievement.id, input?.value || achievement.price, checkbox?.checked || achievement.active, achievement.exists)
+                    }}
+                    disabled={updatingAchievement === achievement.id || isPending}
+                    className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 whitespace-nowrap text-sm"
+                  >
+                    {updatingAchievement === achievement.id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      achievement.exists ? 'Update' : 'Add to Contract'
+                    )}
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    const input = document.querySelector(`input[type="number"][defaultValue="${achievement.price}"]`) as HTMLInputElement
-                    const checkbox = document.querySelector(`input[type="checkbox"][defaultChecked="${achievement.active}"]`) as HTMLInputElement
-                    handleUpdateAchievement(achievement.id, input?.value || achievement.price, checkbox?.checked || achievement.active, achievement.exists)
-                  }}
-                  disabled={updatingAchievement === achievement.id || isPending}
-                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-                >
-                  {updatingAchievement === achievement.id ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    achievement.exists ? 'Update Achievement' : 'Add Achievement'
-                  )}
-                </button>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
@@ -4672,11 +4723,17 @@ function ContractSettings() {
           transition={{ delay: 0.1 }}
           className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6 mt-6"
         >
-          <h2 className="text-2xl font-bold mb-4">➕ Add New Achievement</h2>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="text-xl">➕</div>
+            <div>
+              <h3 className="text-lg font-bold">Add New Achievement</h3>
+              <p className="text-gray-400 text-sm">Create a new achievement NFT</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Achievement ID</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Achievement ID</label>
                 <input
                   type="text"
                   placeholder="e.g., new_achievement"
@@ -4684,7 +4741,7 @@ function ContractSettings() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Name</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
                 <input
                   type="text"
                   placeholder="Achievement Name"
@@ -4692,7 +4749,7 @@ function ContractSettings() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
                 <input
                   type="text"
                   placeholder="Achievement description"
@@ -4700,7 +4757,7 @@ function ContractSettings() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Emoji</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Emoji</label>
                 <input
                   type="text"
                   placeholder="🏆"
@@ -4710,7 +4767,7 @@ function ContractSettings() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Rarity</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Rarity</label>
                 <select className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none">
                   <option value="0">Common</option>
                   <option value="1">Rare</option>
@@ -4720,7 +4777,7 @@ function ContractSettings() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Price (ETH)</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Price (ETH)</label>
                 <input
                   type="number"
                   step="0.001"
@@ -4729,14 +4786,15 @@ function ContractSettings() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Metadata URL</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Metadata URL</label>
                 <input
                   type="url"
                   placeholder="https://..."
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
                 />
               </div>
-              <button className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors duration-200">
+              <button className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2">
+                <span>➕</span>
                 Add Achievement
               </button>
             </div>
@@ -4748,61 +4806,71 @@ function ContractSettings() {
           transition={{ delay: 0.2 }}
           className="bg-gray-500/20 border border-gray-500/30 rounded-xl p-6 mt-6"
         >
-          <h2 className="text-2xl font-bold mb-4">⚡ Bulk Actions</h2>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="text-xl">⚡</div>
+            <div>
+              <h2 className="text-lg font-bold">Bulk Actions</h2>
+              <p className="text-gray-400 text-sm">Apply changes to all achievements at once</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">Set All Prices</h3>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  step="0.001"
-                  value={bulkPrice}
-                  onChange={(e) => setBulkPrice(e.target.value)}
-                  placeholder="0.001"
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
-                />
-                <button
-                  onClick={handleBulkSetPrice}
-                  disabled={!bulkPrice || updatingAchievement === 'bulk-price'}
-                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-                >
-                  {updatingAchievement === 'bulk-price' ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Setting...
-                    </>
-                  ) : (
-                    'Set All'
-                  )}
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Set All Prices</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="0.001"
+                    value={bulkPrice}
+                    onChange={(e) => setBulkPrice(e.target.value)}
+                    placeholder="0.001"
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                  />
+                  <button
+                    onClick={handleBulkSetPrice}
+                    disabled={!bulkPrice || updatingAchievement === 'bulk-price'}
+                    className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                  >
+                    {updatingAchievement === 'bulk-price' ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Setting...
+                      </>
+                    ) : (
+                      'Set All'
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">Set All Status</h3>
-              <div className="flex gap-2">
-                <select
-                  value={bulkActive === null ? '' : bulkActive ? 'true' : 'false'}
-                  onChange={(e) => setBulkActive(e.target.value === '' ? null : e.target.value === 'true')}
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
-                >
-                  <option value="">Select Action</option>
-                  <option value="true">Activate All</option>
-                  <option value="false">Deactivate All</option>
-                </select>
-                <button
-                  onClick={handleBulkSetActive}
-                  disabled={bulkActive === null || updatingAchievement === 'bulk-active'}
-                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-                >
-                  {updatingAchievement === 'bulk-active' ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Applying...
-                    </>
-                  ) : (
-                    'Apply'
-                  )}
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Set All Status</label>
+                <div className="flex gap-2">
+                  <select
+                    value={bulkActive === null ? '' : bulkActive ? 'true' : 'false'}
+                    onChange={(e) => setBulkActive(e.target.value === '' ? null : e.target.value === 'true')}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none"
+                  >
+                    <option value="">Select Action</option>
+                    <option value="true">Activate All</option>
+                    <option value="false">Deactivate All</option>
+                  </select>
+                  <button
+                    onClick={handleBulkSetActive}
+                    disabled={bulkActive === null || updatingAchievement === 'bulk-active'}
+                    className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                  >
+                    {updatingAchievement === 'bulk-active' ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Applying...
+                      </>
+                    ) : (
+                      'Apply'
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
