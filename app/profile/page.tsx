@@ -18,6 +18,7 @@ import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { notifyRewardAvailable } from '@/lib/utils/farcasterNotifications'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
+import { getUserProfile } from '@/lib/utils/farcasterUser'
 import AchievementNFTMinter from '@/components/AchievementNFTMinter'
 
 export default function ProfilePage() {
@@ -33,6 +34,12 @@ export default function ProfilePage() {
   const [achievements, setAchievements] = useState<any[]>([])
   const [userAchievements, setUserAchievements] = useState<any[]>([])
   const [userStats, setUserStats] = useState<any>(null)
+  const [userProfile, setUserProfile] = useState<{
+    username: string
+    displayName: string
+    profilePicture: string
+    bio: string
+  } | null>(null)
 
   const { claimRewards, isClaiming } = useTreasury()
   const { allPendingRewards, refetch: refetchTreasury } = useTreasuryData(address)
@@ -202,6 +209,19 @@ export default function ProfilePage() {
 
     // Fetch achievements data
     fetchAchievementsData()
+
+    // Fetch user profile data for the specific address
+    const fetchUserProfile = async () => {
+      try {
+        const profile = await getUserProfile('0x868EDB819AF54a9C938DEA4c2e027FE050b18d0A')
+        setUserProfile(profile)
+        console.log('✅ Fetched user profile:', profile)
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error)
+      }
+    }
+
+    fetchUserProfile()
   }, [playMusic, address])
 
   // Load token metadata
@@ -515,12 +535,34 @@ export default function ProfilePage() {
           className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 md:p-4 mb-3 border border-gray-800"
         >
           <div className="flex items-center">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-cyan-500 rounded-full flex items-center justify-center text-2xl md:text-3xl mr-3">
-              🎮
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-cyan-500 rounded-full flex items-center justify-center text-2xl md:text-3xl mr-3 overflow-hidden">
+              {userProfile?.profilePicture ? (
+                <img
+                  src={userProfile.profilePicture}
+                  alt={`${userProfile.displayName} profile`}
+                  className="w-full h-full object-cover rounded-full"
+                  onError={(e) => {
+                    // Fallback to emoji if image fails to load
+                    e.currentTarget.style.display = 'none'
+                    e.currentTarget.parentElement!.textContent = '🎮'
+                  }}
+                />
+              ) : (
+                '🎮'
+              )}
             </div>
             <div className="overflow-hidden">
-              <h2 className="text-base md:text-lg font-bold mb-0.5">Player</h2>
-              <p className="text-gray-400 font-mono text-xs md:text-sm truncate">{address}</p>
+              <h2 className="text-base md:text-lg font-bold mb-0.5">
+                {userProfile?.displayName || 'Player'}
+              </h2>
+              <p className="text-gray-400 font-mono text-xs md:text-sm truncate">
+                {userProfile?.username ? `@${userProfile.username}` : address}
+              </p>
+              {userProfile?.bio && (
+                <p className="text-gray-500 text-xs mt-1 truncate max-w-xs">
+                  {userProfile.bio}
+                </p>
+              )}
             </div>
           </div>
         </motion.div>
