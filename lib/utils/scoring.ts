@@ -9,6 +9,8 @@ export const SCORING_SYSTEM = {
   CARD_GAME: 30,
   DAILY_CLAIM: 80,
   STREAK_DAY: 20,
+  MINTED_ACHIEVEMENT: 20,
+  UNLOCKED_ACHIEVEMENT: 10,
 } as const
 
 export type ScoringEvent =
@@ -18,6 +20,8 @@ export type ScoringEvent =
   | 'card_game'
   | 'daily_claim'
   | 'streak_day'
+  | 'minted_achievement'
+  | 'unlocked_achievement'
 
 /**
  * Calculate leaderboard points for a scoring event
@@ -36,6 +40,10 @@ export function calculateLeaderboardPoints(event: ScoringEvent): number {
       return SCORING_SYSTEM.DAILY_CLAIM
     case 'streak_day':
       return SCORING_SYSTEM.STREAK_DAY
+    case 'minted_achievement':
+      return SCORING_SYSTEM.MINTED_ACHIEVEMENT
+    case 'unlocked_achievement':
+      return SCORING_SYSTEM.UNLOCKED_ACHIEVEMENT
     default:
       return 0
   }
@@ -52,5 +60,7 @@ export function getScoringSystem(): Record<ScoringEvent, number> {
     card_game: SCORING_SYSTEM.CARD_GAME,
     daily_claim: SCORING_SYSTEM.DAILY_CLAIM,
     streak_day: SCORING_SYSTEM.STREAK_DAY,
+    minted_achievement: SCORING_SYSTEM.MINTED_ACHIEVEMENT,
+    unlocked_achievement: SCORING_SYSTEM.UNLOCKED_ACHIEVEMENT,
   }
 }

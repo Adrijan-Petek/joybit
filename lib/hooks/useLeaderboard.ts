@@ -42,14 +42,22 @@ export function useLeaderboard() {
     }
   }
 
-  const updateScore = async (address: string, score: number, username?: string, pfp?: string) => {
+  const updateScore = async (address: string, pointsToAdd: number, username?: string, pfp?: string) => {
     try {
+      // First get current score
+      const currentResult = await fetch(`/api/leaderboard?address=${address}`)
+      const currentData = await currentResult.json()
+      const currentScore = currentData.currentScore || 0
+      
+      // Calculate new total score
+      const newTotalScore = currentScore + pointsToAdd
+      
       const response = await fetch('/api/leaderboard', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ address, score, username, pfp }),
+        body: JSON.stringify({ address, score: newTotalScore, username, pfp }),
       })
       
       const data = await response.json()

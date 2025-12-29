@@ -92,6 +92,8 @@ export default function Leaderboard() {
             <div>• Card Game: <span className="text-blue-400">30 pts</span></div>
             <div>• Daily Claim: <span className="text-yellow-400">80 pts</span></div>
             <div>• Streak Day: <span className="text-yellow-400">20 pts</span></div>
+            <div>• Minted Achievement: <span className="text-purple-400">20 pts</span></div>
+            <div>• Unlocked Achievement: <span className="text-purple-400">10 pts</span></div>
           </div>
         </motion.div>
 

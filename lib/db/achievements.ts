@@ -301,6 +301,26 @@ export async function unlockAchievement(userAddress: string, achievementId: stri
       args: [userAddress, achievementId]
     })
 
+    // Award leaderboard points for unlocking achievement
+    try {
+      const unlockPoints = 10 // Points for unlocking achievement
+      const currentScoreResult = await client.execute({
+        sql: 'SELECT score FROM leaderboard_scores WHERE address = ?',
+        args: [userAddress]
+      })
+      const currentScore = currentScoreResult.rows.length > 0 ? currentScoreResult.rows[0].score as number : 0
+      const newScore = currentScore + unlockPoints
+
+      await client.execute({
+        sql: 'INSERT OR REPLACE INTO leaderboard_scores (address, score) VALUES (?, ?)',
+        args: [userAddress, newScore]
+      })
+
+      console.log(`✅ Awarded ${unlockPoints} leaderboard points for unlocking achievement: ${achievementId}`)
+    } catch (scoreError) {
+      console.error('Failed to award leaderboard points for unlocking achievement:', scoreError)
+    }
+
     return true // Newly unlocked
   } catch (error) {
     console.error('Error unlocking achievement:', error)
@@ -315,6 +335,26 @@ export async function markAchievementMinted(userAddress: string, achievementId: 
       sql: `UPDATE user_achievements SET minted = TRUE, minted_at = CURRENT_TIMESTAMP, transaction_hash = ? WHERE user_address = ? AND achievement_id = ?`,
       args: [transactionHash, userAddress, achievementId]
     })
+
+    // Award leaderboard points for minting achievement
+    try {
+      const mintPoints = 20 // Points for minting achievement
+      const currentScoreResult = await client.execute({
+        sql: 'SELECT score FROM leaderboard_scores WHERE address = ?',
+        args: [userAddress]
+      })
+      const currentScore = currentScoreResult.rows.length > 0 ? currentScoreResult.rows[0].score as number : 0
+      const newScore = currentScore + mintPoints
+
+      await client.execute({
+        sql: 'INSERT OR REPLACE INTO leaderboard_scores (address, score) VALUES (?, ?)',
+        args: [userAddress, newScore]
+      })
+
+      console.log(`✅ Awarded ${mintPoints} leaderboard points for minting achievement: ${achievementId}`)
+    } catch (scoreError) {
+      console.error('Failed to award leaderboard points for minting achievement:', scoreError)
+    }
   } catch (error) {
     console.error('Error marking achievement as minted:', error)
     throw error

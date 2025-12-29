@@ -37,8 +37,22 @@ async function initTables() {
 initTables().catch(console.error)
 
 // GET leaderboard
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const address = searchParams.get('address')
+    
+    // If address is provided, return just that user's current score
+    if (address) {
+      const result = await client.execute({
+        sql: 'SELECT score FROM leaderboard_scores WHERE address = ?',
+        args: [address]
+      })
+      
+      const currentScore = result.rows.length > 0 ? result.rows[0].score as number : 0
+      return NextResponse.json({ currentScore })
+    }
+
     console.log('Fetching leaderboard from Turso...')
     console.log('Turso URL:', process.env.TURSO_DATABASE_URL ? 'Set' : 'Missing')
     console.log('Turso Token:', process.env.TURSO_AUTH_TOKEN ? 'Set' : 'Missing')
@@ -83,22 +97,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 })
     }
 
-    // Get current score
-    const currentResult = await client.execute({
-      sql: 'SELECT score FROM leaderboard_scores WHERE address = ?',
-      args: [address]
+    // Always update the score with the new total (since we're now sending accumulated totals)
+    await client.execute({
+      sql: 'INSERT OR REPLACE INTO leaderboard_scores (address, score) VALUES (?, ?)',
+      args: [address, score]
     })
-    
-    const currentScore = currentResult.rows.length > 0 ? currentResult.rows[0].score as number : 0
-    
-    let updated = false
-    if (score > currentScore) {
-      await client.execute({
-        sql: 'INSERT OR REPLACE INTO leaderboard_scores (address, score) VALUES (?, ?)',
-        args: [address, score]
-      })
-      updated = true
-    }
     
     // Always store user data if provided
     if (username !== undefined || pfp !== undefined) {
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ success: true, updated })
+    return NextResponse.json({ success: true, updated: true })
   } catch (error) {
     console.error('Error updating leaderboard:', error)
     return NextResponse.json({ error: 'Failed to update leaderboard' }, { status: 500 })
