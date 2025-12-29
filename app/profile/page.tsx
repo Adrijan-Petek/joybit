@@ -34,6 +34,7 @@ export default function ProfilePage() {
   const [userAchievements, setUserAchievements] = useState<any[]>([])
   const [userStats, setUserStats] = useState<any>(null)
   const [userData, setUserData] = useState<{ username?: string; pfp?: string }>({})
+  const [farcasterUserData, setFarcasterUserData] = useState<{ username?: string; pfpUrl?: string }>({})
 
   const { claimRewards, isClaiming } = useTreasury()
   const { allPendingRewards, refetch: refetchTreasury } = useTreasuryData(address)
@@ -181,12 +182,43 @@ export default function ProfilePage() {
     try {
       const response = await fetch(`/api/leaderboard?address=${address}`)
       const data = await response.json()
-      setUserData({
-        username: data.username,
-        pfp: data.pfp
-      })
+      
+      // If we have username/pfp from database, use it
+      if (data.username || data.pfp) {
+        setUserData({
+          username: data.username,
+          pfp: data.pfp
+        })
+        return
+      }
+      
+      // If no data in database, use Farcaster data if available
+      if (farcasterUserData.username || farcasterUserData.pfpUrl) {
+        const farcasterData = {
+          username: farcasterUserData.username,
+          pfp: farcasterUserData.pfpUrl
+        }
+        
+        // Store this data in database for future use
+        await fetch('/api/leaderboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            address, 
+            score: data.currentScore || 0,
+            username: farcasterData.username, 
+            pfp: farcasterData.pfp 
+          })
+        })
+        
+        setUserData(farcasterData)
+      } else {
+        // No data available
+        setUserData({})
+      }
     } catch (error) {
       console.error('Error fetching user data:', error)
+      setUserData({})
     }
   }
 
@@ -210,8 +242,16 @@ export default function ProfilePage() {
       try {
         const { sdk } = await import('@farcaster/miniapp-sdk')
         await sdk.actions.ready()
+        
+        // Get user data from Farcaster
+        const context = await sdk.context
+        setFarcasterUserData({
+          username: context?.user?.username,
+          pfpUrl: context?.user?.pfpUrl
+        })
       } catch (error) {
         console.log('Not in Farcaster Mini App context')
+        setFarcasterUserData({})
       }
     }
 
@@ -219,10 +259,14 @@ export default function ProfilePage() {
 
     // Fetch achievements data
     fetchAchievementsData()
-    
-    // Fetch user data (username and pfp)
-    fetchUserData()
   }, [playMusic, address])
+
+  // Fetch user data when address or farcaster data changes
+  useEffect(() => {
+    if (address) {
+      fetchUserData()
+    }
+  }, [address, farcasterUserData])
 
   // Load token metadata
   useEffect(() => {
