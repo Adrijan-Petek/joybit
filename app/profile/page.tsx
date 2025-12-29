@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const [achievements, setAchievements] = useState<any[]>([])
   const [userAchievements, setUserAchievements] = useState<any[]>([])
   const [userStats, setUserStats] = useState<any>(null)
+  const [userData, setUserData] = useState<{ username?: string; pfp?: string }>({})
 
   const { claimRewards, isClaiming } = useTreasury()
   const { allPendingRewards, refetch: refetchTreasury } = useTreasuryData(address)
@@ -173,6 +174,22 @@ export default function ProfilePage() {
     }
   }
 
+  // Fetch user data (username and pfp) from leaderboard
+  const fetchUserData = async () => {
+    if (!address) return
+
+    try {
+      const response = await fetch(`/api/leaderboard?address=${address}`)
+      const data = await response.json()
+      setUserData({
+        username: data.username,
+        pfp: data.pfp
+      })
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+    }
+  }
+
   // Sort achievements: unlocked first, then by rarity
   const sortedAchievements = achievements.sort((a, b) => {
     // Unlocked achievements come first
@@ -202,6 +219,9 @@ export default function ProfilePage() {
 
     // Fetch achievements data
     fetchAchievementsData()
+    
+    // Fetch user data (username and pfp)
+    fetchUserData()
   }, [playMusic, address])
 
   // Load token metadata
@@ -515,11 +535,23 @@ export default function ProfilePage() {
           className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 md:p-4 mb-3 border border-gray-800"
         >
           <div className="flex items-center">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-cyan-500 rounded-full flex items-center justify-center text-2xl md:text-3xl mr-3">
-              🎮
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mr-3 overflow-hidden">
+              {userData.pfp ? (
+                <img 
+                  src={userData.pfp} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-cyan-500 rounded-full flex items-center justify-center">
+                  🎮
+                </div>
+              )}
             </div>
             <div className="overflow-hidden">
-              <h2 className="text-base md:text-lg font-bold mb-0.5">Player</h2>
+              <h2 className="text-base md:text-lg font-bold mb-0.5">
+                {userData.username || 'Player'}
+              </h2>
               <p className="text-gray-400 font-mono text-xs md:text-sm truncate">{address}</p>
             </div>
           </div>

@@ -45,12 +45,19 @@ export async function GET(request: NextRequest) {
     // If address is provided, return just that user's current score
     if (address) {
       const result = await client.execute({
-        sql: 'SELECT score FROM leaderboard_scores WHERE address = ?',
+        sql: 'SELECT ls.score, lu.username, lu.pfp FROM leaderboard_scores ls LEFT JOIN leaderboard_users lu ON ls.address = lu.address WHERE ls.address = ?',
         args: [address]
       })
       
       const currentScore = result.rows.length > 0 ? result.rows[0].score as number : 0
-      return NextResponse.json({ currentScore })
+      const username = result.rows.length > 0 ? result.rows[0].username as string : null
+      const pfp = result.rows.length > 0 ? result.rows[0].pfp as string : null
+      
+      return NextResponse.json({ 
+        currentScore,
+        username: username || undefined,
+        pfp: pfp || undefined
+      })
     }
 
     console.log('Fetching leaderboard from Turso...')
