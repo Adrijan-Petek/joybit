@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 
 export interface AccessibilitySettings {
   highContrast: boolean
@@ -40,17 +41,36 @@ const defaultSettings: AccessibilitySettings = {
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
 
 export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = useState<AccessibilitySettings>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('accessibility-settings')
-      return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings
-    }
-    return defaultSettings
-  })
+  const [settings, setSettings] = useState<AccessibilitySettings>(defaultSettings)
+  const [isLoaded, setIsLoaded] = useState(false)
 
+  // Load settings from storage on mount
   useEffect(() => {
-    localStorage.setItem('accessibility-settings', JSON.stringify(settings))
-  }, [settings])
+    const loadSettings = async () => {
+      try {
+        const saved = await getStorageItem('accessibility-settings')
+        if (saved) {
+          const parsedSettings = JSON.parse(saved)
+          setSettings({ ...defaultSettings, ...parsedSettings })
+        }
+      } catch (error) {
+        console.warn('Failed to load accessibility settings:', error)
+      } finally {
+        setIsLoaded(true)
+      }
+    }
+
+    loadSettings()
+  }, [])
+
+  // Save settings to storage when they change
+  useEffect(() => {
+    if (isLoaded) {
+      setStorageItem('accessibility-settings', JSON.stringify(settings)).catch(error => {
+        console.warn('Failed to save accessibility settings:', error)
+      })
+    }
+  }, [settings, isLoaded])
 
   // Apply accessibility settings to document
   useEffect(() => {

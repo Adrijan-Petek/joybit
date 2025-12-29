@@ -9,6 +9,7 @@ import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
+import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 import { useMatch3Game, useMatch3GameData, useMatch3LevelReward, useLevelRewardsManager } from '@/lib/hooks/useMatch3Game'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
@@ -126,20 +127,27 @@ export default function Match3Game() {
   // Get last played level from contract
   const lastPlayedLevel = playerData && Array.isArray(playerData) ? Number(playerData[2]) || 1 : 1
 
-  // Load boosters from localStorage on mount
+  // Load boosters from storage on mount
   useEffect(() => {
     if (!address) return
-    
+
     const key = `boosters_${address}`
-    const saved = localStorage.getItem(key)
-    
-    if (saved) {
-      const boosters = JSON.parse(saved)
-      setGameState(prev => ({
-        ...prev,
-        boosters: boosters,
-      }))
+    const loadBoosters = async () => {
+      try {
+        const saved = await getStorageItem(key)
+        if (saved) {
+          const boosters = JSON.parse(saved)
+          setGameState(prev => ({
+            ...prev,
+            boosters: boosters,
+          }))
+        }
+      } catch (error) {
+        console.warn('Failed to load boosters:', error)
+      }
     }
+
+    loadBoosters()
   }, [address])
 
   // Load level rewards from database
@@ -397,9 +405,11 @@ export default function Match3Game() {
         boosters: newBoosters,
       }))
       
-      // Save to localStorage
+      // Save to storage
       const key = `boosters_${address}`
-      localStorage.setItem(key, JSON.stringify(newBoosters))
+      setStorageItem(key, JSON.stringify(newBoosters)).catch(error => {
+        console.warn('Failed to save boosters:', error)
+      })
       
       playSound?.('shuffle')
       const shuffled = shuffleGrid(gameState.grid)
@@ -425,9 +435,11 @@ export default function Match3Game() {
       boosters: newBoosters,
     }))
     
-    // Save to localStorage
+    // Save to storage
     const key = `boosters_${address}`
-    localStorage.setItem(key, JSON.stringify(newBoosters))
+    setStorageItem(key, JSON.stringify(newBoosters)).catch(error => {
+      console.warn('Failed to save boosters:', error)
+    })
 
     if (activeBooster === 'hammer') {
       let newGrid = gameState.grid.map(row => [...row])
@@ -646,14 +658,16 @@ export default function Match3Game() {
       if (hash) {
         await new Promise(resolve => setTimeout(resolve, 2000))
         
-        // Save to localStorage immediately
+        // Save to storage immediately
         const key = `boosters_${address}`
-        const saved = localStorage.getItem(key)
+        const saved = await getStorageItem(key)
         const boosters = saved ? JSON.parse(saved) : { hammer: 0, shuffle: 0, colorBomb: 0 }
-        
+
         const amount = isPack ? 5 : 1
         boosters[type] = (boosters[type] || 0) + amount
-        localStorage.setItem(key, JSON.stringify(boosters))
+        setStorageItem(key, JSON.stringify(boosters)).catch(error => {
+          console.warn('Failed to save boosters:', error)
+        })
         
         // Update UI immediately
         setGameState(prev => ({

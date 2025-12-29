@@ -17,6 +17,7 @@ import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { notifyRewardAvailable } from '@/lib/utils/farcasterNotifications'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
+import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 import AchievementNFTMinter from '@/components/AchievementNFTMinter'
 
 export default function ProfilePage() {
@@ -212,11 +213,11 @@ export default function ProfilePage() {
         console.log('🔄 Loading token metadata...')
         let tokenImagesData: Record<string, { image: string; symbol: string }> = {}
 
-        // Load from localStorage first (same as admin panel)
-        const saved = localStorage.getItem('joybit_token_images')
+        // Load from storage first (same as admin panel)
+        const saved = await getStorageItem('joybit_token_images')
         if (saved) {
           tokenImagesData = JSON.parse(saved)
-          console.log('📦 Token metadata from localStorage:', tokenImagesData)
+          console.log('📦 Token metadata from storage:', tokenImagesData)
         }
 
         // Also load from API and merge (API data takes precedence)
@@ -259,33 +260,39 @@ export default function ProfilePage() {
 
   // Monitor for new pending rewards and send notifications
   useEffect(() => {
-    if (!mounted || !allPendingRewards || !address) return
+    const checkPendingRewards = async () => {
+      if (!mounted || !allPendingRewards || !address) return
 
-    // Check if user has pending rewards that weren't there before
-    const hasPendingRewards = allPendingRewards.tokens.length > 0
+      // Check if user has pending rewards that weren't there before
+      const hasPendingRewards = allPendingRewards.tokens.length > 0
 
-    if (hasPendingRewards) {
-      // Check if we've already notified about these rewards
-      const notificationKey = `joybit_rewards_notified_${address}`
-      const lastNotified = localStorage.getItem(notificationKey)
+      if (hasPendingRewards) {
+        // Check if we've already notified about these rewards
+        const notificationKey = `joybit_rewards_notified_${address}`
+        const lastNotified = await getStorageItem(notificationKey)
 
-      // Only notify if we haven't notified recently (within last hour)
-      const now = Date.now()
-      const oneHour = 60 * 60 * 1000
+        // Only notify if we haven't notified recently (within last hour)
+        const now = Date.now()
+        const oneHour = 60 * 60 * 1000
 
-      if (!lastNotified || (now - parseInt(lastNotified)) > oneHour) {
-        // Calculate total pending amount
-        const totalPending = allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)
-        const firstTokenAddress = allPendingRewards.tokens[0]
-        const tokenData = tokenImages[firstTokenAddress.toLowerCase()]
-        const tokenSymbol = tokenData?.symbol || (firstTokenAddress.toLowerCase() === CONTRACT_ADDRESSES.joybitToken.toLowerCase() ? 'JOYB' : 'tokens')
+        if (!lastNotified || (now - parseInt(lastNotified)) > oneHour) {
+          // Calculate total pending amount
+          const totalPending = allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)
+          const firstTokenAddress = allPendingRewards.tokens[0]
+          const tokenData = tokenImages[firstTokenAddress.toLowerCase()]
+          const tokenSymbol = tokenData?.symbol || (firstTokenAddress.toLowerCase() === CONTRACT_ADDRESSES.joybitToken.toLowerCase() ? 'JOYB' : 'tokens')
 
-        notifyRewardAvailable(formatTokenBalance(totalPending), tokenSymbol)
+          notifyRewardAvailable(formatTokenBalance(totalPending), tokenSymbol)
 
-        // Mark as notified
-        localStorage.setItem(notificationKey, now.toString())
+          // Mark as notified
+          setStorageItem(notificationKey, now.toString()).catch(error => {
+            console.warn('Failed to save notification timestamp:', error)
+          })
+        }
       }
     }
+
+    checkPendingRewards()
   }, [allPendingRewards, mounted, address, tokenImages])
 
   // Sync blockchain stats with database

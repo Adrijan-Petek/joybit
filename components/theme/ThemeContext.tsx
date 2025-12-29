@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 
 export interface Theme {
   name: string
@@ -481,33 +482,52 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [currentThemeName, setCurrentThemeName] = useState('default')
   const [customTheme, setCustomTheme] = useState<Partial<Theme>>({})
+  const [isLoaded, setIsLoaded] = useState(false)
 
-  // Load theme from localStorage on mount
+  // Load theme from storage on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('joybit-theme')
-    const savedCustomTheme = localStorage.getItem('joybit-custom-theme')
-
-    if (savedTheme && themes[savedTheme]) {
-      setCurrentThemeName(savedTheme)
-    }
-
-    if (savedCustomTheme) {
+    const loadTheme = async () => {
       try {
-        setCustomTheme(JSON.parse(savedCustomTheme))
-      } catch (e) {
-        console.error('Failed to parse custom theme:', e)
+        const savedTheme = await getStorageItem('joybit-theme')
+        const savedCustomTheme = await getStorageItem('joybit-custom-theme')
+
+        if (savedTheme && themes[savedTheme]) {
+          setCurrentThemeName(savedTheme)
+        }
+
+        if (savedCustomTheme) {
+          try {
+            setCustomTheme(JSON.parse(savedCustomTheme))
+          } catch (e) {
+            console.error('Failed to parse custom theme:', e)
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load theme settings:', error)
+      } finally {
+        setIsLoaded(true)
       }
     }
+
+    loadTheme()
   }, [])
 
-  // Save theme to localStorage when it changes
+  // Save theme to storage when it changes
   useEffect(() => {
-    localStorage.setItem('joybit-theme', currentThemeName)
-  }, [currentThemeName])
+    if (isLoaded) {
+      setStorageItem('joybit-theme', currentThemeName).catch(error => {
+        console.warn('Failed to save theme:', error)
+      })
+    }
+  }, [currentThemeName, isLoaded])
 
   useEffect(() => {
-    localStorage.setItem('joybit-custom-theme', JSON.stringify(customTheme))
-  }, [customTheme])
+    if (isLoaded) {
+      setStorageItem('joybit-custom-theme', JSON.stringify(customTheme)).catch(error => {
+        console.warn('Failed to save custom theme:', error)
+      })
+    }
+  }, [customTheme, isLoaded])
 
   // Apply theme to CSS variables
   useEffect(() => {

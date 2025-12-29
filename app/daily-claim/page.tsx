@@ -13,6 +13,7 @@ import { useDailyClaim, useClaimData } from '@/lib/hooks/useDailyClaim'
 import { notifyDailyReward } from '@/lib/utils/farcasterNotifications'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
+import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 
 export default function DailyClaim() {
   const router = useRouter()
@@ -49,20 +50,26 @@ export default function DailyClaim() {
 
   // Monitor for available daily rewards and send notifications
   useEffect(() => {
-    if (!mounted || !address || !canClaim || !claimableReward) return
+    const checkAndNotify = async () => {
+      if (!mounted || !address || !canClaim || !claimableReward) return
 
-    // Check if we've already notified about today's reward
-    const today = new Date().toDateString()
-    const notificationKey = `joybit_daily_notified_${address}_${today}`
-    const lastNotified = localStorage.getItem(notificationKey)
+      // Check if we've already notified about today's reward
+      const today = new Date().toDateString()
+      const notificationKey = `joybit_daily_notified_${address}_${today}`
+      const lastNotified = await getStorageItem(notificationKey)
 
-    if (!lastNotified) {
-      const rewardAmount = formatEther(claimableReward)
-      notifyDailyReward(rewardAmount)
+      if (!lastNotified) {
+        const rewardAmount = formatEther(claimableReward)
+        notifyDailyReward(rewardAmount)
 
-      // Mark as notified for today
-      localStorage.setItem(notificationKey, 'true')
+        // Mark as notified for today
+        setStorageItem(notificationKey, 'true').catch(error => {
+          console.warn('Failed to save daily notification:', error)
+        })
+      }
     }
+
+    checkAndNotify()
   }, [canClaim, claimableReward, mounted, address])
 
   const handleClaim = async () => {
