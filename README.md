@@ -56,6 +56,7 @@ Complete documentation for Joybit development and deployment:
 - **[Database Schema](docs/Technical/Database-Schema.md)** - Database structure and migrations
 
 ### 📋 Additional Resources
+- **[Contributing Guide](docs/Contributing.md)** - How to contribute to the project
 - **[Mainnet Deployment](MAINNET_DEPLOYMENT.md)** - Mainnet deployment guide
 - **[Testnet Deployment](TESTNET_DEPLOYMENT.md)** - Testnet deployment guide
 - **[Farcaster Integration](FARCASTER_INTEGRATION_SUMMARY.md)** - Social features integration
