@@ -4300,17 +4300,17 @@ function ContractSettings() {
         const promises = allIds.map(async (id: bigint) => {
           try {
             const result = await contract.getAchievement(id)
-            const [contractId, rarity, metadataUrl, price, active] = result
-            console.log(`Achievement ${id}:`, { contractId, rarity, metadataUrl, price: ethers.formatEther(price), active })
+            const [rarity, price, active] = result
+            console.log(`Achievement ${id}:`, { rarity, price: ethers.formatEther(price), active })
             
             // Convert uint256 ID to string ID for database lookup
-            const stringId = String(contractId)
+            const stringId = String(id)
             
             return {
               id: stringId,
-              contractId: Number(contractId),
+              contractId: Number(id),
               rarity: Number(rarity),
-              metadataUrl,
+              metadataUrl: '', // Not returned by contract
               price: ethers.formatEther(price),
               rawPrice: price,
               active,

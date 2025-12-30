@@ -4,14 +4,33 @@ import { ReactNode } from 'react'
 import { WagmiProvider, http, createStorage, cookieStorage, createConfig } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
+import { RainbowKitProvider, darkTheme, connectorsForWallets } from '@rainbow-me/rainbowkit'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
+import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets'
 import '@rainbow-me/rainbowkit/styles.css'
 import { ThemeProvider } from './theme/ThemeContext'
+
+const rainbowKitConnectors = connectorsForWallets(
+  [
+    {
+      groupName: 'Recommended',
+      wallets: [
+        metaMaskWallet,
+        rainbowWallet,
+        walletConnectWallet,
+      ],
+    },
+  ],
+  {
+    appName: 'Joybit',
+    projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '3e40339a23a18ccd2e115f9b0c0c8324',
+  }
+)
 
 const config = createConfig({
   chains: [base],
   connectors: [
+    ...rainbowKitConnectors,
     miniAppConnector()
   ],
   transports: {
