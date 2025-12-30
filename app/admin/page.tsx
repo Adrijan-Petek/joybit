@@ -132,6 +132,7 @@ export default function AdminPage() {
             <TabButton active={activeTab === 'rewards'} onClick={() => setActiveTab('rewards')} icon="💰" label="Rewards" />
             <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')} icon="🏆" label="Achievements" />
             <TabButton active={activeTab === 'system'} onClick={() => setActiveTab('system')} icon="⚙️" label="System" />
+            <TabButton active={activeTab === 'security'} onClick={() => setActiveTab('security')} icon="🔒" label="Security" />
           </div>
         </div>
 
@@ -211,6 +212,17 @@ export default function AdminPage() {
               <ThemeSettings />
               <LeaderboardSyncSection />
               <ContractAddresses />
+            </motion.div>
+          )}
+
+          {activeTab === 'security' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 md:space-y-6"
+            >
+              <SecurityDashboard />
             </motion.div>
           )}
         </div>
@@ -5466,6 +5478,590 @@ function ThemeSettings() {
           </div>
         </div>
       )}
+    </motion.div>
+  )
+}
+
+// Security Dashboard Component
+function SecurityDashboard() {
+  const [securityAlerts, setSecurityAlerts] = useState<any[]>([])
+  const [blockedIPs, setBlockedIPs] = useState<string[]>([])
+  const [rateLimitSettings, setRateLimitSettings] = useState({
+    maxRequestsPerMinute: 60,
+    maxRequestsPerHour: 1000,
+    blockDurationMinutes: 15
+  })
+  const [securityLogs, setSecurityLogs] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [activeSecurityTab, setActiveSecurityTab] = useState('dashboard')
+
+  // Security monitoring states
+  const [suspiciousActivities, setSuspiciousActivities] = useState({
+    sqlInjectionAttempts: 0,
+    xssAttempts: 0,
+    rateLimitViolations: 0,
+    failedAuthAttempts: 0,
+    suspiciousIPs: 0
+  })
+
+  useEffect(() => {
+    loadSecurityData()
+    // Simulate real-time security monitoring
+    const interval = setInterval(() => {
+      checkForSecurityThreats()
+    }, 5000) // Check every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadSecurityData = async () => {
+    setIsLoading(true)
+    try {
+      // Load security settings and logs
+      const response = await fetch('/api/admin/security')
+      if (response.ok) {
+        const data = await response.json()
+        setSecurityAlerts(data.alerts || [])
+        setBlockedIPs(data.blockedIPs || [])
+        setSecurityLogs(data.logs || [])
+        setRateLimitSettings(data.rateLimitSettings || rateLimitSettings)
+        setSuspiciousActivities(data.suspiciousActivities || suspiciousActivities)
+      }
+    } catch (error) {
+      console.error('Failed to load security data:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const checkForSecurityThreats = async () => {
+    try {
+      const response = await fetch('/api/admin/security/threats')
+      if (response.ok) {
+        const threats = await response.json()
+        if (threats.length > 0) {
+          setSecurityAlerts(prev => [...threats, ...prev].slice(0, 50)) // Keep last 50 alerts
+          // Show notification for new threats
+          threats.forEach((threat: any) => {
+            toast.error(`🚨 Security Alert: ${threat.type} detected from ${threat.ip}`, {
+              duration: 5000,
+            })
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check for threats:', error)
+    }
+  }
+
+  const blockIP = async (ip: string) => {
+    try {
+      const response = await fetch('/api/admin/security/block-ip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip })
+      })
+      if (response.ok) {
+        setBlockedIPs(prev => [...prev, ip])
+        toast.success(`IP ${ip} has been blocked`)
+      }
+    } catch (error) {
+      toast.error('Failed to block IP')
+    }
+  }
+
+  const unblockIP = async (ip: string) => {
+    try {
+      const response = await fetch('/api/admin/security/unblock-ip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip })
+      })
+      if (response.ok) {
+        setBlockedIPs(prev => prev.filter(blocked => blocked !== ip))
+        toast.success(`IP ${ip} has been unblocked`)
+      }
+    } catch (error) {
+      toast.error('Failed to unblock IP')
+    }
+  }
+
+  const updateRateLimitSettings = async () => {
+    try {
+      const response = await fetch('/api/admin/security/rate-limit', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rateLimitSettings)
+      })
+      if (response.ok) {
+        toast.success('Rate limit settings updated')
+      }
+    } catch (error) {
+      toast.error('Failed to update rate limit settings')
+    }
+  }
+
+  const clearSecurityLogs = async () => {
+    if (!confirm('Are you sure you want to clear all security logs?')) return
+    try {
+      const response = await fetch('/api/admin/security/logs', {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        setSecurityLogs([])
+        toast.success('Security logs cleared')
+      }
+    } catch (error) {
+      toast.error('Failed to clear security logs')
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-xl p-6">
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
+          <span className="text-3xl">🔒</span>
+          Security Dashboard
+          <span className="text-sm bg-red-500/30 text-red-300 px-3 py-1 rounded-full">
+            {securityAlerts.filter(a => !a.resolved).length} Active Threats
+          </span>
+        </h2>
+
+        {/* Security Tab Navigation */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+            { id: 'threats', label: 'Threats', icon: '🚨' },
+            { id: 'firewall', label: 'Firewall', icon: '🛡️' },
+            { id: 'logs', label: 'Logs', icon: '📋' },
+            { id: 'settings', label: 'Settings', icon: '⚙️' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveSecurityTab(tab.id)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                activeSecurityTab === tab.id
+                  ? 'bg-red-500 text-white shadow-lg'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Dashboard Tab */}
+        {activeSecurityTab === 'dashboard' && (
+          <div className="space-y-6">
+            {/* Security Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="bg-black/40 border border-red-500/30 rounded-lg p-4"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">💉</span>
+                  <div>
+                    <p className="text-sm text-gray-400">SQL Injection</p>
+                    <p className="text-2xl font-bold text-red-400">{suspiciousActivities.sqlInjectionAttempts}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="bg-black/40 border border-orange-500/30 rounded-lg p-4"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">⚡</span>
+                  <div>
+                    <p className="text-sm text-gray-400">XSS Attempts</p>
+                    <p className="text-2xl font-bold text-orange-400">{suspiciousActivities.xssAttempts}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="bg-black/40 border border-yellow-500/30 rounded-lg p-4"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">🚦</span>
+                  <div>
+                    <p className="text-sm text-gray-400">Rate Limit Hits</p>
+                    <p className="text-2xl font-bold text-yellow-400">{suspiciousActivities.rateLimitViolations}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="bg-black/40 border border-purple-500/30 rounded-lg p-4"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">🔐</span>
+                  <div>
+                    <p className="text-sm text-gray-400">Failed Auth</p>
+                    <p className="text-2xl font-bold text-purple-400">{suspiciousActivities.failedAuthAttempts}</p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Recent Security Events */}
+            <div className="bg-black/40 border border-gray-600 rounded-lg p-4">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <span>🔔</span>
+                Recent Security Events
+              </h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {securityAlerts.slice(0, 10).map((alert, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className={`p-3 rounded-lg border ${
+                      alert.severity === 'high' ? 'border-red-500/50 bg-red-500/10' :
+                      alert.severity === 'medium' ? 'border-orange-500/50 bg-orange-500/10' :
+                      'border-yellow-500/50 bg-yellow-500/10'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className={`text-lg ${
+                          alert.type === 'sql_injection' ? '🗄️' :
+                          alert.type === 'xss' ? '💀' :
+                          alert.type === 'rate_limit' ? '⏱️' :
+                          alert.type === 'auth_failure' ? '🔑' : '⚠️'
+                        }`}></span>
+                        <div>
+                          <p className="font-medium text-white">{alert.type.replace('_', ' ').toUpperCase()}</p>
+                          <p className="text-sm text-gray-400">IP: {alert.ip} • {new Date(alert.timestamp).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          alert.severity === 'high' ? 'bg-red-500/20 text-red-300' :
+                          alert.severity === 'medium' ? 'bg-orange-500/20 text-orange-300' :
+                          'bg-yellow-500/20 text-yellow-300'
+                        }`}>
+                          {alert.severity}
+                        </span>
+                        {!alert.resolved && (
+                          <button
+                            onClick={() => blockIP(alert.ip)}
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-xs font-medium transition-colors"
+                          >
+                            Block IP
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                {securityAlerts.length === 0 && (
+                  <div className="text-center py-8 text-gray-400">
+                    <span className="text-4xl mb-2 block">✅</span>
+                    No security events detected
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Threats Tab */}
+        {activeSecurityTab === 'threats' && (
+          <div className="space-y-6">
+            <div className="bg-black/40 border border-red-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span>🚨</span>
+                Active Threats
+              </h3>
+
+              <div className="space-y-4">
+                {securityAlerts.filter(a => !a.resolved).map((alert, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-red-500/10 border border-red-500/30 rounded-lg p-4"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">⚠️</span>
+                        <div>
+                          <h4 className="font-bold text-red-300">{alert.type.replace('_', ' ').toUpperCase()}</h4>
+                          <p className="text-sm text-gray-400">IP: {alert.ip} • {new Date(alert.timestamp).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => blockIP(alert.ip)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded font-medium transition-colors"
+                        >
+                          🚫 Block IP
+                        </button>
+                        <button
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-medium transition-colors"
+                        >
+                          ✅ Resolve
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-black/50 rounded p-3 font-mono text-sm text-gray-300">
+                      {alert.details || 'No additional details available'}
+                    </div>
+                  </motion.div>
+                ))}
+
+                {securityAlerts.filter(a => !a.resolved).length === 0 && (
+                  <div className="text-center py-12">
+                    <span className="text-6xl mb-4 block">🛡️</span>
+                    <h3 className="text-xl font-bold text-green-400 mb-2">All Clear!</h3>
+                    <p className="text-gray-400">No active security threats detected</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Firewall Tab */}
+        {activeSecurityTab === 'firewall' && (
+          <div className="space-y-6">
+            <div className="bg-black/40 border border-blue-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span>🛡️</span>
+                Firewall Management
+              </h3>
+
+              {/* Blocked IPs */}
+              <div className="mb-6">
+                <h4 className="font-bold mb-3 flex items-center gap-2">
+                  <span>🚫</span>
+                  Blocked IP Addresses ({blockedIPs.length})
+                </h4>
+                <div className="bg-black/50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                  {blockedIPs.length > 0 ? (
+                    <div className="space-y-2">
+                      {blockedIPs.map((ip, i) => (
+                        <div key={i} className="flex items-center justify-between bg-red-500/10 border border-red-500/20 rounded p-3">
+                          <span className="font-mono text-red-300">{ip}</span>
+                          <button
+                            onClick={() => unblockIP(ip)}
+                            className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm font-medium transition-colors"
+                          >
+                            Unblock
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <span className="text-4xl mb-2 block">✅</span>
+                      No IPs are currently blocked
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Manual IP Block */}
+              <div className="bg-black/50 rounded-lg p-4">
+                <h4 className="font-bold mb-3">Manually Block IP</h4>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    placeholder="Enter IP address (e.g., 192.168.1.1)"
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+                  />
+                  <button
+                    onClick={() => {
+                      const input = document.querySelector('input[placeholder*="IP address"]') as HTMLInputElement
+                      if (input?.value) {
+                        blockIP(input.value)
+                        input.value = ''
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded font-medium transition-colors"
+                  >
+                    Block IP
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Logs Tab */}
+        {activeSecurityTab === 'logs' && (
+          <div className="space-y-6">
+            <div className="bg-black/40 border border-gray-600 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <span>📋</span>
+                  Security Audit Logs
+                </h3>
+                <button
+                  onClick={clearSecurityLogs}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded font-medium transition-colors"
+                >
+                  🗑️ Clear Logs
+                </button>
+              </div>
+
+              <div className="bg-black/50 rounded-lg max-h-96 overflow-y-auto">
+                {securityLogs.length > 0 ? (
+                  <div className="divide-y divide-gray-700">
+                    {securityLogs.map((log, i) => (
+                      <div key={i} className="p-4 hover:bg-gray-800/50 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <span className={`text-lg ${
+                              log.type === 'sql_injection' ? '🗄️' :
+                              log.type === 'xss' ? '💀' :
+                              log.type === 'rate_limit' ? '⏱️' :
+                              log.type === 'auth_failure' ? '🔑' :
+                              log.type === 'ip_block' ? '🚫' : '📝'
+                            }`}></span>
+                            <span className="font-medium text-white">{log.action}</span>
+                          </div>
+                          <span className="text-sm text-gray-400">{new Date(log.timestamp).toLocaleString()}</span>
+                        </div>
+                        <div className="text-sm text-gray-300 ml-8">
+                          <span className="text-gray-500">IP:</span> {log.ip} •
+                          <span className="text-gray-500"> User:</span> {log.user || 'Anonymous'} •
+                          <span className="text-gray-500"> Details:</span> {log.details}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    <span className="text-4xl mb-2 block">📝</span>
+                    No security logs available
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeSecurityTab === 'settings' && (
+          <div className="space-y-6">
+            <div className="bg-black/40 border border-purple-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span>⚙️</span>
+                Security Settings
+              </h3>
+
+              <div className="space-y-6">
+                {/* Rate Limiting */}
+                <div className="bg-black/50 rounded-lg p-4">
+                  <h4 className="font-bold mb-3 flex items-center gap-2">
+                    <span>⏱️</span>
+                    Rate Limiting
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Max Requests/Minute</label>
+                      <input
+                        type="number"
+                        value={rateLimitSettings.maxRequestsPerMinute}
+                        onChange={(e) => setRateLimitSettings(prev => ({ ...prev, maxRequestsPerMinute: parseInt(e.target.value) }))}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Max Requests/Hour</label>
+                      <input
+                        type="number"
+                        value={rateLimitSettings.maxRequestsPerHour}
+                        onChange={(e) => setRateLimitSettings(prev => ({ ...prev, maxRequestsPerHour: parseInt(e.target.value) }))}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Block Duration (minutes)</label>
+                      <input
+                        type="number"
+                        value={rateLimitSettings.blockDurationMinutes}
+                        onChange={(e) => setRateLimitSettings(prev => ({ ...prev, blockDurationMinutes: parseInt(e.target.value) }))}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={updateRateLimitSettings}
+                    className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded font-medium transition-colors"
+                  >
+                    💾 Save Rate Limit Settings
+                  </button>
+                </div>
+
+                {/* Security Features */}
+                <div className="bg-black/50 rounded-lg p-4">
+                  <h4 className="font-bold mb-3 flex items-center gap-2">
+                    <span>🔍</span>
+                    Security Features
+                  </h4>
+                  <div className="space-y-3">
+                    {[
+                      { id: 'sql_injection', label: 'SQL Injection Detection', enabled: true },
+                      { id: 'xss', label: 'XSS Attack Detection', enabled: true },
+                      { id: 'csrf', label: 'CSRF Protection', enabled: true },
+                      { id: 'input_validation', label: 'Enhanced Input Validation', enabled: true },
+                      { id: 'session_monitoring', label: 'Session Monitoring', enabled: true },
+                      { id: 'audit_logging', label: 'Security Audit Logging', enabled: true }
+                    ].map(feature => (
+                      <div key={feature.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded">
+                        <span className="text-white">{feature.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={feature.enabled ? 'text-green-400' : 'text-red-400'}>
+                            {feature.enabled ? '✅' : '❌'}
+                          </span>
+                          <span className="text-sm text-gray-400">
+                            {feature.enabled ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Emergency Actions */}
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                  <h4 className="font-bold mb-3 flex items-center gap-2 text-red-300">
+                    <span>🚨</span>
+                    Emergency Actions
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button
+                      className="px-4 py-3 bg-red-600 hover:bg-red-700 rounded font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>🚫</span>
+                      Emergency Lockdown
+                    </button>
+                    <button
+                      className="px-4 py-3 bg-orange-600 hover:bg-orange-700 rounded font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>🔄</span>
+                      Reset All Sessions
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </motion.div>
   )
 }
