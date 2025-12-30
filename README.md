@@ -57,6 +57,7 @@ Complete documentation for Joybit development and deployment:
 
 ### 📋 Additional Resources
 - **[Contributing Guide](docs/Contributing.md)** - How to contribute to the project
+- **[Wiki Auto-Publish Setup](docs/Wiki-Publish-Setup.md)** - Set up automatic wiki publishing
 - **[Mainnet Deployment](MAINNET_DEPLOYMENT.md)** - Mainnet deployment guide
 - **[Testnet Deployment](TESTNET_DEPLOYMENT.md)** - Testnet deployment guide
 - **[Farcaster Integration](FARCASTER_INTEGRATION_SUMMARY.md)** - Social features integration

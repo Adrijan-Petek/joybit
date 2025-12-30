@@ -1,0 +1,27 @@
+name: Publish Documentation to Wiki
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/wiki-publish.yml'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  publish-wiki:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Adrijan-Petek' # Only run on main repo
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Publish Documentation to Wiki
+        uses: SwiftDocOrg/github-wiki-publish-action@v1
+        with:
+          path: "docs"
+        env:
+          GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
