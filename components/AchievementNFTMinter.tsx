@@ -234,7 +234,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
       functionName: 'mintAchievement',
       args: [Number(achievement.id)], // Convert string ID to number for uint256
       value: priceInWei,
-      // Remove fixed gas limit to let wagmi estimate
+      gas: 150000n, // Fixed gas limit to prevent over-estimation
     })
   }
 

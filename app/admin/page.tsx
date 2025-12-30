@@ -2245,6 +2245,7 @@ function TreasurySection() {
         abi: TREASURY_ABI,
         functionName: 'withdrawETH',
         args: [parseEther(withdrawETH)],
+        gas: 80000n,
       })
       setTxHash(hash)
     } catch (error) {
@@ -2264,6 +2265,7 @@ function TreasurySection() {
         abi: TREASURY_ABI,
         functionName: 'withdrawToken',
         args: [CONTRACT_ADDRESSES.joybitToken, parseEther(withdrawJOYB)],
+        gas: 80000n,
       })
       setTxHash(hash)
     } catch (error) {
@@ -2325,6 +2327,7 @@ function TreasurySection() {
         abi: TREASURY_ABI,
         functionName: 'withdrawToken',
         args: [withdrawTokenAddress as `0x${string}`, parseEther(withdrawTokenAmount)],
+        gas: 80000n,
       })
       setTxHash(hash)
     } catch (error) {
@@ -2684,6 +2687,7 @@ function MultiTokenManagement() {
         abi: TREASURY_ABI,
         functionName: 'addSupportedToken',
         args: [newTokenAddress as `0x${string}`, parseEther(newTokenMinBalance)],
+        gas: 100000n,
       })
       setTxHash(hash)
     } catch (error) {
@@ -2703,6 +2707,7 @@ function MultiTokenManagement() {
         abi: TREASURY_ABI,
         functionName: 'removeSupportedToken',
         args: [removeTokenAddress as `0x${string}`],
+        gas: 80000n,
       })
       setTxHash(hash)
     } catch (error) {
@@ -3050,6 +3055,7 @@ function LeaderboardRewardsSection() {
           CONTRACT_ADDRESSES.joybitToken,
           parseEther(entry.amount)
         ],
+        gas: 100000n,
       })
       setTxHash(hash)
     } catch (error) {
@@ -3302,6 +3308,7 @@ function MultiTokenLeaderboardRewardsSection() {
           entry.tokenAddress as `0x${string}`,
           parseEther(entry.amount)
         ],
+        gas: 100000n,
       })
       setTxHash(hash)
     } catch (error) {
@@ -4058,6 +4065,7 @@ function LevelRewardDistributionSection() {
           CONTRACT_ADDRESSES.joybitToken,
           parseEther(completion.reward_amount)
         ],
+        gas: 100000n,
       })
       setTxHash(hash)
     } catch (error) {
@@ -4403,7 +4411,8 @@ function ContractSettings() {
             achievementIdNum, // uint256 ID
             achievement.rarity === 'Common' ? 0 : achievement.rarity === 'Rare' ? 1 : achievement.rarity === 'Epic' ? 2 : achievement.rarity === 'Legendary' ? 3 : 4,
             priceInWei
-          ]
+          ],
+          gas: 150000n,
         })
         
         setTxHash(hash)
@@ -4413,7 +4422,8 @@ function ContractSettings() {
           address: CONTRACT_ADDRESSES.achievementERC1155,
           abi: ACHIEVEMENT_ERC1155_ABI,
           functionName: 'updateAchievement',
-          args: [achievementIdNum, priceInWei, active] // uint256 ID
+          args: [achievementIdNum, priceInWei, active], // uint256 ID
+          gas: 120000n,
         })
         
         setTxHash(hash)
@@ -4442,7 +4452,8 @@ function ContractSettings() {
           address: CONTRACT_ADDRESSES.achievementERC1155,
           abi: ACHIEVEMENT_ERC1155_ABI,
           functionName: 'updateAchievement',
-          args: [achievementIdNum, priceInWei, achievement.active]
+          args: [achievementIdNum, priceInWei, achievement.active],
+          gas: 120000n,
         })
         setTxHash(hash)
       }
@@ -4469,7 +4480,8 @@ function ContractSettings() {
           address: CONTRACT_ADDRESSES.achievementERC1155,
           abi: ACHIEVEMENT_ERC1155_ABI,
           functionName: 'updateAchievement',
-          args: [achievementIdNum, parseEther(achievement.price), bulkActive]
+          args: [achievementIdNum, parseEther(achievement.price), bulkActive],
+          gas: 120000n,
         })
         setTxHash(hash)
       }
