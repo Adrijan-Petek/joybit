@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === 'price' && achievementId) {
-      const price = await getAchievementPrice(achievementId)
+      const price = await getAchievementPrice(Number(achievementId))
       return NextResponse.json({ price })
     }
 
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         if (!achievementId) {
           return NextResponse.json({ error: 'Achievement ID required' }, { status: 400 })
         }
-        const newlyUnlocked = await unlockAchievement(userAddress, achievementId)
+        const newlyUnlocked = await unlockAchievement(userAddress, Number(achievementId))
         return NextResponse.json({
           success: true,
           newlyUnlocked

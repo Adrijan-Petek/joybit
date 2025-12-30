@@ -8,7 +8,7 @@ const client = createClient({
 
 // Achievement type definition
 export interface Achievement {
-  id: string
+  id: number
   name: string
   description: string
   requirement: string
@@ -59,55 +59,52 @@ export async function initAchievementTables() {
       `)
       console.log('✅ Achievements table created')
 
-      // Insert all achievements
+      // Insert all achievements - IDs must match contract (1-40)
       const achievements = [
-        // Match3 Achievements
-        { id: 'first_win', name: 'First Win', description: 'Win your first Match-3 game', requirement: 'Win 1 game', emoji: '🎯', rarity: 'Common', category: 'match3' },
-        { id: 'hot_streak', name: 'Hot Streak', description: 'Win 5 games in a row', requirement: '5 consecutive wins', emoji: '🔥', rarity: 'Rare', category: 'match3' },
-        { id: 'gem_master', name: 'Gem Master', description: 'Collect 1000 gems', requirement: '1000 total gems', emoji: '💎', rarity: 'Epic', category: 'match3' },
-        { id: 'star_player', name: 'Star Player', description: 'Reach level 10', requirement: 'Level 10', emoji: '🌟', rarity: 'Rare', category: 'match3' },
-        { id: 'speed_demon', name: 'Speed Demon', description: 'Complete a level in under 30 seconds', requirement: 'Fast completion', emoji: '⚡', rarity: 'Epic', category: 'match3' },
-        { id: 'combo_king', name: 'Combo King', description: 'Achieve a 10x combo', requirement: '10x combo', emoji: '🎪', rarity: 'Legendary', category: 'match3' },
-        { id: 'champion', name: 'Champion', description: 'Win 50 games', requirement: '50 wins', emoji: '🏆', rarity: 'Legendary', category: 'match3' },
-        { id: 'artist', name: 'Artist', description: 'Create beautiful patterns', requirement: 'Special patterns', emoji: '🎨', rarity: 'Rare', category: 'match3' },
-        { id: 'rainbow', name: 'Rainbow', description: 'Match all colors in one move', requirement: 'Rainbow match', emoji: '🌈', rarity: 'Epic', category: 'match3' },
-        { id: 'heart_breaker', name: 'Heart Breaker', description: 'Break 10,000 hearts', requirement: '10,000 hearts', emoji: '💖', rarity: 'Rare', category: 'match3' },
-        { id: 'royal', name: 'Royal', description: 'Reach the top of the leaderboard', requirement: '#1 position', emoji: '👑', rarity: 'Legendary', category: 'match3' },
-        { id: 'mystic', name: 'Mystic', description: 'Unlock all power-ups', requirement: 'All power-ups', emoji: '🔮', rarity: 'Epic', category: 'match3' },
-        { id: 'lucky', name: 'Lucky', description: 'Win with lucky bonuses', requirement: 'Lucky wins', emoji: '🍀', rarity: 'Rare', category: 'match3' },
-        { id: 'inferno', name: 'Inferno', description: 'Create massive chain reactions', requirement: 'Chain reactions', emoji: '🔥', rarity: 'Epic', category: 'match3' },
-        { id: 'frost', name: 'Frost', description: 'Freeze time perfectly', requirement: 'Perfect freeze', emoji: '❄️', rarity: 'Rare', category: 'match3' },
-        { id: 'thespian', name: 'Thespian', description: 'Master all game modes', requirement: 'All modes', emoji: '🎭', rarity: 'Legendary', category: 'match3' },
-        { id: 'unicorn', name: 'Unicorn', description: 'Achieve the impossible', requirement: 'Impossible feat', emoji: '🦄', rarity: 'Mythic', category: 'match3' },
-        { id: 'summit', name: 'Summit', description: 'Reach the highest peaks', requirement: 'Peak performance', emoji: '🏔️', rarity: 'Epic', category: 'match3' },
-        { id: 'tempest', name: 'Tempest', description: 'Control the storm', requirement: 'Storm mastery', emoji: '🌪️', rarity: 'Legendary', category: 'match3' },
-        { id: 'phantom', name: 'Phantom', description: 'Become untouchable', requirement: 'Phantom moves', emoji: '💀', rarity: 'Mythic', category: 'match3' },
+        // Match3 Achievements (IDs 1-20)
+        { id: 1, name: 'First Win', description: 'Win your first Match-3 game', requirement: 'Win 1 game', emoji: '🎯', rarity: 'Common', category: 'match3' },
+        { id: 2, name: 'Hot Streak', description: 'Win 5 games in a row', requirement: '5 consecutive wins', emoji: '🔥', rarity: 'Rare', category: 'match3' },
+        { id: 3, name: 'Gem Master', description: 'Collect 1000 gems', requirement: '1000 total gems', emoji: '💎', rarity: 'Epic', category: 'match3' },
+        { id: 4, name: 'Star Player', description: 'Reach level 10', requirement: 'Level 10', emoji: '🌟', rarity: 'Legendary', category: 'match3' },
+        { id: 5, name: 'Speed Demon', description: 'Complete a level in under 30 seconds', requirement: 'Fast completion', emoji: '⚡', rarity: 'Mythic', category: 'match3' },
+        { id: 6, name: 'Combo King', description: 'Achieve a 10x combo', requirement: '10x combo', emoji: '🎪', rarity: 'Common', category: 'match3' },
+        { id: 7, name: 'Champion', description: 'Win 50 games', requirement: '50 wins', emoji: '🏆', rarity: 'Rare', category: 'match3' },
+        { id: 8, name: 'Artist', description: 'Create beautiful patterns', requirement: 'Special patterns', emoji: '🎨', rarity: 'Epic', category: 'match3' },
+        { id: 9, name: 'Rainbow', description: 'Match all colors in one move', requirement: 'Rainbow match', emoji: '🌈', rarity: 'Legendary', category: 'match3' },
+        { id: 10, name: 'Heart Breaker', description: 'Break 10,000 hearts', requirement: '10,000 hearts', emoji: '💖', rarity: 'Mythic', category: 'match3' },
+        { id: 11, name: 'Royal', description: 'Reach the top of the leaderboard', requirement: '#1 position', emoji: '👑', rarity: 'Common', category: 'match3' },
+        { id: 12, name: 'Mystic', description: 'Unlock all power-ups', requirement: 'All power-ups', emoji: '🔮', rarity: 'Rare', category: 'match3' },
+        { id: 13, name: 'Lucky', description: 'Win with lucky bonuses', requirement: 'Lucky wins', emoji: '🍀', rarity: 'Epic', category: 'match3' },
+        { id: 14, name: 'Inferno', description: 'Create massive chain reactions', requirement: 'Chain reactions', emoji: '🔥', rarity: 'Legendary', category: 'match3' },
+        { id: 15, name: 'Frost', description: 'Freeze time perfectly', requirement: 'Perfect freeze', emoji: '❄️', rarity: 'Mythic', category: 'match3' },
+        { id: 16, name: 'Thespian', description: 'Master all game modes', requirement: 'All modes', emoji: '🎭', rarity: 'Common', category: 'match3' },
+        { id: 17, name: 'Unicorn', description: 'Achieve the impossible', requirement: 'Impossible feat', emoji: '🦄', rarity: 'Rare', category: 'match3' },
+        { id: 18, name: 'Summit', description: 'Reach the highest peaks', requirement: 'Peak performance', emoji: '🏔️', rarity: 'Epic', category: 'match3' },
+        { id: 19, name: 'Tempest', description: 'Control the storm', requirement: 'Storm mastery', emoji: '🌪️', rarity: 'Legendary', category: 'match3' },
+        { id: 20, name: 'Phantom', description: 'Become untouchable', requirement: 'Phantom moves', emoji: '💀', rarity: 'Mythic', category: 'match3' },
 
-        // Daily Claim Achievements
-        { id: 'daily_starter', name: 'Daily Starter', description: 'Claim your first daily reward', requirement: '1 daily claim', emoji: '📅', rarity: 'Common', category: 'daily' },
-        { id: 'streak_master', name: 'Streak Master', description: 'Maintain a 7-day claim streak', requirement: '7 consecutive days', emoji: '🔥', rarity: 'Rare', category: 'daily' },
-        { id: 'dedicated_player', name: 'Dedicated Player', description: 'Claim rewards for 14 days', requirement: '14 total claims', emoji: '💪', rarity: 'Epic', category: 'daily' },
-        { id: 'loyal_supporter', name: 'Loyal Supporter', description: 'Claim rewards for 30 days', requirement: '30 total claims', emoji: '👑', rarity: 'Legendary', category: 'daily' },
-        { id: 'eternal_claimant', name: 'Eternal Claimant', description: 'Claim rewards for 90 days', requirement: '90 total claims', emoji: '♾️', rarity: 'Mythic', category: 'daily' },
+        // Daily Claim Achievements (IDs 21-25)
+        { id: 21, name: 'Daily Starter', description: 'Claim your first daily reward', requirement: '1 daily claim', emoji: '📅', rarity: 'Common', category: 'daily' },
+        { id: 22, name: 'Streak Master', description: 'Maintain a 7-day claim streak', requirement: '7 consecutive days', emoji: '🔥', rarity: 'Rare', category: 'daily' },
+        { id: 23, name: 'Dedicated Player', description: 'Claim rewards for 14 days', requirement: '14 total claims', emoji: '💪', rarity: 'Epic', category: 'daily' },
+        { id: 24, name: 'Loyal Supporter', description: 'Claim rewards for 30 days', requirement: '30 total claims', emoji: '👑', rarity: 'Legendary', category: 'daily' },
+        { id: 25, name: 'Eternal Claimant', description: 'Claim rewards for 90 days', requirement: '90 total claims', emoji: '♾️', rarity: 'Mythic', category: 'daily' },
 
-        // Card Game Achievements
-        { id: 'card_novice', name: 'Card Novice', description: 'Play your first card game', requirement: '1 game played', emoji: '🃏', rarity: 'Common', category: 'card' },
-        { id: 'card_winner', name: 'Card Winner', description: 'Win your first card game', requirement: '1 game won', emoji: '🎯', rarity: 'Common', category: 'card' },
-        { id: 'card_expert', name: 'Card Expert', description: 'Win 10 card games', requirement: '10 wins', emoji: '🎪', rarity: 'Rare', category: 'card' },
-        { id: 'card_master', name: 'Card Master', description: 'Win 25 card games', requirement: '25 wins', emoji: '🏆', rarity: 'Epic', category: 'card' },
-        { id: 'card_legend', name: 'Card Legend', description: 'Win 50 card games', requirement: '50 wins', emoji: '👑', rarity: 'Legendary', category: 'card' },
-        { id: 'card_god', name: 'Card God', description: 'Win 100 card games', requirement: '100 wins', emoji: '⚡', rarity: 'Mythic', category: 'card' },
-        { id: 'card_addict', name: 'Card Addict', description: 'Play 200 card games', requirement: '200 games played', emoji: '🎰', rarity: 'Epic', category: 'card' },
+        // Card Game Achievements (IDs 26-35)
+        { id: 26, name: 'Card Novice', description: 'Play your first card game', requirement: '1 game played', emoji: '🃏', rarity: 'Common', category: 'card' },
+        { id: 27, name: 'Card Winner', description: 'Win your first card game', requirement: '1 game won', emoji: '🎯', rarity: 'Rare', category: 'card' },
+        { id: 28, name: 'Card Expert', description: 'Win 10 card games', requirement: '10 wins', emoji: '🎪', rarity: 'Epic', category: 'card' },
+        { id: 29, name: 'Card Master', description: 'Win 25 card games', requirement: '25 wins', emoji: '🏆', rarity: 'Legendary', category: 'card' },
+        { id: 30, name: 'Card God', description: 'Win 100 card games', requirement: '100 wins', emoji: '⚡', rarity: 'Mythic', category: 'card' },
+        { id: 31, name: 'Card Legend', description: 'Win 50 card games', requirement: '50 wins', emoji: '👑', rarity: 'Common', category: 'card' },
+        { id: 32, name: 'Card Addict', description: 'Play 200 card games', requirement: '200 games played', emoji: '🎰', rarity: 'Rare', category: 'card' },
 
-        // General Achievements
-        { id: 'well_rounded', name: 'Well Rounded', description: 'Play all game types', requirement: '1 game in each type', emoji: '🎭', rarity: 'Rare', category: 'general' },
-        { id: 'high_scorer', name: 'High Scorer', description: 'Reach a high score of 1000', requirement: '1000 points', emoji: '📊', rarity: 'Rare', category: 'general' },
-        { id: 'level_climber', name: 'Level Climber', description: 'Reach level 5 in Match-3', requirement: 'Level 5', emoji: '🗻', rarity: 'Rare', category: 'general' },
-        { id: 'consistent_player', name: 'Consistent Player', description: 'Play games for 7 days', requirement: '7 days active', emoji: '📅', rarity: 'Rare', category: 'general' },
-        { id: 'early_adopter', name: 'Early Adopter', description: 'Join during beta phase', requirement: 'Beta participant', emoji: '🚀', rarity: 'Epic', category: 'general' },
-        { id: 'social_butterfly', name: 'Social Butterfly', description: 'Share your achievements', requirement: 'Share 5 times', emoji: '🦋', rarity: 'Rare', category: 'general' },
-        { id: 'perfectionist', name: 'Perfectionist', description: 'Achieve perfect scores', requirement: 'Perfect games', emoji: '💎', rarity: 'Legendary', category: 'general' },
-        { id: 'marathon_player', name: 'Marathon Player', description: 'Play for 24 hours total', requirement: '24 hours gameplay', emoji: '🏃', rarity: 'Epic', category: 'general' }
+        // General Achievements (IDs 36-40)
+        { id: 36, name: 'Well Rounded', description: 'Play all game types', requirement: '1 game in each type', emoji: '🎭', rarity: 'Common', category: 'general' },
+        { id: 37, name: 'High Scorer', description: 'Reach a high score of 1000', requirement: '1000 points', emoji: '📊', rarity: 'Rare', category: 'general' },
+        { id: 38, name: 'Level Climber', description: 'Reach level 5 in Match-3', requirement: 'Level 5', emoji: '🗻', rarity: 'Epic', category: 'general' },
+        { id: 39, name: 'Perfectionist', description: 'Achieve perfect scores', requirement: 'Perfect games', emoji: '💎', rarity: 'Legendary', category: 'general' },
+        { id: 40, name: 'Marathon Player', description: 'Play for 24 hours total', requirement: '24 hours gameplay', emoji: '🏃', rarity: 'Mythic', category: 'general' }
       ]
 
       for (const achievement of achievements) {
@@ -284,7 +281,7 @@ export async function getUserAchievements(userAddress: string) {
 }
 
 // Unlock achievement
-export async function unlockAchievement(userAddress: string, achievementId: string) {
+export async function unlockAchievement(userAddress: string, achievementId: number) {
   try {
     // Check if already unlocked
     const existing = await client.execute({
@@ -330,7 +327,7 @@ export async function unlockAchievement(userAddress: string, achievementId: stri
 }
 
 // Mark achievement as minted
-export async function markAchievementMinted(userAddress: string, achievementId: string, transactionHash: string) {
+export async function markAchievementMinted(userAddress: string, achievementId: number, transactionHash: string) {
   try {
     await client.execute({
       sql: `UPDATE user_achievements SET minted = TRUE, minted_at = CURRENT_TIMESTAMP, transaction_hash = ? WHERE user_address = ? AND achievement_id = ?`,
@@ -438,118 +435,118 @@ export async function checkAndUnlockAchievements(userAddress: string) {
     const unlockedAchievements = []
 
     // Match3 achievements
-    if (stats.match3_games_played > 0 && !(await isAchievementUnlocked(userAddress, 'first_win'))) {
-      await unlockAchievement(userAddress, 'first_win')
-      unlockedAchievements.push('first_win')
+    if (stats.match3_games_played > 0 && !(await isAchievementUnlocked(userAddress, 1))) {
+      await unlockAchievement(userAddress, 1)
+      unlockedAchievements.push(1)
     }
 
-    if (stats.match3_win_streak >= 5 && !(await isAchievementUnlocked(userAddress, 'hot_streak'))) {
-      await unlockAchievement(userAddress, 'hot_streak')
-      unlockedAchievements.push('hot_streak')
+    if (stats.match3_win_streak >= 5 && !(await isAchievementUnlocked(userAddress, 2))) {
+      await unlockAchievement(userAddress, 2)
+      unlockedAchievements.push(2)
     }
 
-    if (stats.match3_total_gems >= 1000 && !(await isAchievementUnlocked(userAddress, 'gem_master'))) {
-      await unlockAchievement(userAddress, 'gem_master')
-      unlockedAchievements.push('gem_master')
+    if (stats.match3_total_gems >= 1000 && !(await isAchievementUnlocked(userAddress, 3))) {
+      await unlockAchievement(userAddress, 3)
+      unlockedAchievements.push(3)
     }
 
-    if (stats.match3_high_score_level >= 10 && !(await isAchievementUnlocked(userAddress, 'star_player'))) {
-      await unlockAchievement(userAddress, 'star_player')
-      unlockedAchievements.push('star_player')
+    if (stats.match3_high_score_level >= 10 && !(await isAchievementUnlocked(userAddress, 4))) {
+      await unlockAchievement(userAddress, 4)
+      unlockedAchievements.push(4)
     }
 
-    if (stats.match3_best_time < 30 && !(await isAchievementUnlocked(userAddress, 'speed_demon'))) {
-      await unlockAchievement(userAddress, 'speed_demon')
-      unlockedAchievements.push('speed_demon')
+    if (stats.match3_best_time < 30 && !(await isAchievementUnlocked(userAddress, 5))) {
+      await unlockAchievement(userAddress, 5)
+      unlockedAchievements.push(5)
     }
 
-    if (stats.match3_max_combo >= 10 && !(await isAchievementUnlocked(userAddress, 'combo_king'))) {
-      await unlockAchievement(userAddress, 'combo_king')
-      unlockedAchievements.push('combo_king')
+    if (stats.match3_max_combo >= 10 && !(await isAchievementUnlocked(userAddress, 6))) {
+      await unlockAchievement(userAddress, 6)
+      unlockedAchievements.push(6)
     }
 
-    if (stats.match3_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 'champion'))) {
-      await unlockAchievement(userAddress, 'champion')
-      unlockedAchievements.push('champion')
+    if (stats.match3_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 7))) {
+      await unlockAchievement(userAddress, 7)
+      unlockedAchievements.push(7)
     }
 
     // Daily claim achievements
-    if (stats.daily_total_claims > 0 && !(await isAchievementUnlocked(userAddress, 'daily_starter'))) {
-      await unlockAchievement(userAddress, 'daily_starter')
-      unlockedAchievements.push('daily_starter')
+    if (stats.daily_total_claims > 0 && !(await isAchievementUnlocked(userAddress, 21))) {
+      await unlockAchievement(userAddress, 21)
+      unlockedAchievements.push(21)
     }
 
-    if (stats.daily_current_streak >= 7 && !(await isAchievementUnlocked(userAddress, 'streak_master'))) {
-      await unlockAchievement(userAddress, 'streak_master')
-      unlockedAchievements.push('streak_master')
+    if (stats.daily_current_streak >= 7 && !(await isAchievementUnlocked(userAddress, 22))) {
+      await unlockAchievement(userAddress, 22)
+      unlockedAchievements.push(22)
     }
 
-    if (stats.daily_total_claims >= 14 && !(await isAchievementUnlocked(userAddress, 'dedicated_player'))) {
-      await unlockAchievement(userAddress, 'dedicated_player')
-      unlockedAchievements.push('dedicated_player')
+    if (stats.daily_total_claims >= 14 && !(await isAchievementUnlocked(userAddress, 23))) {
+      await unlockAchievement(userAddress, 23)
+      unlockedAchievements.push(23)
     }
 
-    if (stats.daily_total_claims >= 30 && !(await isAchievementUnlocked(userAddress, 'loyal_supporter'))) {
-      await unlockAchievement(userAddress, 'loyal_supporter')
-      unlockedAchievements.push('loyal_supporter')
+    if (stats.daily_total_claims >= 30 && !(await isAchievementUnlocked(userAddress, 24))) {
+      await unlockAchievement(userAddress, 24)
+      unlockedAchievements.push(24)
     }
 
-    if (stats.daily_total_claims >= 90 && !(await isAchievementUnlocked(userAddress, 'eternal_claimant'))) {
-      await unlockAchievement(userAddress, 'eternal_claimant')
-      unlockedAchievements.push('eternal_claimant')
+    if (stats.daily_total_claims >= 90 && !(await isAchievementUnlocked(userAddress, 25))) {
+      await unlockAchievement(userAddress, 25)
+      unlockedAchievements.push(25)
     }
 
     // Card game achievements
-    if (stats.card_games_played > 0 && !(await isAchievementUnlocked(userAddress, 'card_novice'))) {
-      await unlockAchievement(userAddress, 'card_novice')
-      unlockedAchievements.push('card_novice')
+    if (stats.card_games_played > 0 && !(await isAchievementUnlocked(userAddress, 26))) {
+      await unlockAchievement(userAddress, 26)
+      unlockedAchievements.push(26)
     }
 
-    if (stats.card_games_won > 0 && !(await isAchievementUnlocked(userAddress, 'card_winner'))) {
-      await unlockAchievement(userAddress, 'card_winner')
-      unlockedAchievements.push('card_winner')
+    if (stats.card_games_won > 0 && !(await isAchievementUnlocked(userAddress, 27))) {
+      await unlockAchievement(userAddress, 27)
+      unlockedAchievements.push(27)
     }
 
-    if (stats.card_games_won >= 10 && !(await isAchievementUnlocked(userAddress, 'card_expert'))) {
-      await unlockAchievement(userAddress, 'card_expert')
-      unlockedAchievements.push('card_expert')
+    if (stats.card_games_won >= 10 && !(await isAchievementUnlocked(userAddress, 28))) {
+      await unlockAchievement(userAddress, 28)
+      unlockedAchievements.push(28)
     }
 
-    if (stats.card_games_won >= 25 && !(await isAchievementUnlocked(userAddress, 'card_master'))) {
-      await unlockAchievement(userAddress, 'card_master')
-      unlockedAchievements.push('card_master')
+    if (stats.card_games_won >= 25 && !(await isAchievementUnlocked(userAddress, 29))) {
+      await unlockAchievement(userAddress, 29)
+      unlockedAchievements.push(29)
     }
 
-    if (stats.card_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 'card_legend'))) {
-      await unlockAchievement(userAddress, 'card_legend')
-      unlockedAchievements.push('card_legend')
+    if (stats.card_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 31))) {
+      await unlockAchievement(userAddress, 31)
+      unlockedAchievements.push(31)
     }
 
-    if (stats.card_games_won >= 100 && !(await isAchievementUnlocked(userAddress, 'card_god'))) {
-      await unlockAchievement(userAddress, 'card_god')
-      unlockedAchievements.push('card_god')
+    if (stats.card_games_won >= 100 && !(await isAchievementUnlocked(userAddress, 30))) {
+      await unlockAchievement(userAddress, 30)
+      unlockedAchievements.push(30)
     }
 
-    if (stats.card_games_played >= 200 && !(await isAchievementUnlocked(userAddress, 'card_addict'))) {
-      await unlockAchievement(userAddress, 'card_addict')
-      unlockedAchievements.push('card_addict')
+    if (stats.card_games_played >= 200 && !(await isAchievementUnlocked(userAddress, 32))) {
+      await unlockAchievement(userAddress, 32)
+      unlockedAchievements.push(32)
     }
 
     // General achievements
     const hasPlayedAllGames = stats.match3_games_played > 0 && stats.card_games_played > 0 && stats.daily_total_claims > 0
-    if (hasPlayedAllGames && !(await isAchievementUnlocked(userAddress, 'well_rounded'))) {
-      await unlockAchievement(userAddress, 'well_rounded')
-      unlockedAchievements.push('well_rounded')
+    if (hasPlayedAllGames && !(await isAchievementUnlocked(userAddress, 36))) {
+      await unlockAchievement(userAddress, 36)
+      unlockedAchievements.push(36)
     }
 
-    if (stats.match3_high_score >= 1000 && !(await isAchievementUnlocked(userAddress, 'high_scorer'))) {
-      await unlockAchievement(userAddress, 'high_scorer')
-      unlockedAchievements.push('high_scorer')
+    if (stats.match3_high_score >= 1000 && !(await isAchievementUnlocked(userAddress, 37))) {
+      await unlockAchievement(userAddress, 37)
+      unlockedAchievements.push(37)
     }
 
-    if (stats.match3_high_score_level >= 5 && !(await isAchievementUnlocked(userAddress, 'level_climber'))) {
-      await unlockAchievement(userAddress, 'level_climber')
-      unlockedAchievements.push('level_climber')
+    if (stats.match3_high_score_level >= 5 && !(await isAchievementUnlocked(userAddress, 38))) {
+      await unlockAchievement(userAddress, 38)
+      unlockedAchievements.push(38)
     }
 
     return unlockedAchievements
@@ -560,7 +557,7 @@ export async function checkAndUnlockAchievements(userAddress: string) {
 }
 
 // Helper function to check if achievement is unlocked
-async function isAchievementUnlocked(userAddress: string, achievementId: string): Promise<boolean> {
+async function isAchievementUnlocked(userAddress: string, achievementId: number): Promise<boolean> {
   try {
     const result = await client.execute({
       sql: `SELECT * FROM user_achievements WHERE user_address = ? AND achievement_id = ?`,
@@ -592,7 +589,7 @@ export async function syncAchievementsFromContract(contractAchievements: any[]) 
 
         // Always update price
         updateFields.push('price = ?')
-        updateArgs.push(ethers.formatEther(achievement.price))
+        updateArgs.push(achievement.price)
 
         // Update name/description/emoji only if provided (not empty)
         if (achievement.name && achievement.name.trim()) {
@@ -635,7 +632,7 @@ export async function syncAchievementsFromContract(contractAchievements: any[]) 
             emoji,
             rarityMap[achievement.rarity] || 'Common',
             'achievement', // category
-            ethers.formatEther(achievement.price)
+            achievement.price
           ]
         })
       }
@@ -664,7 +661,7 @@ export async function syncAchievementPricesFromContract(contractPrices: Record<s
 }
 
 // Get achievement price from database
-export async function getAchievementPrice(achievementId: string): Promise<string | null> {
+export async function getAchievementPrice(achievementId: number): Promise<string | null> {
   try {
     const result = await client.execute({
       sql: `SELECT price FROM achievements WHERE id = ?`,
@@ -679,7 +676,7 @@ export async function getAchievementPrice(achievementId: string): Promise<string
 }
 
 // Fallback function to get achievement price from contract
-async function getAchievementPriceFromContract(achievementId: string): Promise<string | null> {
+async function getAchievementPriceFromContract(achievementId: number): Promise<string | null> {
   try {
     const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_ERC1155_ADDRESS
     if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
