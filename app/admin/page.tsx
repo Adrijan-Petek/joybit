@@ -596,20 +596,37 @@ function AnnouncementManager() {
   const [message5, setMessage5] = useState('')
   const [currentMessages, setCurrentMessages] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Animation and styling settings
+  const [animationType, setAnimationType] = useState('scroll')
+  const [colorTheme, setColorTheme] = useState('yellow')
+  const [glowIntensity, setGlowIntensity] = useState('medium')
+  const [speed, setSpeed] = useState('normal')
+  const [fontStyle, setFontStyle] = useState('mono')
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false)
 
   useEffect(() => {
-    // Load current announcements from database
-    const loadAnnouncements = async () => {
+    // Load current announcements and settings from database
+    const loadData = async () => {
       try {
         const response = await fetch('/api/announcements')
         if (response.ok) {
-          const messages = await response.json()
-          setCurrentMessages(messages)
-          setMessage1(messages[0] || '')
-          setMessage2(messages[1] || '')
-          setMessage3(messages[2] || '')
-          setMessage4(messages[3] || '')
-          setMessage5(messages[4] || '')
+          const data = await response.json()
+          setCurrentMessages(data.announcements || [])
+          setMessage1(data.announcements[0] || '')
+          setMessage2(data.announcements[1] || '')
+          setMessage3(data.announcements[2] || '')
+          setMessage4(data.announcements[3] || '')
+          setMessage5(data.announcements[4] || '')
+          
+          // Load settings
+          if (data.settings) {
+            setAnimationType(data.settings.animationType || 'scroll')
+            setColorTheme(data.settings.colorTheme || 'yellow')
+            setGlowIntensity(data.settings.glowIntensity || 'medium')
+            setSpeed(data.settings.speed || 'normal')
+            setFontStyle(data.settings.fontStyle || 'mono')
+          }
         }
       } catch (error) {
         console.error('Failed to load announcements:', error)
@@ -618,10 +635,10 @@ function AnnouncementManager() {
       }
     }
 
-    loadAnnouncements()
+    loadData()
   }, [])
 
-  const handleSave = async () => {
+  const handleSaveMessages = async () => {
     try {
       const messages = [message1, message2, message3, message4, message5].filter(m => m.trim())
 
@@ -642,6 +659,36 @@ function AnnouncementManager() {
     } catch (error) {
       console.error('Error saving announcements:', error)
       alert('❌ Failed to save announcements')
+    }
+  }
+
+  const handleSaveSettings = async () => {
+    setIsUpdatingSettings(true)
+    try {
+      const response = await fetch('/api/announcements', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          animationType,
+          colorTheme,
+          glowIntensity,
+          speed,
+          fontStyle
+        }),
+      })
+
+      if (response.ok) {
+        alert('✅ Announcement settings saved!')
+      } else {
+        alert('❌ Failed to save settings')
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      alert('❌ Failed to save settings')
+    } finally {
+      setIsUpdatingSettings(false)
     }
   }
 
@@ -668,35 +715,230 @@ function AnnouncementManager() {
     }
   }
 
+  // Color theme configurations
+  const colorThemes = {
+    yellow: { bg: 'from-yellow-500/20 to-orange-500/20', border: 'border-yellow-500/30', text: 'text-yellow-400', glow: 'rgba(234, 179, 8' },
+    cyan: { bg: 'from-cyan-500/20 to-blue-500/20', border: 'border-cyan-500/30', text: 'text-cyan-400', glow: 'rgba(34, 211, 238' },
+    purple: { bg: 'from-purple-500/20 to-pink-500/20', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'rgba(168, 85, 247' },
+    green: { bg: 'from-green-500/20 to-emerald-500/20', border: 'border-green-500/30', text: 'text-green-400', glow: 'rgba(34, 197, 94' },
+    red: { bg: 'from-red-500/20 to-pink-500/20', border: 'border-red-500/30', text: 'text-red-400', glow: 'rgba(239, 68, 68' },
+    rainbow: { bg: 'from-pink-500/20 via-purple-500/20 to-cyan-500/20', border: 'border-pink-500/30', text: 'text-pink-400', glow: 'rgba(236, 72, 153' }
+  }
+
+  const currentTheme = colorThemes[colorTheme as keyof typeof colorThemes] || colorThemes.yellow
+
+  // Glow intensity configurations
+  const glowIntensities = {
+    low: 0.2,
+    medium: 0.4,
+    high: 0.6,
+    extreme: 0.8
+  }
+
+  // Speed configurations
+  const speedConfigs = {
+    slow: 50,
+    normal: 35,
+    fast: 20,
+    turbo: 10
+  }
+
+  // Font style configurations
+  const fontStyles = {
+    mono: 'font-mono',
+    sans: 'font-sans',
+    serif: 'font-serif',
+    bold: 'font-bold',
+    italic: 'italic'
+  }
+
+  if (isLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-gray-500/20 to-gray-600/20 border border-gray-500/30 rounded-xl p-6"
+      >
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+          <span className="ml-3 text-gray-300">Loading announcement settings...</span>
+        </div>
+      </motion.div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-xl p-4 md:p-6"
+      className={`bg-gradient-to-r ${currentTheme.bg} border ${currentTheme.border} rounded-xl p-4 md:p-6 shadow-lg`}
+      style={{
+        boxShadow: `0 0 20px ${currentTheme.glow}, ${glowIntensities[glowIntensity as keyof typeof glowIntensities]})`
+      }}
     >
-      <h2 className="text-lg md:text-2xl font-bold mb-4">📢 Announcement Manager</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg md:text-2xl font-bold flex items-center gap-2">
+          <span className="text-2xl">📢</span>
+          Announcement Manager
+          <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded-full">PRO</span>
+        </h2>
+        <motion.div
+          animate={{
+            rotate: [0, 5, -5, 0],
+            scale: [1, 1.05, 1]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="text-2xl"
+        >
+          ✨
+        </motion.div>
+      </div>
+
+      {/* Settings Panel */}
+      <motion.div
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: 'auto' }}
+        className="mb-6 bg-black/40 border border-white/10 rounded-lg p-4"
+      >
+        <h3 className="text-md font-bold mb-4 flex items-center gap-2">
+          <span className="text-lg">🎨</span>
+          Visual Effects & Animation Settings
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {/* Animation Type */}
+          <div>
+            <label className="block text-xs font-bold text-white mb-2">🎭 Animation Type</label>
+            <select
+              value={animationType}
+              onChange={(e) => setAnimationType(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+            >
+              <option value="scroll">📜 Scroll</option>
+              <option value="fade">🌟 Fade</option>
+              <option value="bounce">🏀 Bounce</option>
+              <option value="slide">📱 Slide</option>
+              <option value="typewriter">⌨️ Typewriter</option>
+              <option value="wave">🌊 Wave</option>
+            </select>
+          </div>
+
+          {/* Color Theme */}
+          <div>
+            <label className="block text-xs font-bold text-white mb-2">🎨 Color Theme</label>
+            <select
+              value={colorTheme}
+              onChange={(e) => setColorTheme(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+            >
+              <option value="yellow">🟡 Yellow</option>
+              <option value="cyan">🔵 Cyan</option>
+              <option value="purple">🟣 Purple</option>
+              <option value="green">🟢 Green</option>
+              <option value="red">🔴 Red</option>
+              <option value="rainbow">🌈 Rainbow</option>
+            </select>
+          </div>
+
+          {/* Glow Intensity */}
+          <div>
+            <label className="block text-xs font-bold text-white mb-2">✨ Glow Intensity</label>
+            <select
+              value={glowIntensity}
+              onChange={(e) => setGlowIntensity(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+            >
+              <option value="low">🔅 Low</option>
+              <option value="medium">🔆 Medium</option>
+              <option value="high">💫 High</option>
+              <option value="extreme">🌟 Extreme</option>
+            </select>
+          </div>
+
+          {/* Speed */}
+          <div>
+            <label className="block text-xs font-bold text-white mb-2">⚡ Animation Speed</label>
+            <select
+              value={speed}
+              onChange={(e) => setSpeed(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+            >
+              <option value="slow">🐌 Slow</option>
+              <option value="normal">🚶 Normal</option>
+              <option value="fast">🏃 Fast</option>
+              <option value="turbo">🚀 Turbo</option>
+            </select>
+          </div>
+
+          {/* Font Style */}
+          <div>
+            <label className="block text-xs font-bold text-white mb-2">📝 Font Style</label>
+            <select
+              value={fontStyle}
+              onChange={(e) => setFontStyle(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+            >
+              <option value="mono">⌨️ Monospace</option>
+              <option value="sans">📄 Sans Serif</option>
+              <option value="serif">📖 Serif</option>
+              <option value="bold">💪 Bold</option>
+              <option value="italic">🎭 Italic</option>
+            </select>
+          </div>
+
+          {/* Save Settings Button */}
+          <div className="flex items-end">
+            <button
+              onClick={handleSaveSettings}
+              disabled={isUpdatingSettings}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 px-4 py-2 rounded-lg font-bold text-sm transition-all transform hover:scale-105"
+            >
+              {isUpdatingSettings ? '⏳ Saving...' : '💾 Save Settings'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
       
       {/* Current Messages Display */}
       <div className="mb-6">
-        <label className="block text-sm font-bold text-yellow-200 mb-3">📋 Current Active Messages</label>
+        <label className="block text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <span>📋</span>
+          Current Active Messages
+          <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
+            {currentMessages.length}/5
+          </span>
+        </label>
         {currentMessages.length > 0 ? (
           <div className="space-y-2">
             {currentMessages.map((msg, i) => (
-              <div key={i} className="bg-black/40 border border-yellow-500/30 rounded-lg px-4 py-2 flex items-start gap-3">
-                <span className="text-yellow-400 font-bold text-sm">{i + 1}.</span>
-                <span className="text-yellow-300 font-mono text-sm flex-1" style={{ textShadow: '0 0 10px rgba(234, 179, 8, 0.3)' }}>
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-black/40 border border-white/20 rounded-lg px-4 py-2 flex items-start gap-3 hover:bg-black/60 transition-all"
+              >
+                <span className={`${currentTheme.text} font-bold text-sm`}>{i + 1}.</span>
+                <span className={`${currentTheme.text} ${fontStyles[fontStyle as keyof typeof fontStyles]} text-sm flex-1`} 
+                      style={{ textShadow: `0 0 10px ${currentTheme.glow}, ${glowIntensities[glowIntensity as keyof typeof glowIntensities]})` }}>
                   {msg}
                 </span>
                 <span className="text-xs text-gray-500">{msg.length} chars</span>
-              </div>
+              </motion.div>
             ))}
-            <div className="text-xs text-gray-400 text-center mt-2">
-              ✨ These messages are scrolling on the main page
+            <div className="text-xs text-gray-400 text-center mt-2 flex items-center justify-center gap-2">
+              <span>✨</span>
+              These messages are displayed with your selected effects on the main page
+              <span>✨</span>
             </div>
           </div>
         ) : (
-          <div className="bg-black/40 border border-yellow-500/30 rounded-lg px-4 py-3 text-center text-gray-400 text-sm">
-            No announcements set. Add messages below to display them on the main page.
+          <div className="bg-black/40 border border-white/20 rounded-lg px-4 py-3 text-center text-gray-400 text-sm">
+            No announcements set. Add messages below to display them on the main page with your selected visual effects.
           </div>
         )}
       </div>
@@ -704,109 +946,118 @@ function AnnouncementManager() {
       {/* Live Preview */}
       {(message1 || message2 || message3 || message4 || message5) && (
         <div className="mb-4">
-          <label className="block text-xs text-yellow-200 mb-2">👁️ Live Preview (before saving)</label>
-          <div className="bg-black border-2 border-yellow-500 rounded-lg px-4 py-3 shadow-lg shadow-yellow-500/20 overflow-hidden">
-            <div className="flex items-center gap-8 text-yellow-400 font-mono text-sm">
-              {[message1, message2, message3, message4, message5].filter(m => m.trim()).map((msg, i) => (
-                <div key={i} className="flex items-center gap-8 whitespace-nowrap">
-                  <span style={{ textShadow: '0 0 10px rgba(234, 179, 8, 0.5)' }}>
-                    📢 {msg}
-                  </span>
-                  <span>•</span>
+          <label className="block text-xs text-white mb-2 flex items-center gap-2">
+            <span>👁️</span>
+            Live Preview (with current settings)
+          </label>
+          <motion.div 
+            className={`bg-black border-2 ${currentTheme.border} rounded-lg px-4 py-3 shadow-lg overflow-hidden`}
+            animate={{
+              boxShadow: [
+                `0 0 10px ${currentTheme.glow}, ${glowIntensities[glowIntensity as keyof typeof glowIntensities]})`,
+                `0 0 20px ${currentTheme.glow}, ${glowIntensities[glowIntensity as keyof typeof glowIntensities] * 1.5})`,
+                `0 0 10px ${currentTheme.glow}, ${glowIntensities[glowIntensity as keyof typeof glowIntensities]})`,
+              ]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            <style jsx>{`
+              @keyframes carouselScroll {
+                0% {
+                  transform: translateX(0);
+                }
+                100% {
+                  transform: translateX(-50%);
+                }
+              }
+              .carousel-track {
+                animation: carouselScroll ${speedConfigs[speed as keyof typeof speedConfigs]}s linear infinite;
+                display: inline-flex;
+                will-change: transform;
+              }
+            `}</style>
+            <div className="carousel-track">
+              {[...Array(2)].map((_, setIndex) => (
+                <div key={setIndex} className="flex items-center whitespace-nowrap">
+                  {[message1, message2, message3, message4, message5].filter(m => m.trim()).map((msg, i) => (
+                    <span 
+                      key={`${setIndex}-${i}`} 
+                      className={`${currentTheme.text} ${fontStyles[fontStyle as keyof typeof fontStyles]} text-sm md:text-base tracking-wide px-4`}
+                      style={{ textShadow: `0 0 10px ${currentTheme.glow}, ${glowIntensities[glowIntensity as keyof typeof glowIntensities]})` }}
+                    >
+                      📢 {msg}
+                      <span className="mx-4">•</span>
+                    </span>
+                  ))}
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* Message Inputs */}
       <div className="space-y-3 mb-4">
-        <div>
-          <label className="block text-xs text-yellow-200 mb-1">Announcement 1</label>
-          <input
-            type="text"
-            value={message1}
-            onChange={(e) => setMessage1(e.target.value)}
-            placeholder="Enter first announcement..."
-            maxLength={150}
-            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
-          />
-          <p className="text-xs text-gray-400 mt-1">{message1.length}/150 characters</p>
-        </div>
-
-        <div>
-          <label className="block text-xs text-yellow-200 mb-1">Announcement 2</label>
-          <input
-            type="text"
-            value={message2}
-            onChange={(e) => setMessage2(e.target.value)}
-            placeholder="Enter second announcement..."
-            maxLength={150}
-            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
-          />
-          <p className="text-xs text-gray-400 mt-1">{message2.length}/150 characters</p>
-        </div>
-
-        <div>
-          <label className="block text-xs text-yellow-200 mb-1">Announcement 3</label>
-          <input
-            type="text"
-            value={message3}
-            onChange={(e) => setMessage3(e.target.value)}
-            placeholder="Enter third announcement..."
-            maxLength={150}
-            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
-          />
-          <p className="text-xs text-gray-400 mt-1">{message3.length}/150 characters</p>
-        </div>
-
-        <div>
-          <label className="block text-xs text-yellow-200 mb-1">Announcement 4</label>
-          <input
-            type="text"
-            value={message4}
-            onChange={(e) => setMessage4(e.target.value)}
-            placeholder="Enter fourth announcement..."
-            maxLength={150}
-            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
-          />
-          <p className="text-xs text-gray-400 mt-1">{message4.length}/150 characters</p>
-        </div>
-
-        <div>
-          <label className="block text-xs text-yellow-200 mb-1">Announcement 5</label>
-          <input
-            type="text"
-            value={message5}
-            onChange={(e) => setMessage5(e.target.value)}
-            placeholder="Enter fifth announcement..."
-            maxLength={150}
-            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
-          />
-          <p className="text-xs text-gray-400 mt-1">{message5.length}/150 characters</p>
-        </div>
+        {[1, 2, 3, 4, 5].map((num) => {
+          const value = [message1, message2, message3, message4, message5][num - 1]
+          const setter = [setMessage1, setMessage2, setMessage3, setMessage4, setMessage5][num - 1]
+          
+          return (
+            <motion.div
+              key={num}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: num * 0.05 }}
+            >
+              <label className="block text-xs text-white mb-1">Announcement {num}</label>
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => setter(e.target.value)}
+                placeholder={`Enter announcement ${num}...`}
+                maxLength={150}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
+              />
+              <p className="text-xs text-gray-400 mt-1">{value.length}/150 characters</p>
+            </motion.div>
+          )
+        })}
       </div>
 
       {/* Action Buttons */}
       <div className="grid grid-cols-2 gap-2 md:gap-4">
-        <button 
-          onClick={handleSave}
-          className="bg-green-600 hover:bg-green-700 px-4 py-3 rounded-lg font-bold transition-all"
+        <motion.button 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleSaveMessages}
+          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-4 py-3 rounded-lg font-bold transition-all shadow-lg shadow-green-500/25"
         >
-          💾 Save & Publish
-        </button>
-        <button 
+          💾 Save & Publish Messages
+        </motion.button>
+        <motion.button 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={handleClear}
-          className="bg-red-600 hover:bg-red-700 px-4 py-3 rounded-lg font-bold transition-all"
+          className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 px-4 py-3 rounded-lg font-bold transition-all shadow-lg shadow-red-500/25"
         >
-          🗑️ Clear All
-        </button>
+          🗑️ Clear All Messages
+        </motion.button>
       </div>
 
-      <p className="text-xs text-green-300 mt-4">
-        💡 Up to 5 messages scroll continuously in a seamless loop with spacing (•) between them. Leave blank to skip.
-      </p>
+      <motion.p 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="text-xs text-cyan-300 mt-4 flex items-center justify-center gap-2"
+      >
+        <span>💡</span>
+        Up to 5 messages scroll continuously with your selected visual effects. Leave blank to skip.
+        <span>🎨</span>
+      </motion.p>
     </motion.div>
   )
 }

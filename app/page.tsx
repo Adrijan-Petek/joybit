@@ -80,6 +80,13 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [logoClickCount, setLogoClickCount] = useState(0)
   const [announcements, setAnnouncements] = useState<string[]>([])
+  const [announcementSettings, setAnnouncementSettings] = useState({
+    animationType: 'scroll',
+    colorTheme: 'yellow',
+    glowIntensity: 'medium',
+    speed: 'normal',
+    fontStyle: 'mono'
+  })
   const [isPaused, setIsPaused] = useState(false)
   const [showNotification, setShowNotification] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
@@ -116,38 +123,39 @@ export default function Home() {
       try {
         const response = await fetch('/api/announcements')
         if (response.ok) {
-          const messages = await response.json()
-          if (messages.length > 0) {
-            setAnnouncements(messages.filter((a: string) => a.trim()))
+          const data = await response.json()
+          if (data.announcements && data.announcements.length > 0) {
+            setAnnouncements(data.announcements.filter((a: string) => a.trim()))
           } else {
             // Set default announcements if none in database
             setAnnouncements([
-              'Welcome to Joybit! Play Match-3 and earn JOYB tokens!',
-              'Connect your wallet to start playing and earning rewards!',
-              'Join our community and compete on the leaderboard!',
-              'Daily rewards available! Claim your free JOYB every 24 hours!',
-              'New players get one free game to try - no wallet needed!'
+              '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
+              '🏆 Compete for leaderboard positions and earn rewards!',
+              '💎 Collect achievements and unlock special NFTs!',
+              '🎮 Play daily for bonus rewards and claim your earnings!'
             ])
+          }
+          // Load settings
+          if (data.settings) {
+            setAnnouncementSettings(data.settings)
           }
         } else {
           // Fallback to default announcements
           setAnnouncements([
-            'Welcome to Joybit! Play Match-3 and earn JOYB tokens!',
-            'Connect your wallet to start playing and earning rewards!',
-            'Join our community and compete on the leaderboard!',
-            'Daily rewards available! Claim your free JOYB every 24 hours!',
-            'New players get one free game to try - no wallet needed!'
+            '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
+            '🏆 Compete for leaderboard positions and earn rewards!',
+            '💎 Collect achievements and unlock special NFTs!',
+            '🎮 Play daily for bonus rewards and claim your earnings!'
           ])
         }
       } catch (error) {
         console.error('Failed to load announcements:', error)
         // Fallback to default announcements
         setAnnouncements([
-          'Welcome to Joybit! Play Match-3 and earn JOYB tokens!',
-          'Connect your wallet to start playing and earning rewards!',
-          'Join our community and compete on the leaderboard!',
-          'Daily rewards available! Claim your free JOYB every 24 hours!',
-          'New players get one free game to try - no wallet needed!'
+          '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
+          '🏆 Compete for leaderboard positions and earn rewards!',
+          '💎 Collect achievements and unlock special NFTs!',
+          '🎮 Play daily for bonus rewards and claim your earnings!'
         ])
       }
     }
@@ -338,53 +346,10 @@ export default function Home() {
               transition={{ delay: 0.1 }}
               className="mb-6 md:mb-8"
             >
-              <motion.div 
-                className="bg-black border-2 border-yellow-500 rounded-lg px-4 py-3 md:px-6 md:py-4 shadow-lg shadow-yellow-500/20 overflow-hidden"
-                animate={{
-                  boxShadow: [
-                    '0 0 10px rgba(234, 179, 8, 0.2)',
-                    '0 0 20px rgba(234, 179, 8, 0.4)',
-                    '0 0 10px rgba(234, 179, 8, 0.2)',
-                  ]
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              >
-                <style jsx>{`
-                  @keyframes carouselScroll {
-                    0% {
-                      transform: translateX(0);
-                    }
-                    100% {
-                      transform: translateX(-50%);
-                    }
-                  }
-                  .carousel-track {
-                    animation: carouselScroll 35s linear infinite;
-                    display: inline-flex;
-                    will-change: transform;
-                  }
-                `}</style>
-                <div className="carousel-track">
-                  {[...Array(2)].map((_, setIndex) => (
-                    <div key={setIndex} className="flex items-center whitespace-nowrap">
-                      {announcements.map((msg, i) => (
-                        <span 
-                          key={`${setIndex}-${i}`} 
-                          className="text-yellow-400 font-mono text-sm md:text-base tracking-wide px-4"
-                          style={{ textShadow: '0 0 10px rgba(234, 179, 8, 0.5)' }}
-                        >
-                          📢 {msg}
-                          <span className="mx-4">•</span>
-                        </span>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
+              <AnnouncementBanner 
+                announcements={announcements}
+                settings={announcementSettings}
+              />
             </motion.div>
           )}
 
@@ -780,5 +745,122 @@ function TreasuryTokenBalance({ address }: { address: `0x${string}` }) {
     <div className="text-2xl md:text-3xl font-bold text-purple-400">
       {formatTokenBalance(balance as bigint)}
     </div>
+  )
+}
+
+// Announcement Banner Component with Dynamic Styling
+function AnnouncementBanner({ announcements, settings }: { announcements: string[], settings: any }) {
+  // Color theme configurations
+  const colorThemes = {
+    yellow: { bg: 'bg-black', border: 'border-yellow-500', text: 'text-yellow-400', glow: 'rgba(234, 179, 8', shadow: 'shadow-yellow-500/20' },
+    cyan: { bg: 'bg-black', border: 'border-cyan-500', text: 'text-cyan-400', glow: 'rgba(34, 211, 238', shadow: 'shadow-cyan-500/20' },
+    purple: { bg: 'bg-black', border: 'border-purple-500', text: 'text-purple-400', glow: 'rgba(168, 85, 247', shadow: 'shadow-purple-500/20' },
+    green: { bg: 'bg-black', border: 'border-green-500', text: 'text-green-400', glow: 'rgba(34, 197, 94', shadow: 'shadow-green-500/20' },
+    red: { bg: 'bg-black', border: 'border-red-500', text: 'text-red-400', glow: 'rgba(239, 68, 68', shadow: 'shadow-red-500/20' },
+    rainbow: { bg: 'bg-black', border: 'border-pink-500', text: 'text-pink-400', glow: 'rgba(236, 72, 153', shadow: 'shadow-pink-500/20' }
+  }
+
+  const currentTheme = colorThemes[settings.colorTheme as keyof typeof colorThemes] || colorThemes.yellow
+
+  // Glow intensity configurations
+  const glowIntensities = {
+    low: 0.2,
+    medium: 0.4,
+    high: 0.6,
+    extreme: 0.8
+  }
+
+  // Speed configurations
+  const speedConfigs = {
+    slow: 50,
+    normal: 35,
+    fast: 20,
+    turbo: 10
+  }
+
+  // Font style configurations
+  const fontStyles = {
+    mono: 'font-mono',
+    sans: 'font-sans',
+    serif: 'font-serif',
+    bold: 'font-bold',
+    italic: 'italic'
+  }
+
+  return (
+    <>
+      <style jsx global>{`
+        @keyframes carouselScroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes fadeScroll {
+          0%, 100% { opacity: 1; transform: translateX(0); }
+          50% { opacity: 0.3; transform: translateX(-25%); }
+        }
+        @keyframes bounceScroll {
+          0%, 100% { transform: translateX(0) scale(1); }
+          25% { transform: translateX(-12.5%) scale(1.05); }
+          50% { transform: translateX(-25%) scale(1); }
+          75% { transform: translateX(-37.5%) scale(1.05); }
+        }
+        @keyframes waveScroll {
+          0% { transform: translateX(0) rotate(0deg); }
+          25% { transform: translateX(-12.5%) rotate(1deg); }
+          50% { transform: translateX(-25%) rotate(0deg); }
+          75% { transform: translateX(-37.5%) rotate(-1deg); }
+          100% { transform: translateX(-50%) rotate(0deg); }
+        }
+        @keyframes typewriterScroll {
+          0% { transform: translateX(0); width: 0; }
+          50% { transform: translateX(0); width: 100%; }
+          100% { transform: translateX(-50%); width: 100%; }
+        }
+      `}</style>
+      <motion.div
+        className={`${currentTheme.bg} border-2 ${currentTheme.border} rounded-lg px-4 py-3 md:px-6 md:py-4 shadow-lg ${currentTheme.shadow} overflow-hidden`}
+        animate={{
+          boxShadow: [
+            `0 0 10px ${currentTheme.glow}, ${glowIntensities[settings.glowIntensity as keyof typeof glowIntensities]})`,
+            `0 0 20px ${currentTheme.glow}, ${glowIntensities[settings.glowIntensity as keyof typeof glowIntensities] * 1.5})`,
+            `0 0 10px ${currentTheme.glow}, ${glowIntensities[settings.glowIntensity as keyof typeof glowIntensities]})`,
+          ]
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      >
+        <div 
+          className="announcement-track"
+          style={{
+            animation: `${settings.animationType === 'fade' ? 'fadeScroll' : 
+                        settings.animationType === 'bounce' ? 'bounceScroll' :
+                        settings.animationType === 'wave' ? 'waveScroll' :
+                        settings.animationType === 'typewriter' ? 'typewriterScroll' : 'carouselScroll'} ${speedConfigs[settings.speed as keyof typeof speedConfigs]}s linear infinite`,
+            display: settings.animationType === 'typewriter' ? 'block' : 'inline-flex',
+            willChange: 'transform',
+            overflow: settings.animationType === 'typewriter' ? 'hidden' : 'visible',
+            whiteSpace: settings.animationType === 'typewriter' ? 'nowrap' : 'normal'
+          }}
+        >
+          {[...Array(2)].map((_, setIndex) => (
+            <div key={setIndex} className="flex items-center whitespace-nowrap">
+              {announcements.map((msg, i) => (
+                <span
+                  key={`${setIndex}-${i}`}
+                  className={`${currentTheme.text} ${fontStyles[settings.fontStyle as keyof typeof fontStyles]} text-sm md:text-base tracking-wide px-4`}
+                  style={{ textShadow: `0 0 10px ${currentTheme.glow}, ${glowIntensities[settings.glowIntensity as keyof typeof glowIntensities]})` }}
+                >
+                  📢 {msg}
+                  <span className="mx-4">•</span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    </>
   )
 }
