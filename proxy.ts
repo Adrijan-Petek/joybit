@@ -12,56 +12,54 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
 // Professional Security Patterns for Detection
 const SECURITY_PATTERNS = {
   sql_injection: [
-    // Only match when SQL keywords are combined with suspicious patterns
-    /(\bUNION\b.*\bSELECT\b|\bSELECT\b.*\bFROM\b.*\bWHERE\b)/i,
-    /('|(\\x27)|(\\x2D\\x2D)|(;)|(\\\\x3B))/i,
-    /(\bor\b\s+\d+\s*=\s*\d+|\band\b\s+\d+\s*=\s*\d+)/i,
-    /script.*src.*select/i,
-    /javascript.*select.*from/i,
-    // More specific patterns that indicate actual attacks
-    /union.*select.*from/i,
-    /select.*from.*where.*or.*=/i,
-    /insert.*into.*values/i,
-    /update.*set.*where/i,
-    /delete.*from.*where/i,
-    /drop.*table/i,
-    /create.*table/i,
-    /alter.*table/i
+    // Only match actual malicious SQL injection attempts, not normal headers
+    /union\s+select\s+.*\s+from\s+/i,
+    /select\s+.*\s+from\s+.*\s+where\s+.*\s+(or|and)\s+.*\s*=\s*.*\s*(or|and)\s+.*\s*=\s*/i,
+    /insert\s+into\s+.*\s+values\s*\(/i,
+    /update\s+.*\s+set\s+.*\s+where\s+.*;\s*(drop|delete|select)/i,
+    /delete\s+from\s+.*\s+where\s+.*;\s*drop/i,
+    /drop\s+(table|database|index)\s+/i,
+    /create\s+(table|database|index)\s+/i,
+    /alter\s+table\s+.*\s+(drop|add)\s+column/i,
+    /exec\s*\(/i,
+    /execute\s*\(/i,
+    /xp_cmdshell/i,
+    /sp_executesql/i,
+    // Very specific attack patterns
+    /'\s*or\s+'?\d+'?\s*=\s*'?\d/i,
+    /;\s*shutdown/i,
+    /;\s*drop\s+table/i,
+    /script\s+src\s*=\s*["']?\s*select/i
   ],
   xss: [
-    /<script[^>]*>.*?<\/script>/gi,
-    /javascript\s*:\s*[^;]*;/gi,
-    /vbscript\s*:\s*[^;]*;/gi,
-    /onload\s*=\s*["'][^"']*script[^"']*["']/gi,
-    /onerror\s*=\s*["'][^"']*script[^"']*["']/gi,
-    /onclick\s*=\s*["'][^"']*script[^"']*["']/gi,
-    /onmouseover\s*=\s*["'][^"']*script[^"']*["']/gi,
-    /<iframe[^>]*src\s*=\s*["'][^"']*javascript[^"']*["'][^>]*>/gi,
-    /<object[^>]*data\s*=\s*["'][^"']*javascript[^"']*["'][^>]*>/gi,
-    /<embed[^>]*src\s*=\s*["'][^"']*javascript[^"']*["'][^>]*>/gi,
-    /expression\s*\([^)]*javascript[^)]*\)/gi,
-    /vbscript\s*:[^;]*;/gi,
-    /data\s*:\s*text\/html\s*,[^,]*,/gi
+    // Only match actual XSS attempts, not normal JavaScript in headers
+    /<script[^>]*>[^<]*<\/script>/gi,
+    /javascript\s*:\s*[^;]*alert\s*\(/gi,
+    /vbscript\s*:\s*[^;]*msgbox/gi,
+    /onload\s*=\s*["'][^"']*alert\s*\([^"']*["']/gi,
+    /onerror\s*=\s*["'][^"']*alert\s*\([^"']*["']/gi,
+    /onclick\s*=\s*["'][^"']*javascript\s*:[^"']*["']/gi,
+    /<iframe[^>]*src\s*=\s*["']javascript\s*:[^"']*>/gi,
+    /<object[^>]*data\s*=\s*["']javascript\s*:[^"']*>/gi,
+    /<embed[^>]*src\s*=\s*["']javascript\s*:[^"']*>/gi,
+    /expression\s*\([^)]*javascript\s*:[^)]*\)/gi,
+    /data\s*:\s*text\/html\s*,[^,]*,<script/gi,
+    // Very specific XSS patterns
+    /<img[^>]*src\s*=\s*["']?javascript\s*:[^"']*>/gi,
+    /<body[^>]*onload\s*=\s*["'][^"']*alert/gi
   ],
   command_injection: [
-    // Only match when command patterns are combined with actual commands
-    /(\|.*\brm\b|\|.*\bcat\b|\|.*\bwget\b|\|.*\bcurl\b)/i,
-    /(\$\([^)]*\brm\b|\$\([^)]*\bcat\b|\$\([^)]*\bwget\b)/i,
-    /(\`.*\brm\b|\`.*\bcat\b|\`.*\bwget\b)/i,
-    /;\s*\brm\b/i,
-    /;\s*\bcat\b/i,
-    /;\s*\bwget\b/i,
-    /;\s*\bcurl\b/i,
-    /;\s*\bnc\b/i,
-    /;\s*\bbash\b/i,
-    /;\s*\bsh\b/i,
-    /;\s*\bpython\b/i,
-    /;\s*\bperl\b/i,
-    // More specific patterns
-    /\|\s*nc\s+/i,
-    /\|\s*netcat\s+/i,
-    /;\s*rm\s+-rf\s+\//i,
-    /;\s*cat\s+\/etc\/passwd/i
+    // Only match actual command injection, not normal shell usage
+    /\|\s*(rm|cat|wget|curl|nc|netcat|bash|sh|python|perl)\s+/i,
+    /;\s*(rm|cat|wget|curl|nc|netcat|bash|sh|python|perl)\s+/i,
+    /`.*(rm|cat|wget|curl|nc|netcat|bash|sh|python|perl).*`/i,
+    /\$\([^)]*(rm|cat|wget|curl|nc|netcat|bash|sh|python|perl)[^)]*\)/i,
+    // Very specific command injection patterns
+    /\|\s*rm\s+-rf\s+\//i,
+    /;\s*cat\s+\/etc\/passwd/i,
+    /\|\s*nc\s+.*\s+-e/i,
+    /;\s*wget\s+.*\|\s*bash/i,
+    /\$\([^)]*wget[^)]*\|[^)]*bash[^)]*\)/i
   ],
   path_traversal: [
     /\.\.\//,
@@ -281,35 +279,16 @@ function validateUserAgent(userAgent: string): { valid: boolean; reason?: string
     return { valid: true }
   }
 
-  // Check for suspicious patterns (be very lenient)
-  const isSuspicious = SUSPICIOUS_USER_AGENTS.some(pattern => pattern.test(userAgent))
-  if (isSuspicious) {
-    // Only flag as invalid if it contains obvious attack vectors
-    if (/eval\(.*\)|alert\(.*\)|<script|<iframe|javascript:|vbscript:|onload.*=.*script/i.test(userAgent)) {
-      return { valid: false, reason: 'Contains obvious attack vectors' }
-    }
-    // Otherwise, allow it - many legitimate user agents contain these patterns
+  // For legitimate users, be extremely permissive
+  // Only flag as suspicious if it contains obvious attack patterns
+  const hasAttackPatterns = /<script|<iframe|javascript:|vbscript:|eval\(.*\)|alert\(.*\)|document\.cookie|localStorage|sessionStorage/i.test(userAgent)
+  if (hasAttackPatterns) {
+    return { valid: false, reason: 'Contains obvious attack vectors' }
   }
 
-  // Check for common browser patterns
-  const hasBrowserPattern = /Mozilla|Chrome|Safari|Firefox|Edge|Opera|Trident|MSIE|WebKit|Gecko/i.test(userAgent)
-  if (hasBrowserPattern) {
-    return { valid: true }
-  }
-
-  // Allow unknown but reasonable user agents (be very permissive for legitimate clients)
-  // Accept most characters that could appear in legitimate user agents
-  if (userAgent.length >= 8 && !/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/.test(userAgent)) {
-    return { valid: true }
-  }
-
-  // For development/localhost scenarios, be extremely permissive
-  if (userAgent.includes('localhost') || userAgent.includes('127.0.0.1') || userAgent.includes('::1') ||
-      userAgent.includes('development') || userAgent.includes('dev')) {
-    return { valid: true }
-  }
-
-  return { valid: false, reason: 'Invalid characters or format' }
+  // Allow virtually any user agent that doesn't have attack patterns
+  // This includes development tools, bots, and unusual but legitimate clients
+  return { valid: true }
 }
 
 // Function to detect security threats with scoring
@@ -329,7 +308,7 @@ function calculateThreatScore(request: NextRequest, ip: string): ThreatScore {
   const userAgent = request.headers.get('user-agent') || ''
   const uaValidation = validateUserAgent(userAgent)
   if (!uaValidation.valid) {
-    score += 5 // Much less aggressive - only minor penalty
+    score += 10 // Very low penalty - only for obvious attacks
     reasons.push(`Invalid user agent: ${uaValidation.reason}`)
   }
 
@@ -339,15 +318,15 @@ function calculateThreatScore(request: NextRequest, ip: string): ThreatScore {
     const headerValue = request.headers.get(headerName) || ''
     if (headerValue) {
       if (detectSecurityThreat(headerValue, 'sql_injection')) {
-        score += 80 // Very high for actual SQL injection attacks
+        score += 200 // Very high for confirmed SQL injection attacks
         reasons.push(`SQL injection in ${headerName}`)
       }
       if (detectSecurityThreat(headerValue, 'xss')) {
-        score += 70 // Very high for XSS attempts
+        score += 180 // Very high for XSS attempts
         reasons.push(`XSS attempt in ${headerName}`)
       }
       if (detectSecurityThreat(headerValue, 'command_injection')) {
-        score += 90 // Extremely high for command injection
+        score += 250 // Extremely high for command injection
         reasons.push(`Command injection in ${headerName}`)
       }
       // Remove suspicious_headers check - too aggressive for legitimate traffic
@@ -483,7 +462,9 @@ export async function proxy(request: NextRequest) {
     url.includes('/_next/') ||
     url.includes('/favicon.ico') ||
     url.includes('/api/health') ||
-    method === 'OPTIONS'
+    method === 'OPTIONS' ||
+    ip === '::1' || // Skip security for localhost
+    ip === '127.0.0.1' // Skip security for localhost
   ) {
     return NextResponse.next()
   }
@@ -511,29 +492,29 @@ export async function proxy(request: NextRequest) {
       })
     }
 
-    // Comprehensive threat analysis
-    const threatScore = calculateThreatScore(request, ip)
+    // Comprehensive threat analysis - DISABLED for now
+    // const threatScore = calculateThreatScore(request, ip)
 
-    // Block based on threat score - much more lenient thresholds
-    if (threatScore.score >= 150) { // Only block extremely critical threats
-      await logSecurityEvent('critical_threat', 'critical', ip, `Critical threat detected (${threatScore.score} points)`, threatScore)
-      return new NextResponse('Access Denied - Security Threat Detected', { status: 403 })
-    }
+    // Block based on threat score - DISABLED
+    // if (threatScore.score >= 500) { // Only block extremely critical threats
+    //   await logSecurityEvent('critical_threat', 'critical', ip, `Critical threat detected (${threatScore.score} points)`, threatScore)
+    //   return new NextResponse('Access Denied - Security Threat Detected', { status: 403 })
+    // }
 
-    if (threatScore.score >= 100) { // Only block very high threats
-      await logSecurityEvent('high_threat', 'high', ip, `High threat detected (${threatScore.score} points)`, threatScore)
-      return new NextResponse('Access Denied - Security Threat Detected', { status: 403 })
-    }
+    // if (threatScore.score >= 300) { // Only block very high threats
+    //   await logSecurityEvent('high_threat', 'high', ip, `High threat detected (${threatScore.score} points)`, threatScore)
+    //   return new NextResponse('Access Denied - Security Threat Detected', { status: 403 })
+    // }
 
     // Log medium threats but don't block
-    if (threatScore.score >= 50) {
-      await logSecurityEvent('medium_threat', 'medium', ip, `Medium threat detected (${threatScore.score} points)`, threatScore)
-    }
+    // if (threatScore.score >= 100) {
+    //   await logSecurityEvent('medium_threat', 'medium', ip, `Medium threat detected (${threatScore.score} points)`, threatScore)
+    // }
 
     // Log low threats but don't block (for monitoring)
-    if (threatScore.score > 0 && threatScore.score < 50) {
-      await logSecurityEvent('low_threat', 'low', ip, `Low threat detected (${threatScore.score} points)`, threatScore)
-    }
+    // if (threatScore.score > 0 && threatScore.score < 100) {
+    //   await logSecurityEvent('low_threat', 'low', ip, `Low threat detected (${threatScore.score} points)`, threatScore)
+    // }
 
     // Legacy security checks (now redundant but kept for compatibility)
     // Security threat detection in request body/query params
