@@ -125,9 +125,20 @@ export default function Home() {
         if (response.ok) {
           const data = await response.json()
           if (data.announcements && data.announcements.length > 0) {
-            setAnnouncements(data.announcements.filter((a: string) => a.trim()))
+            const filteredAnnouncements = data.announcements.filter((a: string) => a.trim())
+            if (filteredAnnouncements.length > 0) {
+              setAnnouncements(filteredAnnouncements)
+            } else {
+              // All announcements were empty/whitespace, show defaults
+              setAnnouncements([
+                '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
+                '🏆 Compete for leaderboard positions and earn rewards!',
+                '💎 Collect achievements and unlock special NFTs!',
+                '🎮 Play daily for bonus rewards and claim your earnings!'
+              ])
+            }
           } else {
-            // Set default announcements if none in database
+            // Database is empty or no announcements array, show defaults
             setAnnouncements([
               '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
               '🏆 Compete for leaderboard positions and earn rewards!',
@@ -161,6 +172,49 @@ export default function Home() {
     }
 
     loadAnnouncements()
+
+    // Poll for settings updates every 3 seconds
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch('/api/announcements')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.settings) {
+            setAnnouncementSettings(prevSettings => {
+              // Only update if settings have actually changed
+              if (JSON.stringify(prevSettings) !== JSON.stringify(data.settings)) {
+                console.log('🔄 Announcement settings updated:', data.settings)
+                return data.settings
+              }
+              return prevSettings
+            })
+          }
+          // Also update announcements if they changed
+          if (data.announcements) {
+            setAnnouncements(prevAnnouncements => {
+              const newAnnouncements = data.announcements.filter((a: string) => a.trim())
+              if (newAnnouncements.length === 0) {
+                // Database is empty, show default announcements
+                const defaultAnnouncements = [
+                  '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
+                  '🏆 Compete for leaderboard positions and earn rewards!',
+                  '💎 Collect achievements and unlock special NFTs!',
+                  '🎮 Play daily for bonus rewards and claim your earnings!'
+                ]
+                console.log('🔄 Database empty, showing default announcements:', defaultAnnouncements)
+                return defaultAnnouncements
+              } else if (JSON.stringify(prevAnnouncements) !== JSON.stringify(newAnnouncements)) {
+                console.log('🔄 Announcements updated:', newAnnouncements)
+                return newAnnouncements
+              }
+              return prevAnnouncements
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Failed to poll announcement settings:', error)
+      }
+    }, 3000) // Poll every 3 seconds
 
     // Send periodic play encouragement notifications
     const sendPlayNotification = async () => {
@@ -202,6 +256,9 @@ export default function Home() {
 
     initSDK()
     sendPlayNotification()
+
+    // Cleanup polling interval on unmount
+    return () => clearInterval(pollInterval)
   }, [])
 
   // Load reward tokens after mount (separate effect to ensure it works in Farcaster)
@@ -816,6 +873,64 @@ function AnnouncementBanner({ announcements, settings }: { announcements: string
           50% { transform: translateX(0); width: 100%; }
           100% { transform: translateX(-50%); width: 100%; }
         }
+        @keyframes pulseScroll {
+          0%, 100% { transform: translateX(0) scale(1); opacity: 1; }
+          50% { transform: translateX(-25%) scale(1.1); opacity: 0.8; }
+        }
+        @keyframes shimmerScroll {
+          0% { transform: translateX(0); filter: brightness(1); }
+          50% { transform: translateX(-25%); filter: brightness(1.5); }
+          100% { transform: translateX(-50%); filter: brightness(1); }
+        }
+        @keyframes neonScroll {
+          0%, 100% { transform: translateX(0); text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor; }
+          50% { transform: translateX(-25%); text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor, 0 0 40px currentColor; }
+        }
+        @keyframes matrixScroll {
+          0% { transform: translateX(0) translateY(0); }
+          25% { transform: translateX(-12.5%) translateY(-2px); }
+          50% { transform: translateX(-25%) translateY(0); }
+          75% { transform: translateX(-37.5%) translateY(2px); }
+          100% { transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes particleScroll {
+          0% { transform: translateX(0) rotate(0deg) scale(1); }
+          25% { transform: translateX(-12.5%) rotate(90deg) scale(1.1); }
+          50% { transform: translateX(-25%) rotate(180deg) scale(1); }
+          75% { transform: translateX(-37.5%) rotate(270deg) scale(1.1); }
+          100% { transform: translateX(-50%) rotate(360deg) scale(1); }
+        }
+        @keyframes glitchScroll {
+          0%, 100% { transform: translateX(0); clip-path: inset(0 0 0 0); }
+          10% { transform: translateX(-1%) translateY(1px); clip-path: inset(10% 0 90% 0); }
+          20% { transform: translateX(-25%) translateY(-1px); clip-path: inset(20% 0 80% 0); }
+          30% { transform: translateX(-26%) translateY(1px); clip-path: inset(30% 0 70% 0); }
+          40% { transform: translateX(-25%) translateY(-1px); clip-path: inset(40% 0 60% 0); }
+          50% { transform: translateX(-25%) translateY(1px); clip-path: inset(50% 0 50% 0); }
+          60% { transform: translateX(-25%) translateY(-1px); clip-path: inset(60% 0 40% 0); }
+          70% { transform: translateX(-25%) translateY(1px); clip-path: inset(70% 0 30% 0); }
+          80% { transform: translateX(-25%) translateY(-1px); clip-path: inset(80% 0 20% 0); }
+          90% { transform: translateX(-25%) translateY(1px); clip-path: inset(90% 0 10% 0); }
+        }
+        @keyframes rainbowScroll {
+          0% { transform: translateX(0); filter: hue-rotate(0deg); }
+          25% { transform: translateX(-12.5%); filter: hue-rotate(90deg); }
+          50% { transform: translateX(-25%); filter: hue-rotate(180deg); }
+          75% { transform: translateX(-37.5%); filter: hue-rotate(270deg); }
+          100% { transform: translateX(-50%); filter: hue-rotate(360deg); }
+        }
+        @keyframes fireScroll {
+          0%, 100% { transform: translateX(0); filter: sepia(1) saturate(2) brightness(1.2) hue-rotate(0deg); }
+          25% { transform: translateX(-12.5%); filter: sepia(1) saturate(2) brightness(1.4) hue-rotate(10deg); }
+          50% { transform: translateX(-25%); filter: sepia(1) saturate(2) brightness(1.6) hue-rotate(20deg); }
+          75% { transform: translateX(-37.5%); filter: sepia(1) saturate(2) brightness(1.4) hue-rotate(10deg); }
+        }
+        @keyframes iceScroll {
+          0%, 100% { transform: translateX(0); filter: brightness(1) saturate(0.8) hue-rotate(180deg); }
+          25% { transform: translateX(-12.5%); filter: brightness(1.2) saturate(1) hue-rotate(185deg); }
+          50% { transform: translateX(-25%); filter: brightness(1.4) saturate(1.2) hue-rotate(190deg); }
+          75% { transform: translateX(-37.5%); filter: brightness(1.2) saturate(1) hue-rotate(185deg); }
+        }
       `}</style>
       <motion.div
         className={`${currentTheme.bg} border-2 ${currentTheme.border} rounded-lg px-4 py-3 md:px-6 md:py-4 shadow-lg ${currentTheme.shadow} overflow-hidden`}
@@ -838,7 +953,16 @@ function AnnouncementBanner({ announcements, settings }: { announcements: string
             animation: `${settings.animationType === 'fade' ? 'fadeScroll' : 
                         settings.animationType === 'bounce' ? 'bounceScroll' :
                         settings.animationType === 'wave' ? 'waveScroll' :
-                        settings.animationType === 'typewriter' ? 'typewriterScroll' : 'carouselScroll'} ${speedConfigs[settings.speed as keyof typeof speedConfigs]}s linear infinite`,
+                        settings.animationType === 'typewriter' ? 'typewriterScroll' :
+                        settings.animationType === 'pulse' ? 'pulseScroll' :
+                        settings.animationType === 'shimmer' ? 'shimmerScroll' :
+                        settings.animationType === 'neon' ? 'neonScroll' :
+                        settings.animationType === 'matrix' ? 'matrixScroll' :
+                        settings.animationType === 'particle' ? 'particleScroll' :
+                        settings.animationType === 'glitch' ? 'glitchScroll' :
+                        settings.animationType === 'rainbow' ? 'rainbowScroll' :
+                        settings.animationType === 'fire' ? 'fireScroll' :
+                        settings.animationType === 'ice' ? 'iceScroll' : 'carouselScroll'} ${speedConfigs[settings.speed as keyof typeof speedConfigs]}s linear infinite`,
             display: settings.animationType === 'typewriter' ? 'block' : 'inline-flex',
             willChange: 'transform',
             overflow: settings.animationType === 'typewriter' ? 'hidden' : 'visible',

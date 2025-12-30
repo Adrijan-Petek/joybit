@@ -816,7 +816,7 @@ function AnnouncementManager() {
             <select
               value={animationType}
               onChange={(e) => setAnimationType(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-400 focus:outline-none"
             >
               <option value="scroll">📜 Scroll</option>
               <option value="fade">🌟 Fade</option>
@@ -824,6 +824,15 @@ function AnnouncementManager() {
               <option value="slide">📱 Slide</option>
               <option value="typewriter">⌨️ Typewriter</option>
               <option value="wave">🌊 Wave</option>
+              <option value="pulse">💓 Pulse</option>
+              <option value="shimmer">✨ Shimmer</option>
+              <option value="neon">⚡ Neon</option>
+              <option value="matrix">🖥️ Matrix</option>
+              <option value="particle">🌌 Particle</option>
+              <option value="glitch">👾 Glitch</option>
+              <option value="rainbow">🌈 Rainbow Wave</option>
+              <option value="fire">🔥 Fire</option>
+              <option value="ice">🧊 Ice</option>
             </select>
           </div>
 
@@ -833,7 +842,7 @@ function AnnouncementManager() {
             <select
               value={colorTheme}
               onChange={(e) => setColorTheme(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-400 focus:outline-none"
             >
               <option value="yellow">🟡 Yellow</option>
               <option value="cyan">🔵 Cyan</option>
@@ -850,7 +859,7 @@ function AnnouncementManager() {
             <select
               value={glowIntensity}
               onChange={(e) => setGlowIntensity(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-400 focus:outline-none"
             >
               <option value="low">🔅 Low</option>
               <option value="medium">🔆 Medium</option>
@@ -865,7 +874,7 @@ function AnnouncementManager() {
             <select
               value={speed}
               onChange={(e) => setSpeed(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-400 focus:outline-none"
             >
               <option value="slow">🐌 Slow</option>
               <option value="normal">🚶 Normal</option>
@@ -880,7 +889,7 @@ function AnnouncementManager() {
             <select
               value={fontStyle}
               onChange={(e) => setFontStyle(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-400 focus:outline-none"
             >
               <option value="mono">⌨️ Monospace</option>
               <option value="sans">📄 Sans Serif</option>
