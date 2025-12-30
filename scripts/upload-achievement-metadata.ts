@@ -4,7 +4,7 @@
  * Achievement NFT Metadata Uploader
  *
  * This script uploads all achievement metadata to IPFS via NFT.Storage
- * and generates the metadata URLs for use in the AchievementNFT contract.
+ * and generates the metadata URLs for use in the AchievementERC1155 contract.
  */
 
 import { uploadMultipleAchievements } from '../lib/nft-storage'
@@ -83,7 +83,7 @@ async function main() {
       console.log(`${result.id}: ${result.metadataUrl}`)
     })
 
-    console.log('\n🎉 Ready to use these URLs in your AchievementNFT contract!')
+    console.log('\n🎉 Ready to use these URLs in your AchievementERC1155 contract!')
 
   } catch (error) {
     console.error('❌ Upload failed:', error)

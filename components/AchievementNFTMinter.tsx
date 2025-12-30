@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi'
 import { ethers } from 'ethers'
-import { ACHIEVEMENT_N_F_T_ABI } from '@/lib/contracts/abis'
-const AchievementNFTABI = require('@/lib/contracts/extracted-abis/AchievementNFT.json')
+import { ACHIEVEMENT_ERC1155_ABI as AchievementABI } from '@/lib/contracts/abis'
+const AchievementNFTABI = require('@/lib/contracts/extracted-abis/AchievementERC1155.json')
 import { toast } from 'react-hot-toast'
 import { Achievement } from '@/lib/db/achievements'
 
@@ -22,8 +22,8 @@ const RARITY_COLORS = {
   Mythic: 'bg-red-100 text-red-800 border-red-300'
 }
 
-// AchievementNFT contract ABI imported from extracted ABIs
-const ACHIEVEMENT_NFT_ABI = AchievementNFTABI
+// AchievementERC1155 contract ABI imported from extracted ABIs
+const ACHIEVEMENT_ERC1155_ABI = AchievementNFTABI
 
 export default function AchievementNFTMinter({ achievement, hasAchievement, onMintSuccess }: AchievementNFTMinterProps) {
   const { address, isConnected } = useAccount()
@@ -35,7 +35,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
   const [price, setPrice] = useState<string>('Loading...')
 
   // Contract address - this should come from environment or deployment config
-  const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_NFT_ADDRESS || '0x0000000000000000000000000000000000000000'
+  const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_ERC1155_ADDRESS || '0x0000000000000000000000000000000000000000'
 
   // Load contract data on mount - fetch price from database first
   useEffect(() => {
@@ -86,11 +86,11 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
         
         const provider = new ethers.JsonRpcProvider(rpcUrl)
         
-        const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_NFT_ABI, provider)
+        const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_ERC1155_ABI, provider)
         
-        console.log('📞 Calling contract.achievements()...')
-        const result = await contract.achievements(achievement.id)
-        const [rarity, active, priceWei] = result
+        console.log('📞 Calling contract.getAchievement()...')
+        const result = await contract.getAchievement(Number(achievement.id))
+        const [rarity, priceWei, active] = result
         const formattedPrice = ethers.formatEther(priceWei)
 
         console.log('✅ Contract data:', { rarity: Number(rarity), active, price: formattedPrice })
@@ -141,8 +141,11 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
           : 'https://mainnet.base.org' // Base Mainnet
         
         const provider = new ethers.JsonRpcProvider(rpcUrl)
-        const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_NFT_ABI, provider)
-        const minted = await contract.hasAchievement(address, achievement.id)
+        const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_ERC1155_ABI, provider)
+        
+        console.log('📞 Calling contract.balanceOf()...')
+        const balance = await contract.balanceOf(address, Number(achievement.id))
+        const minted = balance > 0
         setIsMinted(minted)
       } catch (error) {
         console.error('Error checking mint status:', error)
@@ -227,9 +230,9 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
     console.log('🚀 Calling writeContract...')
     writeContract({
       address: contractAddress as `0x${string}`,
-      abi: ACHIEVEMENT_NFT_ABI,
+      abi: ACHIEVEMENT_ERC1155_ABI,
       functionName: 'mintAchievement',
-      args: [achievement.id],
+      args: [Number(achievement.id)], // Convert string ID to number for uint256
       value: priceInWei,
       // Remove fixed gas limit to let wagmi estimate
     })
@@ -242,13 +245,13 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
   const isActive = contractData?.active ?? true
 
   return (
-    <div className="mt-4 p-4 bg-white rounded-lg border shadow-sm">
-      <div className="flex items-center justify-between mb-3">
+    <div className="mt-3 p-2 bg-white rounded-lg border shadow-sm">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">{achievement.emoji}</span>
+          <span className="text-lg">{achievement.emoji}</span>
           <div>
-            <h3 className="font-semibold text-gray-900">{achievement.name}</h3>
-            <p className="text-sm text-gray-600">{achievement.description}</p>
+            <h3 className="font-semibold text-gray-900 text-sm">{achievement.name}</h3>
+            <p className="text-xs text-gray-600">{achievement.description}</p>
           </div>
         </div>
         <span className={`px-2 py-1 text-xs font-medium rounded-full border ${RARITY_COLORS[achievement.rarity as keyof typeof RARITY_COLORS]}`}>
@@ -257,7 +260,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
+        <div className="text-xs text-gray-600">
           <span className="font-medium">Price: {price} ETH</span>
           {price === 'Loading...' && <span className="ml-2 animate-pulse">⏳</span>}
           {!isActive && <span className="text-red-500 ml-2">(Disabled)</span>}
@@ -266,34 +269,34 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
         <div className="flex items-center gap-2">
           {isMinted ? (
             <div className="flex items-center gap-2 text-green-600">
-              <span className="text-sm font-medium">✅ NFT Minted</span>
+              <span className="text-xs font-medium">✅ NFT Minted</span>
             </div>
           ) : hasAchievement ? (
             !isConnected ? (
-              <span className="text-sm text-red-500">Connect wallet to mint</span>
+              <span className="text-xs text-red-500">Connect wallet to mint</span>
             ) : !isOnSupportedNetwork ? (
-              <span className="text-sm text-red-500">Please switch to Base network</span>
+              <span className="text-xs text-red-500">Please switch to Base network</span>
             ) : !contractData?.active ? (
-              <span className="text-sm text-red-500">Achievement not available</span>
+              <span className="text-xs text-red-500">Achievement not available</span>
             ) : price === 'Loading...' ? (
-              <span className="text-sm text-gray-500">Loading price...</span>
+              <span className="text-xs text-gray-500">Loading price...</span>
             ) : isActive ? (
               <button
                 onClick={handleMint}
                 disabled={!canMint}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
                   canMint
                     ? 'bg-purple-600 text-white hover:bg-purple-700'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {isLoading ? 'Processing...' : `Mint NFT (${price} ETH)`}
+                {isLoading ? 'Processing...' : `Mint (${price} ETH)`}
               </button>
             ) : (
-              <span className="text-sm text-red-500">Achievement disabled</span>
+              <span className="text-xs text-red-500">Achievement disabled</span>
             )
           ) : (
-            <span className="text-sm text-gray-500">Achievement not unlocked</span>
+            <span className="text-xs text-gray-500">Achievement not unlocked</span>
           )}
         </div>
       </div>

@@ -4,14 +4,14 @@ const fs = require('fs')
 const path = require('path')
 
 /**
- * Price mapping based on rarity (in wei) - REDUCED PRICES
+ * Updated price mapping based on rarity (in wei)
  */
 const priceMap = {
-  'Common': ethers.parseEther('0.0001'),
-  'Rare': ethers.parseEther('0.0005'),
-  'Epic': ethers.parseEther('0.001'),
-  'Legendary': ethers.parseEther('0.005'),
-  'Mythic': ethers.parseEther('0.01')
+  'Common': ethers.parseEther('0.000034'),
+  'Rare': ethers.parseEther('0.0001'),
+  'Epic': ethers.parseEther('0.0005'),
+  'Legendary': ethers.parseEther('0.001'),
+  'Mythic': ethers.parseEther('0.0034')
 }
 
 /**
@@ -41,21 +41,25 @@ async function updateAchievementPrices() {
   console.log(`📊 Found ${achievements.length} achievements to update`)
 
   // Get contract
-  const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_NFT_ADDRESS
+  const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_ERC1155_ADDRESS
   if (!contractAddress) {
-    console.error('❌ Achievement NFT contract address not found in environment')
+    console.error('❌ Achievement ERC1155 contract address not found in environment')
     process.exit(1)
   }
 
   console.log('🎯 Contract address:', contractAddress)
 
   // Get contract instance
-  const AchievementNFT = await ethers.getContractFactory('AchievementNFT')
-  const contract = AchievementNFT.attach(contractAddress).connect(signer)
+  const AchievementERC1155 = await ethers.getContractFactory('contracts/AchievementERC1155.sol:AchievementERC1155')
+  const contract = AchievementERC1155.attach(contractAddress).connect(signer)
 
   console.log('\n🔄 Updating achievement prices...\n')
 
-  for (const achievement of achievements) {
+  // Update each achievement price with numeric ID
+  for (let i = 0; i < achievements.length; i++) {
+    const achievement = achievements[i]
+    const id = i + 1 // IDs start from 1
+
     try {
       const newPrice = priceMap[achievement.rarity]
       if (!newPrice) {
@@ -63,16 +67,20 @@ async function updateAchievementPrices() {
         continue
       }
 
-      console.log(`📝 Updating ${achievement.id} (${achievement.rarity}) -> ${ethers.formatEther(newPrice)} ETH`)
+      console.log(`📝 Updating ${achievement.id} (ID: ${id}, ${achievement.rarity}) -> ${ethers.formatEther(newPrice)} ETH`)
+
+      // Get current achievement to check if active
+      const current = await contract.getAchievement(id)
+      const isActive = current[2] // active
 
       // Update the achievement price
-      const tx = await contract.updateAchievement(achievement.id, newPrice, true)
+      const tx = await contract.updateAchievement(id, newPrice, isActive)
       await tx.wait()
 
       console.log(`✅ Updated ${achievement.id}\n`)
 
       // Small delay to avoid overwhelming the network
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
     } catch (error) {
       console.error(`❌ Failed to update ${achievement.id}:`, error.message)
@@ -81,11 +89,11 @@ async function updateAchievementPrices() {
 
   console.log('\n🎉 Achievement price updates completed!')
   console.log('\n💡 New price structure:')
-  console.log('   Common: 0.0001 ETH')
-  console.log('   Rare: 0.0005 ETH')
-  console.log('   Epic: 0.001 ETH')
-  console.log('   Legendary: 0.005 ETH')
-  console.log('   Mythic: 0.01 ETH')
+  console.log('   Common: 0.000034 ETH')
+  console.log('   Rare: 0.0001 ETH')
+  console.log('   Epic: 0.0005 ETH')
+  console.log('   Legendary: 0.001 ETH')
+  console.log('   Mythic: 0.0034 ETH')
 }
 
 // Run the script

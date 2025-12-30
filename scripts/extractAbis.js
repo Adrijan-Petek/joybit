@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Contract names to extract
-const contracts = ['Treasury', 'Match3Game', 'CardGame', 'DailyClaim', 'AchievementNFT'];
+const contracts = ['Treasury', 'Match3Game', 'CardGame', 'DailyClaim', 'AchievementERC1155'];
 
 // Output directory
 const outputDir = path.join(__dirname, '..', 'lib', 'contracts', 'extracted-abis');

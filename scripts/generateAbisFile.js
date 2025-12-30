@@ -8,7 +8,8 @@ const contracts = [
   { name: 'Treasury', export: 'TREASURY_ABI' },
   { name: 'Match3Game', export: 'MATCH3_GAME_ABI' },
   { name: 'CardGame', export: 'CARD_GAME_ABI' },
-  { name: 'DailyClaim', export: 'DAILY_CLAIM_ABI' }
+  { name: 'DailyClaim', export: 'DAILY_CLAIM_ABI' },
+  { name: 'AchievementERC1155', export: 'ACHIEVEMENT_ERC1155_ABI' }
 ];
 
 console.log('📝 Generating abis.ts file...\n');

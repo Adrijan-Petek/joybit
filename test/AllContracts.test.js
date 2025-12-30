@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("🎮 Joybit Contracts Test Suite", function () {
-  let treasury, match3Game, cardGame, dailyClaim, joybitToken;
+  let treasury, match3Game, cardGame, dailyClaim, joybitToken, achievementERC1155;
   let owner, player1, player2, admin;
 
   beforeEach(async function () {
@@ -40,10 +40,18 @@ describe("🎮 Joybit Contracts Test Suite", function () {
     dailyClaim = await DailyClaim.deploy(await treasury.getAddress());
     await dailyClaim.waitForDeployment();
 
+    // Deploy AchievementERC1155
+    const AchievementERC1155 = await ethers.getContractFactory("AchievementERC1155");
+    achievementERC1155 = await AchievementERC1155.deploy(await treasury.getAddress(), "ipfs://test/");
+    await achievementERC1155.waitForDeployment();
+
     // Setup: Add contracts as admins
     await treasury.addAdmin(await match3Game.getAddress());
     await treasury.addAdmin(await cardGame.getAddress());
     await treasury.addAdmin(await dailyClaim.getAddress());
+
+    // Add a test achievement
+    await achievementERC1155.addAchievement(1, 0, ethers.parseEther("0.01")); // Common, 0.01 ETH
   });
 
   describe("📊 Treasury Contract", function () {
@@ -330,6 +338,26 @@ describe("🎮 Joybit Contracts Test Suite", function () {
       const receipt = await tx.wait();
       console.log(`      claimToken gas used: ${receipt.gasUsed.toString()}`);
       expect(receipt.gasUsed).to.be.lessThan(100000n);
+    });
+
+    it("📊 AchievementERC1155 mintAchievement gas usage", async function () {
+      // Check achievement is added
+      const achievement = await achievementERC1155.getAchievement(1);
+      expect(achievement.active).to.be.true;
+      expect(achievement.price).to.equal(ethers.parseEther("0.01"));
+
+      const tx = await achievementERC1155.connect(player1).mintAchievement(1, { value: ethers.parseEther("0.01") });
+      const receipt = await tx.wait();
+      console.log(`      mintAchievement gas used: ${receipt.gasUsed.toString()}`);
+      expect(receipt.gasUsed).to.be.lessThan(120000n);
+    });
+
+    it("📊 AchievementERC1155 backendMint gas usage", async function () {
+      await achievementERC1155.setMinter(owner.address, true);
+      const tx = await achievementERC1155.backendMint(player1.address, 1);
+      const receipt = await tx.wait();
+      console.log(`      backendMint gas used: ${receipt.gasUsed.toString()}`);
+      expect(receipt.gasUsed).to.be.lessThan(80000n);
     });
   });
 });

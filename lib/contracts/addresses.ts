@@ -5,6 +5,7 @@ export const CONTRACT_ADDRESSES = {
   cardGame: (process.env.NEXT_PUBLIC_CARD_GAME_ADDRESS || '') as `0x${string}`,
   dailyClaim: (process.env.NEXT_PUBLIC_DAILY_CLAIM_ADDRESS || '') as `0x${string}`,
   achievementNFT: (process.env.NEXT_PUBLIC_ACHIEVEMENT_NFT_ADDRESS || '') as `0x${string}`,
+  achievementERC1155: (process.env.NEXT_PUBLIC_ACHIEVEMENT_ERC1155_ADDRESS || '') as `0x${string}`,
 } as const
 
 export const CHAIN_CONFIG = {

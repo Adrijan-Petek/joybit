@@ -1,4 +1,5 @@
 import { createClient } from '@libsql/client'
+import { ethers } from 'ethers'
 
 const client = createClient({
   url: process.env.TURSO_DATABASE_URL!,
@@ -67,7 +68,7 @@ export async function initAchievementTables() {
         { id: 'star_player', name: 'Star Player', description: 'Reach level 10', requirement: 'Level 10', emoji: '🌟', rarity: 'Rare', category: 'match3' },
         { id: 'speed_demon', name: 'Speed Demon', description: 'Complete a level in under 30 seconds', requirement: 'Fast completion', emoji: '⚡', rarity: 'Epic', category: 'match3' },
         { id: 'combo_king', name: 'Combo King', description: 'Achieve a 10x combo', requirement: '10x combo', emoji: '🎪', rarity: 'Legendary', category: 'match3' },
-        { id: 'champion', name: 'Champion', description: 'Win 100 games', requirement: '100 wins', emoji: '🏆', rarity: 'Legendary', category: 'match3' },
+        { id: 'champion', name: 'Champion', description: 'Win 50 games', requirement: '50 wins', emoji: '🏆', rarity: 'Legendary', category: 'match3' },
         { id: 'artist', name: 'Artist', description: 'Create beautiful patterns', requirement: 'Special patterns', emoji: '🎨', rarity: 'Rare', category: 'match3' },
         { id: 'rainbow', name: 'Rainbow', description: 'Match all colors in one move', requirement: 'Rainbow match', emoji: '🌈', rarity: 'Epic', category: 'match3' },
         { id: 'heart_breaker', name: 'Heart Breaker', description: 'Break 10,000 hearts', requirement: '10,000 hearts', emoji: '💖', rarity: 'Rare', category: 'match3' },
@@ -85,18 +86,18 @@ export async function initAchievementTables() {
         // Daily Claim Achievements
         { id: 'daily_starter', name: 'Daily Starter', description: 'Claim your first daily reward', requirement: '1 daily claim', emoji: '📅', rarity: 'Common', category: 'daily' },
         { id: 'streak_master', name: 'Streak Master', description: 'Maintain a 7-day claim streak', requirement: '7 consecutive days', emoji: '🔥', rarity: 'Rare', category: 'daily' },
-        { id: 'dedicated_player', name: 'Dedicated Player', description: 'Claim rewards for 30 days', requirement: '30 total claims', emoji: '💪', rarity: 'Epic', category: 'daily' },
-        { id: 'loyal_supporter', name: 'Loyal Supporter', description: 'Claim rewards for 100 days', requirement: '100 total claims', emoji: '👑', rarity: 'Legendary', category: 'daily' },
-        { id: 'eternal_claimant', name: 'Eternal Claimant', description: 'Claim rewards for 365 days', requirement: '365 total claims', emoji: '♾️', rarity: 'Mythic', category: 'daily' },
+        { id: 'dedicated_player', name: 'Dedicated Player', description: 'Claim rewards for 14 days', requirement: '14 total claims', emoji: '💪', rarity: 'Epic', category: 'daily' },
+        { id: 'loyal_supporter', name: 'Loyal Supporter', description: 'Claim rewards for 30 days', requirement: '30 total claims', emoji: '👑', rarity: 'Legendary', category: 'daily' },
+        { id: 'eternal_claimant', name: 'Eternal Claimant', description: 'Claim rewards for 90 days', requirement: '90 total claims', emoji: '♾️', rarity: 'Mythic', category: 'daily' },
 
         // Card Game Achievements
         { id: 'card_novice', name: 'Card Novice', description: 'Play your first card game', requirement: '1 game played', emoji: '🃏', rarity: 'Common', category: 'card' },
         { id: 'card_winner', name: 'Card Winner', description: 'Win your first card game', requirement: '1 game won', emoji: '🎯', rarity: 'Common', category: 'card' },
         { id: 'card_expert', name: 'Card Expert', description: 'Win 10 card games', requirement: '10 wins', emoji: '🎪', rarity: 'Rare', category: 'card' },
-        { id: 'card_master', name: 'Card Master', description: 'Win 50 card games', requirement: '50 wins', emoji: '🏆', rarity: 'Epic', category: 'card' },
-        { id: 'card_legend', name: 'Card Legend', description: 'Win 100 card games', requirement: '100 wins', emoji: '👑', rarity: 'Legendary', category: 'card' },
-        { id: 'card_god', name: 'Card God', description: 'Win 500 card games', requirement: '500 wins', emoji: '⚡', rarity: 'Mythic', category: 'card' },
-        { id: 'card_addict', name: 'Card Addict', description: 'Play 1000 card games', requirement: '1000 games played', emoji: '🎰', rarity: 'Epic', category: 'card' },
+        { id: 'card_master', name: 'Card Master', description: 'Win 25 card games', requirement: '25 wins', emoji: '🏆', rarity: 'Epic', category: 'card' },
+        { id: 'card_legend', name: 'Card Legend', description: 'Win 50 card games', requirement: '50 wins', emoji: '👑', rarity: 'Legendary', category: 'card' },
+        { id: 'card_god', name: 'Card God', description: 'Win 100 card games', requirement: '100 wins', emoji: '⚡', rarity: 'Mythic', category: 'card' },
+        { id: 'card_addict', name: 'Card Addict', description: 'Play 200 card games', requirement: '200 games played', emoji: '🎰', rarity: 'Epic', category: 'card' },
 
         // General Achievements
         { id: 'well_rounded', name: 'Well Rounded', description: 'Play all game types', requirement: '1 game in each type', emoji: '🎭', rarity: 'Rare', category: 'general' },
@@ -367,8 +368,66 @@ export async function getAllAchievements() {
     const result = await client.execute(`SELECT * FROM achievements ORDER BY category, rarity DESC`)
     return convertBigInts(result.rows)
   } catch (error) {
-    console.error('Error getting all achievements:', error)
-    throw error
+    console.error('Database unavailable, falling back to contract data:', error)
+    // Fallback to contract data when database is unavailable
+    return await getAllAchievementsFromContract()
+  }
+}
+
+// Fallback function to get achievements from contract when database is unavailable
+async function getAllAchievementsFromContract() {
+  try {
+    const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_ERC1155_ADDRESS
+    if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+      console.error('Contract address not configured')
+      return []
+    }
+
+    // Import here to avoid circular dependencies
+    const { ACHIEVEMENT_ERC1155_ABI } = await import('@/lib/contracts/abis')
+
+    const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
+    const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_ERC1155_ABI, provider)
+
+    // Get all achievement IDs
+    const achievementIds = await contract.getAllAchievementIds()
+    console.log('Found achievement IDs from contract:', achievementIds)
+
+    const achievements = []
+
+    // Rarity name mapping
+    const rarityNames = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic']
+
+    for (const id of achievementIds) {
+      try {
+        const result = await contract.getAchievement(Number(id))
+        const [rarity, priceWei, active] = result
+        const price = ethers.formatEther(priceWei)
+
+        // Create achievement with default metadata since contract doesn't store names/descriptions
+        achievements.push({
+          id: id.toString(),
+          name: `Achievement #${id}`,
+          description: `Achievement ${id} - ${rarityNames[Number(rarity)]}`,
+          requirement: 'Complete the required tasks',
+          emoji: '🏆',
+          rarity: rarityNames[Number(rarity)],
+          category: 'General',
+          price: price,
+          active: active
+        })
+      } catch (error) {
+        console.error(`Error fetching achievement ${id}:`, error)
+        // Skip this achievement if there's an error
+        continue
+      }
+    }
+
+    console.log('Loaded achievements from contract:', achievements.length)
+    return achievements
+  } catch (error) {
+    console.error('Error loading achievements from contract:', error)
+    return []
   }
 }
 
@@ -409,7 +468,7 @@ export async function checkAndUnlockAchievements(userAddress: string) {
       unlockedAchievements.push('combo_king')
     }
 
-    if (stats.match3_games_won >= 100 && !(await isAchievementUnlocked(userAddress, 'champion'))) {
+    if (stats.match3_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 'champion'))) {
       await unlockAchievement(userAddress, 'champion')
       unlockedAchievements.push('champion')
     }
@@ -425,17 +484,17 @@ export async function checkAndUnlockAchievements(userAddress: string) {
       unlockedAchievements.push('streak_master')
     }
 
-    if (stats.daily_total_claims >= 30 && !(await isAchievementUnlocked(userAddress, 'dedicated_player'))) {
+    if (stats.daily_total_claims >= 14 && !(await isAchievementUnlocked(userAddress, 'dedicated_player'))) {
       await unlockAchievement(userAddress, 'dedicated_player')
       unlockedAchievements.push('dedicated_player')
     }
 
-    if (stats.daily_total_claims >= 100 && !(await isAchievementUnlocked(userAddress, 'loyal_supporter'))) {
+    if (stats.daily_total_claims >= 30 && !(await isAchievementUnlocked(userAddress, 'loyal_supporter'))) {
       await unlockAchievement(userAddress, 'loyal_supporter')
       unlockedAchievements.push('loyal_supporter')
     }
 
-    if (stats.daily_total_claims >= 365 && !(await isAchievementUnlocked(userAddress, 'eternal_claimant'))) {
+    if (stats.daily_total_claims >= 90 && !(await isAchievementUnlocked(userAddress, 'eternal_claimant'))) {
       await unlockAchievement(userAddress, 'eternal_claimant')
       unlockedAchievements.push('eternal_claimant')
     }
@@ -456,22 +515,22 @@ export async function checkAndUnlockAchievements(userAddress: string) {
       unlockedAchievements.push('card_expert')
     }
 
-    if (stats.card_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 'card_master'))) {
+    if (stats.card_games_won >= 25 && !(await isAchievementUnlocked(userAddress, 'card_master'))) {
       await unlockAchievement(userAddress, 'card_master')
       unlockedAchievements.push('card_master')
     }
 
-    if (stats.card_games_won >= 100 && !(await isAchievementUnlocked(userAddress, 'card_legend'))) {
+    if (stats.card_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 'card_legend'))) {
       await unlockAchievement(userAddress, 'card_legend')
       unlockedAchievements.push('card_legend')
     }
 
-    if (stats.card_games_won >= 500 && !(await isAchievementUnlocked(userAddress, 'card_god'))) {
+    if (stats.card_games_won >= 100 && !(await isAchievementUnlocked(userAddress, 'card_god'))) {
       await unlockAchievement(userAddress, 'card_god')
       unlockedAchievements.push('card_god')
     }
 
-    if (stats.card_games_played >= 1000 && !(await isAchievementUnlocked(userAddress, 'card_addict'))) {
+    if (stats.card_games_played >= 200 && !(await isAchievementUnlocked(userAddress, 'card_addict'))) {
       await unlockAchievement(userAddress, 'card_addict')
       unlockedAchievements.push('card_addict')
     }
@@ -514,6 +573,80 @@ async function isAchievementUnlocked(userAddress: string, achievementId: string)
   }
 }
 
+// Sync achievement data from contract to database
+export async function syncAchievementsFromContract(contractAchievements: any[]) {
+  try {
+    for (const achievement of contractAchievements) {
+      // Check if achievement exists in database
+      const existing = await client.execute({
+        sql: `SELECT id FROM achievements WHERE id = ?`,
+        args: [achievement.id]
+      })
+
+      const rarityMap = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic']
+
+      if (existing.rows.length > 0) {
+        // Update existing achievement - only update contract-controlled fields
+        const updateFields = []
+        const updateArgs = []
+
+        // Always update price
+        updateFields.push('price = ?')
+        updateArgs.push(ethers.formatEther(achievement.price))
+
+        // Update name/description/emoji only if provided (not empty)
+        if (achievement.name && achievement.name.trim()) {
+          updateFields.push('name = ?')
+          updateArgs.push(achievement.name)
+        }
+        if (achievement.description && achievement.description.trim()) {
+          updateFields.push('description = ?')
+          updateArgs.push(achievement.description)
+        }
+        if (achievement.emoji && achievement.emoji.trim()) {
+          updateFields.push('emoji = ?')
+          updateArgs.push(achievement.emoji)
+        }
+
+        // Always update rarity
+        updateFields.push('rarity = ?')
+        updateArgs.push(rarityMap[achievement.rarity] || 'Common')
+
+        updateArgs.push(achievement.id)
+
+        await client.execute({
+          sql: `UPDATE achievements SET ${updateFields.join(', ')} WHERE id = ?`,
+          args: updateArgs
+        })
+      } else {
+        // Insert new achievement - use defaults for missing fields
+        const name = achievement.name || `Achievement ${achievement.id}`
+        const description = achievement.description || `Achievement ${achievement.id} description`
+        const emoji = achievement.emoji || '🏆'
+
+        await client.execute({
+          sql: `INSERT INTO achievements (id, name, description, requirement, emoji, rarity, category, price) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            achievement.id,
+            name,
+            description,
+            description, // Use description as requirement
+            emoji,
+            rarityMap[achievement.rarity] || 'Common',
+            'achievement', // category
+            ethers.formatEther(achievement.price)
+          ]
+        })
+      }
+    }
+    console.log('✅ Achievement data synced to database')
+  } catch (error) {
+    console.error('Error syncing achievements:', error)
+    throw error
+  }
+}
+
 // Sync achievement prices from contract to database
 export async function syncAchievementPricesFromContract(contractPrices: Record<string, string>) {
   try {
@@ -539,7 +672,34 @@ export async function getAchievementPrice(achievementId: string): Promise<string
     })
     return result.rows.length > 0 ? result.rows[0].price as string : null
   } catch (error) {
-    console.error('Error getting achievement price:', error)
+    console.error('Database unavailable for price lookup, falling back to contract:', error)
+    // Fallback to contract data
+    return await getAchievementPriceFromContract(achievementId)
+  }
+}
+
+// Fallback function to get achievement price from contract
+async function getAchievementPriceFromContract(achievementId: string): Promise<string | null> {
+  try {
+    const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_ERC1155_ADDRESS
+    if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+      return null
+    }
+
+    // Import here to avoid circular dependencies
+    const { ACHIEVEMENT_ERC1155_ABI } = await import('@/lib/contracts/abis')
+
+    const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
+    const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_ERC1155_ABI, provider)
+
+    const result = await contract.getAchievement(Number(achievementId))
+    const [rarity, priceWei, active] = result
+
+    if (!active) return null
+
+    return ethers.formatEther(priceWei)
+  } catch (error) {
+    console.error('Error getting achievement price from contract:', error)
     return null
   }
 }

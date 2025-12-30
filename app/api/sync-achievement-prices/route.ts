@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ethers } from 'ethers'
-import { ACHIEVEMENT_N_F_T_ABI } from '@/lib/contracts/abis'
+import { ACHIEVEMENT_ERC1155_ABI } from '@/lib/contracts/abis'
 import { syncAchievementPricesFromContract } from '@/lib/db/achievements'
 
 export async function POST(request: NextRequest) {
   try {
     // Contract address
-    const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_NFT_ADDRESS
+    const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_ERC1155_ADDRESS
     if (!contractAddress) {
       return NextResponse.json({ error: 'Contract address not configured' }, { status: 500 })
     }
 
     // Connect to contract
     const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
-    const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_N_F_T_ABI, provider)
+    const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_ERC1155_ABI, provider)
 
     // Get all achievement IDs from contract
     const allIds = await contract.getAllAchievementIds()
