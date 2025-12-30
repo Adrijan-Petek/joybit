@@ -9,24 +9,385 @@ const client = createClient({
 // Rate limiting storage (in production, use Redis)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
 
-// Security patterns for detection
+// Professional Security Patterns for Detection
 const SECURITY_PATTERNS = {
   sql_injection: [
     /(\bUNION\b|\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b|\bCREATE\b|\bALTER\b|\bEXEC\b|\bEXECUTE\b)/i,
-    /('|(--)|(#)|(\/\*.*?\*\/)|(;))/i
+    /('|(--)|(#)|(\/\*.*?\*\/)|(;))/i,
+    /(\bor\b|\band\b).*(\=|\<|\>)/i,
+    /script.*src/i,
+    /javascript.*:/i
   ],
   xss: [
     /<script[^>]*>.*?<\/script>/gi,
     /javascript:/gi,
-    /on\w+\s*=/gi,
-    /<iframe[^>]*>.*?<\/iframe>/gi
+    /vbscript:/gi,
+    /onload\s*=/gi,
+    /onerror\s*=/gi,
+    /onclick\s*=/gi,
+    /onmouseover\s*=/gi,
+    /<iframe[^>]*>.*?<\/iframe>/gi,
+    /<object[^>]*>.*?<\/object>/gi,
+    /<embed[^>]*>.*?<\/embed>/gi,
+    /expression\s*\(/gi,
+    /vbscript\s*:/gi,
+    /data\s*:\s*text\/html/gi
+  ],
+  command_injection: [
+    /(\||&|;|\$\(|\`)/,
+    /rm\s+/i,
+    /cat\s+\/etc/i,
+    /wget\s+/i,
+    /curl\s+/i,
+    /nc\s+/i,
+    /netcat/i,
+    /bash\s+/i,
+    /sh\s+/i,
+    /python\s+/i,
+    /perl\s+/i
+  ],
+  path_traversal: [
+    /\.\.\//,
+    /\.\.\\/,
+    /\/etc\/passwd/i,
+    /\/etc\/shadow/i,
+    /\/etc\/hosts/i,
+    /\/proc\/self/i,
+    /\/windows\/system32/i,
+    /c:\\windows\\/i
+  ],
+  suspicious_headers: [
+    /<script/i,
+    /javascript/i,
+    /vbscript/i,
+    /onload/i,
+    /onerror/i,
+    /eval\(/i,
+    /alert\(/i,
+    /document\.cookie/i,
+    /localStorage/i,
+    /sessionStorage/i
   ]
 }
 
-// Function to detect security threats
-function detectSecurityThreat(input: string, type: 'sql_injection' | 'xss'): boolean {
+// Known legitimate user agents (patterns)
+const LEGITIMATE_USER_AGENTS = [
+  /^Mozilla\/\d+\.\d+.*$/,
+  /^curl\/\d+\.\d+.*$/,
+  /^PostmanRuntime\/\d+\.\d+.*$/,
+  /^axios\/\d+\.\d+.*$/,
+  /^node-fetch\/\d+\.\d+.*$/,
+  /^python-requests\/\d+\.\d+.*$/,
+  /^Go-http-client\/\d+\.\d+.*$/,
+  /^Java\/\d+\.\d+.*$/,
+  /^Apache-HttpClient\/\d+\.\d+.*$/,
+  /^okhttp\/\d+\.\d+.*$/,
+  /^Dart\/\d+\.\d+.*$/,
+  /^insomnia\/\d+\.\d+.*$/,
+  /^Thunder Client.*$/,
+  /^VS Code.*$/,
+  /^GitHub Actions.*$/,
+  /^GitHub-Hookshot.*$/,
+  /^Slackbot.*$/,
+  /^Discordbot.*$/,
+  /^Twitterbot.*$/,
+  /^facebookexternalhit.*$/,
+  /^LinkedInBot.*$/,
+  /^WhatsApp.*$/,
+  /^TelegramBot.*$/,
+  /^Googlebot.*$/,
+  /^Bingbot.*$/,
+  /^DuckDuckBot.*$/,
+  /^Applebot.*$/,
+  /^YandexBot.*$/,
+  /^Baiduspider.*$/,
+  /^Sogou.*$/,
+  /^Exabot.*$/,
+  /^MJ12bot.*$/,
+  // Development and testing tools
+  /^Next\.js.*$/,
+  /^webpack.*$/,
+  /^vite.*$/,
+  /^esbuild.*$/,
+  /^parcel.*$/,
+  /^rollup.*$/,
+  /^snowpack.*$/,
+  /^swc.*$/,
+  /^tsc.*$/,
+  /^node.*$/,
+  /^npm.*$/,
+  /^yarn.*$/,
+  /^pnpm.*$/,
+  /^bun.*$/,
+  // Browser development tools
+  /^Chrome.*$/,
+  /^Firefox.*$/,
+  /^Safari.*$/,
+  /^Edge.*$/,
+  /^Opera.*$/,
+  /^Brave.*$/,
+  /^Vivaldi.*$/,
+  /^Arc.*$/,
+  // Mobile browsers
+  /^Mobile.*$/,
+  /^Android.*$/,
+  /^iPhone.*$/,
+  /^iPad.*$/,
+  // Generic patterns for legitimate clients
+  /^.*\/.*\d+\.\d+.*$/, // Any client with version numbers
+  /^.*Bot.*$/, // Any bot (assuming legitimate unless proven otherwise)
+  /^.*Crawler.*$/, // Any crawler
+  /^.*Spider.*$/ // Any spider
+]
+
+// Suspicious user agent patterns
+const SUSPICIOUS_USER_AGENTS = [
+  /^[\w\s]*$/i, // Only alphanumeric and spaces (too clean)
+  /^.{0,10}$/, // Too short
+  /<script/i,
+  /javascript/i,
+  /vbscript/i,
+  /eval\(/i,
+  /alert\(/i,
+  /document\./i,
+  /window\./i,
+  /location\./i,
+  /cookie/i,
+  /localStorage/i,
+  /sessionStorage/i,
+  /innerHTML/i,
+  /outerHTML/i,
+  /insertAdjacentHTML/i,
+  /write\(/i,
+  /writeln\(/i,
+  /base64/i,
+  /atob\(/i,
+  /btoa\(/i,
+  /unescape\(/i,
+  /decodeURIComponent\(/i,
+  /encodeURIComponent\(/i,
+  /fromCharCode/i,
+  /charCodeAt/i,
+  /String\.fromCharCode/i,
+  /unescape/i,
+  /escape/i,
+  /eval/i,
+  /Function/i,
+  /setTimeout/i,
+  /setInterval/i,
+  /XMLHttpRequest/i,
+  /fetch/i,
+  /WebSocket/i,
+  /EventSource/i,
+  /Worker/i,
+  /SharedWorker/i,
+  /ServiceWorker/i,
+  /BroadcastChannel/i,
+  /MessageChannel/i,
+  /postMessage/i,
+  /importScripts/i,
+  /require\(/i,
+  /module\.exports/i,
+  /exports\./i,
+  /process\./i,
+  /global/i,
+  /Buffer/i,
+  /__dirname/i,
+  /__filename/i,
+  /child_process/i,
+  /fs\./i,
+  /path\./i,
+  /os\./i,
+  /crypto/i,
+  /http/i,
+  /https/i,
+  /url/i,
+  /querystring/i,
+  /zlib/i,
+  /stream/i,
+  /events/i,
+  /util/i,
+  /assert/i,
+  /tty/i,
+  /readline/i,
+  /repl/i,
+  /vm/i,
+  /cluster/i,
+  /domain/i,
+  /punycode/i,
+  /string_decoder/i,
+  /timers/i,
+  /dns/i,
+  /dgram/i,
+  /net/i,
+  /tls/i,
+  /tty/i,
+  /v8/i,
+  /webcrypto/i
+]
+
+// IP reputation patterns (basic)
+const SUSPICIOUS_IPS = [
+  /^127\./, // Localhost ranges (should be allowed for development)
+  /^10\./, // Private networks
+  /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // Private networks
+  /^192\.168\./, // Private networks
+  /^169\.254\./, // Link-local
+  /^0\./, // Invalid
+  /^255\./, // Broadcast
+  // Known malicious ranges (examples - in production use a proper IP reputation service)
+  /^185\.159\./, // Example malicious range
+  /^91\.134\./, // Example malicious range
+  /^5\.188\./, // Example malicious range
+]
+
+// Threat scoring system
+interface ThreatScore {
+  score: number
+  reasons: string[]
+  severity: 'low' | 'medium' | 'high' | 'critical'
+}
+
+// Function to validate user agent
+function validateUserAgent(userAgent: string): { valid: boolean; reason?: string } {
+  if (!userAgent || userAgent.length < 5) {
+    return { valid: false, reason: 'User agent too short or empty' }
+  }
+
+  if (userAgent.length > 500) {
+    return { valid: false, reason: 'User agent too long' }
+  }
+
+  // Check if it matches known legitimate patterns
+  const isLegitimate = LEGITIMATE_USER_AGENTS.some(pattern => pattern.test(userAgent))
+  if (isLegitimate) {
+    return { valid: true }
+  }
+
+  // Check for suspicious patterns (but be less aggressive)
+  const isSuspicious = SUSPICIOUS_USER_AGENTS.some(pattern => pattern.test(userAgent))
+  if (isSuspicious) {
+    // Only flag as invalid if it contains multiple suspicious patterns or very obvious attacks
+    const suspiciousCount = SUSPICIOUS_USER_AGENTS.filter(pattern => pattern.test(userAgent)).length
+    if (suspiciousCount >= 3 || /<script|<iframe|javascript:|vbscript:|eval\(/.test(userAgent)) {
+      return { valid: false, reason: 'Contains multiple suspicious patterns or obvious attack vectors' }
+    }
+    // Otherwise, allow it but log for monitoring
+  }
+
+  // Check for common browser patterns
+  const hasBrowserPattern = /Mozilla|Chrome|Safari|Firefox|Edge|Opera|Trident|MSIE|WebKit|Gecko/i.test(userAgent)
+  if (hasBrowserPattern) {
+    return { valid: true }
+  }
+
+  // Allow unknown but reasonable user agents (be permissive for legitimate clients)
+  // Accept alphanumeric, spaces, and common symbols used in legitimate user agents
+  if (userAgent.length >= 10 && /^[a-zA-Z0-9\s\/\.\-\(\)\[\]\{\}\+\*\?\^\$\|\\:;,=_~@#%&!]+$/.test(userAgent)) {
+    return { valid: true }
+  }
+
+  // For development/localhost scenarios, be more permissive
+  if (userAgent.includes('localhost') || userAgent.includes('127.0.0.1') || userAgent.includes('::1')) {
+    return { valid: true }
+  }
+
+  return { valid: false, reason: 'Invalid characters or format' }
+}
+
+// Function to detect security threats with scoring
+function detectSecurityThreat(input: string, type: keyof typeof SECURITY_PATTERNS): boolean {
+  if (!input || typeof input !== 'string') return false
+
   const patterns = SECURITY_PATTERNS[type]
   return patterns.some(pattern => pattern.test(input))
+}
+
+// Function to calculate threat score
+function calculateThreatScore(request: NextRequest, ip: string): ThreatScore {
+  let score = 0
+  const reasons: string[] = []
+
+  // Check user agent
+  const userAgent = request.headers.get('user-agent') || ''
+  const uaValidation = validateUserAgent(userAgent)
+  if (!uaValidation.valid) {
+    score += 15 // Reduced from 30 to be less aggressive
+    reasons.push(`Invalid user agent: ${uaValidation.reason}`)
+  }
+
+  // Check for suspicious headers
+  const suspiciousHeaders = ['user-agent', 'referer', 'x-forwarded-for', 'accept', 'accept-language']
+  for (const headerName of suspiciousHeaders) {
+    const headerValue = request.headers.get(headerName) || ''
+    if (headerValue) {
+      if (detectSecurityThreat(headerValue, 'sql_injection')) {
+        score += 25
+        reasons.push(`SQL injection in ${headerName}`)
+      }
+      if (detectSecurityThreat(headerValue, 'xss')) {
+        score += 25
+        reasons.push(`XSS attempt in ${headerName}`)
+      }
+      if (detectSecurityThreat(headerValue, 'command_injection')) {
+        score += 30
+        reasons.push(`Command injection in ${headerName}`)
+      }
+      if (detectSecurityThreat(headerValue, 'suspicious_headers')) {
+        score += 15
+        reasons.push(`Suspicious content in ${headerName}`)
+      }
+    }
+  }
+
+  // Check URL for path traversal
+  const url = request.url
+  if (detectSecurityThreat(url, 'path_traversal')) {
+    score += 40
+    reasons.push('Path traversal attempt')
+  }
+
+  // Check query parameters
+  const urlObj = new URL(url)
+  for (const [key, value] of urlObj.searchParams) {
+    if (detectSecurityThreat(value, 'sql_injection')) {
+      score += 20
+      reasons.push(`SQL injection in param: ${key}`)
+    }
+    if (detectSecurityThreat(value, 'xss')) {
+      score += 20
+      reasons.push(`XSS in param: ${key}`)
+    }
+    if (detectSecurityThreat(value, 'command_injection')) {
+      score += 25
+      reasons.push(`Command injection in param: ${key}`)
+    }
+  }
+
+  // Check request body for POST/PUT/PATCH
+  if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
+    try {
+      // Note: In Next.js middleware, we can't easily read the body
+      // This would need to be implemented in API routes
+    } catch (error) {
+      // Ignore body parsing errors
+    }
+  }
+
+  // IP-based scoring (basic)
+  if (SUSPICIOUS_IPS.some(pattern => pattern.test(ip))) {
+    score += 10
+    reasons.push('IP in suspicious range')
+  }
+
+  // Determine severity
+  let severity: 'low' | 'medium' | 'high' | 'critical'
+  if (score >= 80) severity = 'critical'
+  else if (score >= 50) severity = 'high'
+  else if (score >= 25) severity = 'medium'
+  else severity = 'low'
+
+  return { score, reasons, severity }
 }
 
 // Function to get client IP
@@ -71,8 +432,15 @@ async function checkRateLimit(ip: string): Promise<boolean> {
   return false
 }
 
-// Function to log security event
-async function logSecurityEvent(type: string, severity: string, ip: string, details: string, user?: string) {
+// Function to log security event with threat scoring
+async function logSecurityEvent(
+  type: string,
+  severity: 'low' | 'medium' | 'high' | 'critical',
+  ip: string,
+  details: string,
+  threatScore?: ThreatScore,
+  user?: string
+) {
   try {
     await client.execute(`
       INSERT INTO security_alerts (type, severity, ip, details, resolved)
@@ -84,7 +452,8 @@ async function logSecurityEvent(type: string, severity: string, ip: string, deta
       VALUES (?, ?, ?, ?, ?)
     `, ['Security Event', type, ip, user || 'anonymous', details])
 
-    console.log(`🚨 SECURITY: ${type.toUpperCase()} from ${ip} - ${details}`)
+    const scoreInfo = threatScore ? ` (Score: ${threatScore.score}, Reasons: ${threatScore.reasons.join(', ')})` : ''
+    console.log(`🚨 SECURITY: ${severity.toUpperCase()} ${type.toUpperCase()} from ${ip} - ${details}${scoreInfo}`)
   } catch (error) {
     console.error('Failed to log security event:', error)
   }
@@ -128,6 +497,31 @@ export async function proxy(request: NextRequest) {
       })
     }
 
+    // Comprehensive threat analysis
+    const threatScore = calculateThreatScore(request, ip)
+
+    // Block based on threat score
+    if (threatScore.score >= 80) { // Critical threats
+      await logSecurityEvent('critical_threat', 'critical', ip, `Critical threat detected (${threatScore.score} points)`, threatScore)
+      return new NextResponse('Access Denied - Security Threat Detected', { status: 403 })
+    }
+
+    if (threatScore.score >= 50) { // High threats
+      await logSecurityEvent('high_threat', 'high', ip, `High threat detected (${threatScore.score} points)`, threatScore)
+      return new NextResponse('Access Denied - Security Threat Detected', { status: 403 })
+    }
+
+    // Log medium threats but don't block
+    if (threatScore.score >= 25) {
+      await logSecurityEvent('medium_threat', 'medium', ip, `Medium threat detected (${threatScore.score} points)`, threatScore)
+    }
+
+    // Log low threats but don't block (for monitoring)
+    if (threatScore.score > 0 && threatScore.score < 25) {
+      await logSecurityEvent('low_threat', 'low', ip, `Low threat detected (${threatScore.score} points)`, threatScore)
+    }
+
+    // Legacy security checks (now redundant but kept for compatibility)
     // Security threat detection in request body/query params
     if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
       try {
@@ -143,6 +537,12 @@ export async function proxy(request: NextRequest) {
           // Check for XSS
           if (detectSecurityThreat(body, 'xss')) {
             await logSecurityEvent('xss_attempt', 'high', ip, `XSS attempt detected in ${method} ${url}`)
+            return new NextResponse('Security Violation Detected', { status: 403 })
+          }
+
+          // Check for command injection
+          if (detectSecurityThreat(body, 'command_injection')) {
+            await logSecurityEvent('command_injection_attempt', 'high', ip, `Command injection detected in ${method} ${url}`)
             return new NextResponse('Security Violation Detected', { status: 403 })
           }
         }
@@ -162,15 +562,9 @@ export async function proxy(request: NextRequest) {
         await logSecurityEvent('xss_attempt', 'high', ip, `XSS in query param: ${key}`)
         return new NextResponse('Security Violation Detected', { status: 403 })
       }
-    }
-
-    // Log suspicious patterns in headers
-    const suspiciousHeaders = ['user-agent', 'referer', 'x-forwarded-for']
-    for (const headerName of suspiciousHeaders) {
-      const headerValue = request.headers.get(headerName)
-      if (headerValue && (detectSecurityThreat(headerValue, 'sql_injection') || detectSecurityThreat(headerValue, 'xss'))) {
-        await logSecurityEvent('suspicious_header', 'medium', ip, `Suspicious content in ${headerName} header`)
-        // Don't block, just log
+      if (detectSecurityThreat(value, 'command_injection')) {
+        await logSecurityEvent('command_injection_attempt', 'high', ip, `Command injection in query param: ${key}`)
+        return new NextResponse('Security Violation Detected', { status: 403 })
       }
     }
 
