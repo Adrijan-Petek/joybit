@@ -90,7 +90,7 @@ async function logSecurityEvent(type: string, severity: string, ip: string, deta
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const ip = getClientIP(request)
   const url = request.url
   const method = request.method
