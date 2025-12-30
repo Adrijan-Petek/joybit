@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@libsql/client'
+import { emailService, SecurityAlert } from '@/lib/emailService'
 
 const client = createClient({
   url: process.env.TURSO_DATABASE_URL!,
@@ -54,6 +55,14 @@ async function initSecurityTables() {
       input_validation BOOLEAN DEFAULT TRUE,
       session_monitoring BOOLEAN DEFAULT TRUE,
       audit_logging BOOLEAN DEFAULT TRUE,
+      email_notifications BOOLEAN DEFAULT FALSE,
+      email_recipient TEXT,
+      email_threat_threshold INTEGER DEFAULT 50,
+      email_smtp_host TEXT,
+      email_smtp_port INTEGER DEFAULT 587,
+      email_smtp_user TEXT,
+      email_smtp_pass TEXT,
+      email_from_address TEXT,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `)
@@ -61,13 +70,119 @@ async function initSecurityTables() {
   // Insert default settings if not exists
   await client.execute(`
     INSERT OR IGNORE INTO security_settings (id, max_requests_per_minute, max_requests_per_hour, block_duration_minutes,
-      sql_injection_detection, xss_detection, csrf_protection, input_validation, session_monitoring, audit_logging)
-    VALUES (1, 60, 1000, 15, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)
+      sql_injection_detection, xss_detection, csrf_protection, input_validation, session_monitoring, audit_logging,
+      email_notifications, email_threat_threshold)
+    VALUES (1, 60, 1000, 15, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, 50)
   `)
 }
 
 // Call init on module load
 initSecurityTables().catch(console.error)
+
+// Initialize email service if configured
+async function initEmailService() {
+  try {
+    const settingsResult = await client.execute(`
+      SELECT email_notifications, email_smtp_host, email_smtp_port, email_smtp_user, email_smtp_pass, email_from_address
+      FROM security_settings WHERE id = 1
+    `)
+
+    const settings = settingsResult.rows[0]
+    if (settings && settings.email_notifications && settings.email_smtp_host) {
+      emailService.configure({
+        host: String(settings.email_smtp_host),
+        port: Number(settings.email_smtp_port) || 587,
+        secure: (Number(settings.email_smtp_port) || 587) === 465,
+        user: String(settings.email_smtp_user),
+        pass: String(settings.email_smtp_pass || ''),
+        from: String(settings.email_from_address || settings.email_smtp_user),
+      })
+      console.log('📧 Email service configured for security notifications')
+    }
+  } catch (error) {
+    console.error('Failed to initialize email service:', error)
+  }
+}
+
+// Initialize email service
+initEmailService().catch(console.error)
+
+// Function to check and send email alerts
+async function checkAndSendEmailAlerts(threatCount: number) {
+  try {
+    const settingsResult = await client.execute(`
+      SELECT email_notifications, email_recipient, email_threat_threshold,
+             email_smtp_host, email_smtp_port, email_smtp_user, email_smtp_pass, email_from_address
+      FROM security_settings WHERE id = 1
+    `)
+
+    const settings = settingsResult.rows[0]
+    if (!settings || !settings.email_notifications || !settings.email_recipient) {
+      return
+    }
+
+    const threshold = Number(settings.email_threat_threshold) || 50
+
+    if (threatCount >= threshold) {
+      // Check if we already sent an alert recently (within last hour)
+      const recentAlert = await client.execute(`
+        SELECT id FROM security_logs
+        WHERE action = 'email_alert_sent' AND timestamp >= datetime('now', '-1 hour')
+        LIMIT 1
+      `)
+
+      if (recentAlert.rows.length === 0) {
+        // Configure email service if not already configured
+        if (!emailService.isConfigured()) {
+          emailService.configure({
+            host: String(settings.email_smtp_host),
+            port: Number(settings.email_smtp_port) || 587,
+            secure: (Number(settings.email_smtp_port) || 587) === 465,
+            user: String(settings.email_smtp_user),
+            pass: String(settings.email_smtp_pass || ''),
+            from: String(settings.email_from_address || settings.email_smtp_user),
+          })
+        }
+
+        // Get the most recent threat for details
+        const recentThreat = await client.execute(`
+          SELECT type, severity, ip, details, timestamp
+          FROM security_alerts
+          WHERE resolved = FALSE
+          ORDER BY timestamp DESC
+          LIMIT 1
+        `)
+
+        const threat = recentThreat.rows[0]
+
+        const alert: SecurityAlert = {
+          type: String(threat?.type || 'multiple_threats'),
+          severity: String(threat?.severity || 'high'),
+          ip: String(threat?.ip || 'multiple_sources'),
+          details: String(threat?.details || `${threatCount} active security threats detected`),
+          timestamp: String(threat?.timestamp || new Date().toISOString()),
+          threatCount: threatCount,
+        }
+
+        const emailSent = await emailService.sendSecurityAlert(String(settings.email_recipient), alert)
+
+        // Log the email attempt
+        await client.execute(`
+          INSERT INTO security_logs (action, type, details, timestamp)
+          VALUES (?, 'security', ?, ?)
+        `, [
+          emailSent ? 'email_alert_sent' : 'email_alert_failed',
+          `Threat threshold (${threshold}) exceeded. Active threats: ${threatCount}. Email ${emailSent ? 'sent' : 'failed'}`,
+          new Date().toISOString()
+        ])
+
+        console.log(`📧 Security alert ${emailSent ? 'sent' : 'failed to send'} for ${threatCount} active threats`)
+      }
+    }
+  } catch (error) {
+    console.error('Failed to check and send email alerts:', error)
+  }
+}
 
 // Security patterns for detection
 const SECURITY_PATTERNS = {
@@ -175,6 +290,10 @@ export async function GET() {
 
     const settings = settingsResult.rows[0] || {}
 
+    // Check for email alerts
+    const activeThreatCount = alertsResult.rows.length
+    await checkAndSendEmailAlerts(activeThreatCount)
+
     const response = {
       alerts: alertsResult.rows.map(row => ({
         id: row.id,
@@ -199,6 +318,12 @@ export async function GET() {
         maxRequestsPerMinute: settings.max_requests_per_minute || 60,
         maxRequestsPerHour: settings.max_requests_per_hour || 1000,
         blockDurationMinutes: settings.block_duration_minutes || 15
+      },
+      emailSettings: {
+        enabled: settings.email_notifications || false,
+        recipient: settings.email_recipient || '',
+        threatThreshold: settings.email_threat_threshold || 50,
+        smtpConfigured: !!(settings.email_smtp_host && settings.email_smtp_user),
       },
       suspiciousActivities: {
         sqlInjectionAttempts: sqlInjectionCount.rows[0]?.count || 0,

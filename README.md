@@ -9,10 +9,11 @@
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.22+-363636?style=for-the-badge&logo=solidity)](https://soliditylang.org/)
 [![Base](https://img.shields.io/badge/Base-Blockchain-0052FF?style=for-the-badge&logo=ethereum)](https://base.org/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0+-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![Turso](https://img.shields.io/badge/Turso-Database-000000?style=for-the-badge&logo=sqlite)](https://turso.tech/)
 
-*Play • Earn • Own*
+*Play • Earn • Own • Secure*
 
-[🌐 Live Demo](https://joybit.vercel.app) • [📖 Documentation](#) • [🎯 Quick Start](#quick-start)
+[🌐 Live Demo](https://joybit.vercel.app) • [📖 Documentation](docs/) • [🎯 Quick Start](#quick-start) • [🛡️ Security Dashboard](#security)
 
 </div>
 
@@ -30,12 +31,39 @@
 - **🎨 Advanced Theme System**: 18+ professional themes with full customization
 - **🔊 Audio Controls**: Separate volume controls for music and sound effects
 - **🔐 Decentralized Rewards**: Players claim their own earnings
+- **🛡️ Advanced Security**: Real-time threat detection and monitoring
 - **📱 Modern UI/UX**: Responsive design with smooth animations
 - **⚡ Fast Transactions**: Optimized for Base network
+- **📊 Admin Dashboard**: Comprehensive management and analytics
 
 ---
 
-## 🚀 Quick Start
+## � Documentation
+
+Complete documentation for Joybit development and deployment:
+
+### 🎮 Game Documentation
+- **[Getting Started](docs/Getting-Started.md)** - Quick setup and first steps
+- **[Home](docs/Home.md)** - Overview and architecture
+- **[Games](docs/Games/)** - Game-specific documentation
+
+### 🛡️ Security & Administration
+- **[Security Dashboard](docs/Security/Security-Dashboard.md)** - Security monitoring and management
+- **[Deployment Guide](docs/Deployment.md)** - Production deployment instructions
+
+### 🔧 Technical Reference
+- **[API Reference](docs/Technical/API-Reference.md)** - Complete API documentation
+- **[Database Schema](docs/Technical/Database-Schema.md)** - Database structure and migrations
+
+### 📋 Additional Resources
+- **[Mainnet Deployment](MAINNET_DEPLOYMENT.md)** - Mainnet deployment guide
+- **[Testnet Deployment](TESTNET_DEPLOYMENT.md)** - Testnet deployment guide
+- **[Farcaster Integration](FARCASTER_INTEGRATION_SUMMARY.md)** - Social features integration
+- **[Notifications Setup](NOTIFICATIONS_SETUP.md)** - Push notification configuration
+
+---
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
@@ -127,6 +155,13 @@ Visit **[http://localhost:3000](http://localhost:3000)** to start playing!
 - Advanced theme system with CSS variables
 - Audio context with separate volume controls
 
+**Security & Middleware:**
+- Next.js Proxy (Edge Runtime)
+- Real-time threat detection
+- Rate limiting and IP blocking
+- Security event logging
+- Admin dashboard with live monitoring
+
 **Blockchain:**
 - Solidity 0.8.22+
 - OpenZeppelin contracts
@@ -135,8 +170,9 @@ Visit **[http://localhost:3000](http://localhost:3000)** to start playing!
 
 **Database:**
 - Turso (SQLite) for user data
+- Security events and threat logs
 - Achievement tracking
-- Game statistics
+- Game statistics and analytics
 
 ---
 
@@ -223,11 +259,13 @@ Unlock exclusive NFTs and track your gaming progress:
 ### 🔧 Admin Controls
 
 Admin panel includes:
-- Theme preset selection
-- Full color customization
-- Typography settings
-- Accessibility options
-- Live preview functionality
+- **🎨 Theme Management**: Theme preset selection and full color customization
+- **🎵 Audio Settings**: Global audio controls and volume management
+- **📊 Game Analytics**: Real-time statistics and player metrics
+- **🛡️ Security Dashboard**: Threat monitoring, IP blocking, and security logs
+- **⚙️ System Configuration**: Game parameters and contract settings
+- **👥 User Management**: Player data and achievement tracking
+- **💰 Treasury Management**: Fund distribution and withdrawal controls
 
 ---
 
@@ -273,6 +311,14 @@ NEXT_PUBLIC_ADMIN_WALLET_ADDRESS=0xYourAdminAddress
 TURSO_DATABASE_URL=your_database_url
 TURSO_AUTH_TOKEN=your_auth_token
 
+# Security Configuration
+SECURITY_MAX_REQUESTS_PER_MINUTE=60
+SECURITY_MAX_REQUESTS_PER_HOUR=1000
+SECURITY_BLOCK_DURATION_MINUTES=15
+SECURITY_SQL_INJECTION_DETECTION=true
+SECURITY_XSS_DETECTION=true
+SECURITY_INPUT_VALIDATION=true
+
 # Contract Addresses (after deployment)
 NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS=0x...
 NEXT_PUBLIC_JOYBIT_GAME_ADDRESS=0x...
@@ -288,6 +334,7 @@ NEXT_PUBLIC_TREASURY_ADDRESS=0x...
 npm run dev          # Start development server
 npm run build        # Build for production
 npm run start        # Start production server
+npm run lint         # Run ESLint
 
 # Testing
 npm run test         # Run all tests
@@ -297,6 +344,14 @@ npm run test:watch   # Run tests in watch mode
 npm run compile      # Compile Solidity contracts
 npm run deploy:test  # Deploy to testnet
 npm run deploy:main  # Deploy to mainnet
+
+# Database
+npm run db:setup     # Initialize database tables
+npm run db:migrate   # Run database migrations
+
+# Security
+npm run security:check # Run security audit
+npm run security:logs  # View security logs
 ```
 
 ### Testing
@@ -348,23 +403,74 @@ npm run start
 
 ---
 
-## 🔐 Security
+## �️ Security System
 
-### Implemented Safeguards
+**Enterprise-grade security with real-time threat detection and comprehensive monitoring**
 
-- ✅ **ReentrancyGuard** on all reward functions
-- ✅ **Access Control** with role-based permissions
-- ✅ **Pausable Contracts** for emergency stops
-- ✅ **Withdrawal Limits** on Treasury
-- ✅ **OpenZeppelin Standards** for battle-tested code
-- ✅ **Input Validation** on all user functions
+### 🔍 Security Features
 
-### Best Practices
+- **🛡️ Real-time Threat Detection**: SQL injection, XSS, and suspicious pattern monitoring
+- **🚫 IP Blocking**: Automatic and manual IP address blocking
+- **⏱️ Rate Limiting**: Configurable request limits per IP and globally
+- **📊 Security Dashboard**: Live monitoring with threat analytics
+- **🔐 Audit Logging**: Comprehensive security event logging
+- **🚨 Emergency Response**: Lockdown capabilities for critical situations
+- **📈 Threat Analytics**: Historical data and trend analysis
+- **⚙️ Configurable Settings**: Adjustable security parameters
 
-- Regular security audits recommended
-- Extensive testnet testing before mainnet
-- Multisig wallet for admin operations
-- Continuous monitoring of contract balances
+### 🖥️ Admin Security Dashboard
+
+**Multi-tab security management interface:**
+
+#### 📊 Dashboard Tab
+- Real-time security metrics
+- Active threat count
+- Recent security events
+- System status overview
+
+#### 🚨 Threats Tab
+- Live threat monitoring
+- Threat classification (SQL injection, XSS, suspicious)
+- Threat details and timestamps
+- Resolution status tracking
+
+#### 🛡️ Firewall Tab
+- IP blocking management
+- Block/unblock IP addresses
+- Blocked IP list with reasons
+- Automatic threat-based blocking
+
+#### 📋 Logs Tab
+- Comprehensive audit logs
+- Security event history
+- User actions tracking
+- Export capabilities
+
+#### ⚙️ Settings Tab
+- Security parameter configuration
+- Rate limiting settings
+- Threat detection sensitivity
+- Emergency lockdown controls
+
+### 🔧 Technical Security Implementation
+
+**Edge Proxy Security (Next.js 16):**
+- Request-level threat detection
+- Rate limiting with sliding windows
+- IP-based access control
+- Real-time security logging
+
+**Database Security:**
+- Turso SQLite with secure connections
+- Security event persistence
+- Threat pattern storage
+- Audit trail maintenance
+
+**API Security:**
+- Input validation and sanitization
+- SQL injection prevention
+- XSS protection
+- Suspicious pattern detection
 
 ---
 
@@ -372,17 +478,25 @@ npm run start
 
 ### Game Statistics
 
-- Real-time player counts
-- Game completion rates
-- Reward distribution tracking
-- Achievement unlock metrics
+- Real-time player counts and active sessions
+- Game completion rates and success metrics
+- Reward distribution and token flow tracking
+- Achievement unlock rates and player progression
+
+### Security Monitoring
+
+- **Threat Detection**: Real-time security event monitoring
+- **IP Analytics**: Blocked IP tracking and access patterns
+- **Rate Limiting**: Request volume analysis and abuse detection
+- **Audit Trails**: Comprehensive security event logging
+- **Performance Metrics**: System response times and error rates
 
 ### Contract Monitoring
 
-- Balance tracking across all contracts
-- Transaction volume analysis
-- Gas usage optimization
-- Error rate monitoring
+- Balance tracking across all deployed contracts
+- Transaction volume and gas usage analysis
+- Treasury fund management and distribution tracking
+- Player reward claims and token transfers
 
 ---
 
@@ -432,6 +546,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **Built with ❤️ on Base** • **Powered by JOYB** • **Made for Gamers**
 
-[🎮 Start Playing](https://joybit.vercel.app) • [📚 Documentation](#) • [💬 Discord](#)
+[🎮 Start Playing](https://joybit.vercel.app) • [📚 Documentation](docs/) • [💬 Discord](#)
 
 </div>

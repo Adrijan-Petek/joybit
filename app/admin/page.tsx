@@ -5504,6 +5504,19 @@ function SecurityDashboard() {
     suspiciousIPs: 0
   })
 
+  // Email notification states
+  const [emailSettings, setEmailSettings] = useState({
+    enabled: false,
+    recipient: '',
+    threatThreshold: 50,
+    smtpHost: '',
+    smtpPort: 587,
+    smtpUser: '',
+    smtpPass: '',
+    smtpSecure: false
+  })
+  const [testingEmail, setTestingEmail] = useState(false)
+
   useEffect(() => {
     loadSecurityData()
     // Simulate real-time security monitoring
@@ -5526,6 +5539,13 @@ function SecurityDashboard() {
         setSecurityLogs(data.logs || [])
         setRateLimitSettings(data.rateLimitSettings || rateLimitSettings)
         setSuspiciousActivities(data.suspiciousActivities || suspiciousActivities)
+      }
+
+      // Load email settings
+      const emailResponse = await fetch('/api/admin/security/email')
+      if (emailResponse.ok) {
+        const emailData = await emailResponse.json()
+        setEmailSettings(emailData)
       }
     } catch (error) {
       console.error('Failed to load security data:', error)
@@ -5616,6 +5636,46 @@ function SecurityDashboard() {
     }
   }
 
+  const saveEmailSettings = async () => {
+    try {
+      const response = await fetch('/api/admin/security/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailSettings)
+      })
+      if (response.ok) {
+        toast.success('Email settings saved successfully')
+      } else {
+        toast.error('Failed to save email settings')
+      }
+    } catch (error) {
+      console.error('Error saving email settings:', error)
+      toast.error('Error saving email settings')
+    }
+  }
+
+  const testEmailSettings = async () => {
+    setTestingEmail(true)
+    try {
+      const response = await fetch('/api/admin/security/email', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ test: true, ...emailSettings })
+      })
+      if (response.ok) {
+        toast.success('Test email sent successfully! Check your inbox.')
+      } else {
+        const error = await response.text()
+        toast.error(`Failed to send test email: ${error}`)
+      }
+    } catch (error) {
+      console.error('Error testing email:', error)
+      toast.error('Error testing email settings')
+    } finally {
+      setTestingEmail(false)
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -5638,6 +5698,7 @@ function SecurityDashboard() {
             { id: 'threats', label: 'Threats', icon: '🚨' },
             { id: 'firewall', label: 'Firewall', icon: '🛡️' },
             { id: 'logs', label: 'Logs', icon: '📋' },
+            { id: 'email', label: 'Email Alerts', icon: '📧' },
             { id: 'settings', label: 'Settings', icon: '⚙️' }
           ].map(tab => (
             <button
@@ -5948,6 +6009,176 @@ function SecurityDashboard() {
                     No security logs available
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Email Alerts Tab */}
+        {activeSecurityTab === 'email' && (
+          <div className="space-y-6">
+            <div className="bg-black/40 border border-blue-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span>📧</span>
+                Email Alert Configuration
+              </h3>
+
+              <div className="space-y-6">
+                {/* Email Enable/Disable */}
+                <div className="bg-black/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-white mb-1">Enable Email Notifications</h4>
+                      <p className="text-sm text-gray-400">Receive email alerts when security threats are detected</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={emailSettings.enabled}
+                        onChange={(e) => setEmailSettings(prev => ({ ...prev, enabled: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Email Settings */}
+                <div className="bg-black/50 rounded-lg p-4">
+                  <h4 className="font-bold mb-4 flex items-center gap-2">
+                    <span>⚙️</span>
+                    Email Configuration
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Recipient Email</label>
+                      <input
+                        type="email"
+                        value={emailSettings.recipient}
+                        onChange={(e) => setEmailSettings(prev => ({ ...prev, recipient: e.target.value }))}
+                        placeholder="admin@example.com"
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Threat Threshold</label>
+                      <input
+                        type="number"
+                        value={emailSettings.threatThreshold}
+                        onChange={(e) => setEmailSettings(prev => ({ ...prev, threatThreshold: parseInt(e.target.value) }))}
+                        min="1"
+                        placeholder="50"
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Send alert when active threats exceed this number</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SMTP Configuration */}
+                <div className="bg-black/50 rounded-lg p-4">
+                  <h4 className="font-bold mb-4 flex items-center gap-2">
+                    <span>🔐</span>
+                    SMTP Configuration
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">SMTP Host</label>
+                      <input
+                        type="text"
+                        value={emailSettings.smtpHost}
+                        onChange={(e) => setEmailSettings(prev => ({ ...prev, smtpHost: e.target.value }))}
+                        placeholder="smtp.gmail.com"
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">SMTP Port</label>
+                      <input
+                        type="number"
+                        value={emailSettings.smtpPort}
+                        onChange={(e) => setEmailSettings(prev => ({ ...prev, smtpPort: parseInt(e.target.value) }))}
+                        placeholder="587"
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">SMTP Username</label>
+                      <input
+                        type="text"
+                        value={emailSettings.smtpUser}
+                        onChange={(e) => setEmailSettings(prev => ({ ...prev, smtpUser: e.target.value }))}
+                        placeholder="your-email@gmail.com"
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">SMTP Password</label>
+                      <input
+                        type="password"
+                        value={emailSettings.smtpPass}
+                        onChange={(e) => setEmailSettings(prev => ({ ...prev, smtpPass: e.target.value }))}
+                        placeholder="your-app-password"
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="smtpSecure"
+                      checked={emailSettings.smtpSecure}
+                      onChange={(e) => setEmailSettings(prev => ({ ...prev, smtpSecure: e.target.checked }))}
+                      className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="smtpSecure" className="text-sm text-gray-300">Use secure connection (SSL/TLS)</label>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={saveEmailSettings}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    <span>💾</span>
+                    Save Settings
+                  </button>
+                  <button
+                    onClick={testEmailSettings}
+                    disabled={testingEmail || !emailSettings.recipient || !emailSettings.smtpHost}
+                    className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    {testingEmail ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <span>📧</span>
+                        Test Email
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Status Information */}
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                  <h4 className="font-bold text-yellow-300 mb-2">📋 Email Alert Status</h4>
+                  <div className="text-sm text-gray-300 space-y-1">
+                    <p>• <strong>Current Threshold:</strong> {emailSettings.threatThreshold} active threats</p>
+                    <p>• <strong>Status:</strong> {emailSettings.enabled ? 'Enabled' : 'Disabled'}</p>
+                    <p>• <strong>Recipient:</strong> {emailSettings.recipient || 'Not configured'}</p>
+                    <p>• <strong>SMTP:</strong> {emailSettings.smtpHost ? `${emailSettings.smtpHost}:${emailSettings.smtpPort}` : 'Not configured'}</p>
+                  </div>
+                  <div className="mt-3 p-3 bg-black/50 rounded text-sm">
+                    <p className="text-gray-400">
+                      <strong>Note:</strong> Email alerts are automatically sent when the number of active security threats exceeds the configured threshold.
+                      This includes SQL injection attempts, XSS attacks, rate limit violations, and other security incidents.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
