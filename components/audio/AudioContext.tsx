@@ -47,6 +47,25 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const musicRef = useRef<HTMLAudioElement | null>(null)
   const soundRefs = useRef<Map<string, HTMLAudioElement>>(new Map())
 
+  // Load audio settings from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedIsMuted = localStorage.getItem('audio_isMuted')
+      const savedIsMusicMuted = localStorage.getItem('audio_isMusicMuted')
+      const savedIsSoundMuted = localStorage.getItem('audio_isSoundMuted')
+      const savedVolume = localStorage.getItem('audio_volume')
+      const savedMusicVolume = localStorage.getItem('audio_musicVolume')
+      const savedSoundVolume = localStorage.getItem('audio_soundVolume')
+
+      if (savedIsMuted !== null) setIsMuted(JSON.parse(savedIsMuted))
+      if (savedIsMusicMuted !== null) setIsMusicMuted(JSON.parse(savedIsMusicMuted))
+      if (savedIsSoundMuted !== null) setIsSoundMuted(JSON.parse(savedIsSoundMuted))
+      if (savedVolume !== null) setVolumeState(parseFloat(savedVolume))
+      if (savedMusicVolume !== null) setMusicVolumeState(parseFloat(savedMusicVolume))
+      if (savedSoundVolume !== null) setSoundVolumeState(parseFloat(savedSoundVolume))
+    }
+  }, [])
+
   useEffect(() => {
     // Preload common sounds
     const sounds = [
@@ -89,6 +108,11 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   }, [isMuted, isMusicMuted, isSoundMuted, musicVolume, soundVolume])
 
   const playMusic = (track: string) => {
+    // Don't play music if it's muted
+    if (isMuted || isMusicMuted) {
+      return
+    }
+
     if (currentTrack === track && musicRef.current && !musicRef.current.paused) {
       return
     }
@@ -99,7 +123,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
 
     musicRef.current = new Audio(`/audio/music/${track}.mp3`)
     musicRef.current.loop = true
-    musicRef.current.volume = (isMuted || isMusicMuted) ? 0 : musicVolume
+    musicRef.current.volume = musicVolume
     
     // Try to play with user interaction workaround
     const playPromise = musicRef.current.play()
@@ -132,8 +156,13 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   }
 
   const playSound = (sound: string) => {
+    // Don't play sound if it's muted
+    if (isMuted || isSoundMuted) {
+      return
+    }
+
     const audio = soundRefs.current.get(sound)
-    if (audio && !isMuted && !isSoundMuted) {
+    if (audio) {
       audio.currentTime = 0
       audio.play().catch(err => {
         console.warn('Sound playback failed:', err)
@@ -142,30 +171,51 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   }
 
   const toggleMute = () => {
-    setIsMuted(!isMuted)
+    const newState = !isMuted
+    setIsMuted(newState)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('audio_isMuted', JSON.stringify(newState))
+    }
   }
 
   const toggleMusicMute = () => {
-    setIsMusicMuted(!isMusicMuted)
+    const newState = !isMusicMuted
+    setIsMusicMuted(newState)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('audio_isMusicMuted', JSON.stringify(newState))
+    }
   }
 
   const toggleSoundMute = () => {
-    setIsSoundMuted(!isSoundMuted)
+    const newState = !isSoundMuted
+    setIsSoundMuted(newState)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('audio_isSoundMuted', JSON.stringify(newState))
+    }
   }
 
   const setVolume = (newVolume: number) => {
     const clampedVolume = Math.max(0, Math.min(1, newVolume))
     setVolumeState(clampedVolume)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('audio_volume', clampedVolume.toString())
+    }
   }
 
   const setMusicVolume = (newVolume: number) => {
     const clampedVolume = Math.max(0, Math.min(1, newVolume))
     setMusicVolumeState(clampedVolume)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('audio_musicVolume', clampedVolume.toString())
+    }
   }
 
   const setSoundVolume = (newVolume: number) => {
     const clampedVolume = Math.max(0, Math.min(1, newVolume))
     setSoundVolumeState(clampedVolume)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('audio_soundVolume', clampedVolume.toString())
+    }
   }
 
   return (
