@@ -2193,6 +2193,108 @@ function LeaderboardSyncSection() {
   )
 }
 
+// Achievement Prices Overview Component
+function AchievementPricesOverview() {
+  const [achievements, setAchievements] = useState<Array<{
+    id: string
+    name: string
+    price: string
+    active: boolean
+    rarity: number
+  }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadAchievements = async () => {
+      try {
+        // Fetch from database first
+        const dbResponse = await fetch('/api/achievements')
+        if (dbResponse.ok) {
+          const dbData = await dbResponse.json()
+          if (dbData.achievements) {
+            setAchievements(dbData.achievements.slice(0, 8)) // Show first 8 achievements
+          }
+        }
+
+        // Try to get live prices from contract
+        try {
+          const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
+          const contract = new ethers.Contract(CONTRACT_ADDRESSES.achievementERC1155, ACHIEVEMENT_ERC1155_ABI, provider)
+
+          const allIds = await contract.getAllAchievementIds()
+          const contractPrices: Record<string, string> = {}
+
+          // Get prices for first 8 achievements
+          for (let i = 0; i < Math.min(allIds.length, 8); i++) {
+            const id = allIds[i]
+            try {
+              const result = await contract.getAchievement(id)
+              const [, price] = result
+              contractPrices[String(id)] = ethers.formatEther(price)
+            } catch (error) {
+              console.warn(`Failed to get price for achievement ${id}:`, error)
+            }
+          }
+
+          // Update achievements with live prices
+          setAchievements(prev => prev.map(achievement => ({
+            ...achievement,
+            price: contractPrices[achievement.id] || achievement.price
+          })))
+        } catch (contractError) {
+          console.warn('Failed to load contract prices:', contractError)
+        }
+      } catch (error) {
+        console.error('Failed to load achievements:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadAchievements()
+  }, [])
+
+  const totalValue = achievements.reduce((sum, achievement) => sum + parseFloat(achievement.price || '0'), 0)
+  const activeCount = achievements.filter(a => a.active).length
+
+  return (
+    <div className="bg-black/30 rounded-lg p-3 md:p-4 md:col-span-2">
+      <h3 className="text-sm md:text-base font-bold text-yellow-400 mb-2">🏆 Achievement Prices</h3>
+      {loading ? (
+        <div className="text-center text-gray-400 text-sm">Loading...</div>
+      ) : (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs md:text-sm">
+            {achievements.map((achievement) => (
+              <div key={achievement.id} className="bg-gray-800/50 rounded p-2">
+                <div className="font-medium text-white truncate" title={achievement.name}>
+                  {achievement.name || `Achievement ${achievement.id}`}
+                </div>
+                <div className="text-yellow-400 font-bold">
+                  {achievement.price} ETH
+                </div>
+                <div className="text-xs text-gray-400">
+                  {achievement.active ? '✅ Active' : '❌ Inactive'}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-gray-600 pt-2 mt-3">
+            <div className="flex justify-between text-xs md:text-sm">
+              <span className="text-gray-400">Active Achievements:</span>
+              <span className="font-bold text-green-400">{activeCount}/{achievements.length}</span>
+            </div>
+            <div className="flex justify-between text-xs md:text-sm">
+              <span className="text-gray-400">Total Value:</span>
+              <span className="font-bold text-yellow-400">{totalValue.toFixed(3)} ETH</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Settings Overview Section
 function SettingsOverview() {
   const { data: treasuryETH } = useReadContract({
@@ -2408,6 +2510,9 @@ function SettingsOverview() {
             </div>
           </div>
         </div>
+
+        {/* Achievement Prices */}
+        <AchievementPricesOverview />
       </div>
 
       <div className="mt-4 text-center text-xs md:text-sm text-gray-400">
