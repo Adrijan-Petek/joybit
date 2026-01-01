@@ -147,6 +147,44 @@ export default function ProfilePage() {
         return
       }
 
+      // First, sync blockchain stats to database
+      console.log('Syncing blockchain stats to database...')
+      try {
+        // Get current blockchain data
+        const match3Response = await fetch(`/api/game-stats/match3?address=${address}`)
+        const match3Stats = await match3Response.json()
+        
+        // Sync stats to database
+        const syncResponse = await fetch('/api/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_stats',
+            userAddress: address,
+            stats: {
+              match3_games_played: match3Stats.gamesPlayed || 0,
+              match3_high_score: match3Stats.highScore || 0,
+              match3_high_score_level: match3Stats.highScoreLevel || 0,
+              last_login: Date.now()
+            }
+          })
+        })
+        const syncResult = await syncResponse.json()
+        console.log('Stats synced, checking achievements...', syncResult)
+        
+        if (syncResult.unlockedAchievements && syncResult.unlockedAchievements.length > 0) {
+          console.log('New achievements unlocked:', syncResult.unlockedAchievements)
+          syncResult.unlockedAchievements.forEach((achievementId: number) => {
+            const achievement = allAchievements.find((a: any) => a.id === achievementId)
+            if (achievement) {
+              console.log(`🎉 Achievement unlocked: ${achievement.name}`)
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error syncing stats:', error)
+      }
+
       // Fetch user achievements
       const userAchievementsResponse = await fetch(`/api/achievements?action=achievements&address=${address}`)
       const userAchievementData = await userAchievementsResponse.json()

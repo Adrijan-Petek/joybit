@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@libsql/client'
+import { updateUserStats, checkAndUnlockAchievements } from '@/lib/db/achievements'
 
 const client = createClient({
   url: process.env.TURSO_DATABASE_URL!,
@@ -113,7 +114,26 @@ export async function POST(request: NextRequest) {
       args: [address.toLowerCase(), JSON.stringify(stats)]
     })
 
-    return NextResponse.json({ success: true, stats })
+    // Update user stats in achievements system
+    const achievementStats = {
+      match3_games_played: stats.gamesPlayed,
+      match3_high_score: stats.highScore,
+      match3_high_score_level: stats.highScoreLevel
+    }
+
+    console.log('🏆 API: Updating achievement stats:', achievementStats)
+    await updateUserStats(address.toLowerCase(), achievementStats)
+
+    // Check for new achievements
+    console.log('🎯 API: Checking for new achievements...')
+    const unlockedAchievements = await checkAndUnlockAchievements(address.toLowerCase())
+    console.log('✅ API: New achievements unlocked:', unlockedAchievements)
+
+    return NextResponse.json({ 
+      success: true, 
+      stats,
+      unlockedAchievements 
+    })
   } catch (error) {
     console.error('❌ API: Error saving Match3 stats:', error)
     return NextResponse.json({ error: 'Failed to save stats' }, { status: 500 })

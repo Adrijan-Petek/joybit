@@ -443,40 +443,70 @@ export async function checkAndUnlockAchievements(userAddress: string) {
     const stats = await getUserStats(userAddress)
     const unlockedAchievements = []
 
+    console.log('Checking achievements for user stats:', stats)
+
     // Match3 achievements
+    // ID 1: First Win - play any match3 game
     if (stats.match3_games_played > 0 && !(await isAchievementUnlocked(userAddress, 1))) {
+      console.log('Unlocking achievement 1: First Win')
       await unlockAchievement(userAddress, 1)
       unlockedAchievements.push(1)
     }
 
+    // ID 2: Hot Streak - 5+ win streak (if tracked)
     if (stats.match3_win_streak >= 5 && !(await isAchievementUnlocked(userAddress, 2))) {
+      console.log('Unlocking achievement 2: Hot Streak')
       await unlockAchievement(userAddress, 2)
       unlockedAchievements.push(2)
     }
 
+    // ID 3: Gem Master - 1000+ gems (if tracked)
     if (stats.match3_total_gems >= 1000 && !(await isAchievementUnlocked(userAddress, 3))) {
+      console.log('Unlocking achievement 3: Gem Master')
       await unlockAchievement(userAddress, 3)
       unlockedAchievements.push(3)
     }
 
+    // ID 4: Level Climber - reach level 10
     if (stats.match3_high_score_level >= 10 && !(await isAchievementUnlocked(userAddress, 4))) {
+      console.log('Unlocking achievement 4: Level Climber')
       await unlockAchievement(userAddress, 4)
       unlockedAchievements.push(4)
     }
 
-    if (stats.match3_best_time < 30 && !(await isAchievementUnlocked(userAddress, 5))) {
+    // ID 5: Speed Demon - complete in under 30 seconds
+    if (stats.match3_best_time > 0 && stats.match3_best_time < 30 && !(await isAchievementUnlocked(userAddress, 5))) {
+      console.log('Unlocking achievement 5: Speed Demon')
       await unlockAchievement(userAddress, 5)
       unlockedAchievements.push(5)
     }
 
+    // ID 6: Combo King - 10+ combo
     if (stats.match3_max_combo >= 10 && !(await isAchievementUnlocked(userAddress, 6))) {
+      console.log('Unlocking achievement 6: Combo King')
       await unlockAchievement(userAddress, 6)
       unlockedAchievements.push(6)
     }
 
+    // ID 7: Champion - 50+ games won
     if (stats.match3_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 7))) {
+      console.log('Unlocking achievement 7: Champion')
       await unlockAchievement(userAddress, 7)
       unlockedAchievements.push(7)
+    }
+
+    // ID 37: High Scorer - score 1000+
+    if (stats.match3_high_score >= 1000 && !(await isAchievementUnlocked(userAddress, 37))) {
+      console.log('Unlocking achievement 37: High Scorer')
+      await unlockAchievement(userAddress, 37)
+      unlockedAchievements.push(37)
+    }
+
+    // ID 38: Summit - reach level 5
+    if (stats.match3_high_score_level >= 5 && !(await isAchievementUnlocked(userAddress, 38))) {
+      console.log('Unlocking achievement 38: Summit')
+      await unlockAchievement(userAddress, 38)
+      unlockedAchievements.push(38)
     }
 
     // Daily claim achievements
