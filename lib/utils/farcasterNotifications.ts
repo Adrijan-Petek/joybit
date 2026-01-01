@@ -49,7 +49,7 @@ export async function sendFarcasterNotification(options: NotificationOptions): P
           fid: context.user.fid,
           title: options.title,
           body: options.body,
-          targetUrl: options.url ? `${window.location.origin}${options.url}` : window.location.href,
+          targetUrl: options.url ? `${typeof window !== 'undefined' ? window.location.origin : ''}${options.url}` : (typeof window !== 'undefined' ? window.location.href : ''),
           notificationId: `joybit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         })
       })

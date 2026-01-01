@@ -2213,57 +2213,94 @@ function AchievementPricesOverview() {
     price: string
     active: boolean
     rarity: number
+    emoji: string
+    description: string
   }>>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadAchievements = async () => {
       try {
-        // Try to get achievements from contract via API first
-        try {
-          const contractResponse = await fetch('/api/contract-achievements')
-          if (contractResponse.ok) {
-            const contractData = await contractResponse.json()
-            if (contractData.achievements && contractData.achievements.length > 0) {
-              // Use first 8 contract achievements
-              const contractAchievements = contractData.achievements.slice(0, 8).map((achievement: any) => ({
-                id: String(achievement.id), // Ensure id is a string
-                name: `Achievement #${achievement.id}`,
-                price: achievement.price,
-                active: achievement.active,
-                rarity: achievement.rarity
-              }))
-              setAchievements(contractAchievements)
-            } else {
-              // Fall back to database
-              loadFromDatabase()
+        setLoading(true)
+
+        // Load achievements from database first (like Achievement NFT Settings)
+        const dbResponse = await fetch('/api/achievements?action=all')
+        if (dbResponse.ok) {
+          const dbData = await dbResponse.json()
+          const dbAchievements = dbData.map((achievement: DatabaseAchievement) => {
+            // Clean ID - remove decimals and convert to integer
+            const cleanId = String(Math.floor(Number(achievement.id)))
+            
+            // Map rarity string to number
+            let rarityNum = 0
+            if (achievement.rarity === 'Common') rarityNum = 0
+            else if (achievement.rarity === 'Rare') rarityNum = 1
+            else if (achievement.rarity === 'Epic') rarityNum = 2
+            else if (achievement.rarity === 'Legendary') rarityNum = 3
+            else if (achievement.rarity === 'Mythic') rarityNum = 4
+            
+            return {
+              ...achievement,
+              id: cleanId,
+              rarity: rarityNum,
+              active: false, // Will be updated from contract
+              price: achievement.price || '0.001',
+              exists: false // Will be updated if exists in contract
             }
-          } else {
-            // Fall back to database
-            loadFromDatabase()
+          })
+
+          console.log('Loaded achievements from database for prices overview:', dbAchievements.length)
+          
+          // Now check contract status for each achievement
+          try {
+            console.log('Fetching contract achievements for prices overview...')
+            const contractResponse = await fetch('/api/contract-achievements')
+            console.log('Contract API response status for prices:', contractResponse.status)
+            
+            if (contractResponse.ok) {
+              const contractData = await contractResponse.json()
+              console.log('Contract achievements loaded for prices:', contractData.achievements?.length || 0)
+              
+              if (contractData.achievements && contractData.achievements.length > 0) {
+                // Update achievements with contract status
+                const updatedAchievements = dbAchievements.map((dbAch: any) => {
+                  const contractAch = contractData.achievements.find((ca: any) => {
+                    return Number(ca.contractId) === Number(dbAch.id)
+                  })
+                  
+                  if (contractAch) {
+                    return {
+                      ...dbAch,
+                      exists: true,
+                      active: contractAch.active,
+                      price: contractAch.price
+                    }
+                  }
+                  
+                  return dbAch
+                })
+                
+                setAchievements(updatedAchievements)
+                console.log('Updated achievements with contract data for prices overview')
+              } else {
+                // No contract data, use database achievements
+                setAchievements(dbAchievements)
+              }
+            } else {
+              // Contract API failed, use database achievements
+              setAchievements(dbAchievements)
+            }
+          } catch (contractError) {
+            console.warn('Failed to load contract achievements for prices, using database:', contractError)
+            setAchievements(dbAchievements)
           }
-        } catch (contractError) {
-          console.warn('Failed to load contract achievements, falling back to database:', contractError)
-          loadFromDatabase()
+        } else {
+          console.error('Failed to load achievements from database')
         }
       } catch (error) {
-        console.error('Failed to load achievements:', error)
+        console.error('Failed to load achievements for prices overview:', error)
       } finally {
         setLoading(false)
-      }
-    }
-
-    const loadFromDatabase = async () => {
-      const dbResponse = await fetch('/api/achievements')
-      if (dbResponse.ok) {
-        const dbData = await dbResponse.json()
-        if (dbData.achievements) {
-          const dbAchievements = dbData.achievements.slice(0, 8).map((achievement: any) => ({
-            ...achievement,
-            id: String(achievement.id) // Ensure id is a string
-          }))
-          setAchievements(dbAchievements)
-        }
       }
     }
 
@@ -2280,13 +2317,16 @@ function AchievementPricesOverview() {
         <div className="text-center text-gray-400 text-sm">Loading...</div>
       ) : (
         <div className="space-y-2">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs md:text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs md:text-sm max-h-64 overflow-y-auto">
             {achievements.map((achievement) => (
               <div key={achievement.id} className="bg-gray-800/50 rounded p-2">
-                <div className="font-medium text-white truncate" title={achievement.name}>
-                  {achievement.name || `Achievement ${achievement.id}`}
+                <div className="flex items-center gap-1 mb-1">
+                  <span className="text-sm">{achievement.emoji}</span>
+                  <div className="font-medium text-white truncate text-xs" title={achievement.name}>
+                    {achievement.name || `Achievement ${achievement.id}`}
+                  </div>
                 </div>
-                <div className="text-yellow-400 font-bold">
+                <div className="text-yellow-400 font-bold text-xs">
                   {achievement.price} ETH
                 </div>
                 <div className="text-xs text-gray-400">

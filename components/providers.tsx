@@ -9,7 +9,27 @@ import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-c
 import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets'
 import '@rainbow-me/rainbowkit/styles.css'
 import { ThemeProvider } from './theme/ThemeContext'
-
+// Polyfill indexedDB for server-side rendering
+if (typeof window === 'undefined') {
+  (global as any).indexedDB = {
+    open: () => ({
+      onsuccess: null,
+      onerror: null,
+      onupgradeneeded: null,
+      result: {
+        createObjectStore: () => ({} as any),
+        transaction: () => ({
+          objectStore: () => ({
+            put: () => ({} as any),
+            get: () => ({} as any),
+            delete: () => ({} as any),
+          } as any),
+        } as any),
+      } as any,
+    }),
+    deleteDatabase: () => ({} as any),
+  } as any
+}
 const rainbowKitConnectors = connectorsForWallets(
   [
     {
@@ -43,10 +63,7 @@ const config = createConfig({
       timeout: 10000, // 10 second timeout
     }),
   },
-  ssr: true,
-  storage: createStorage({
-    storage: typeof window !== 'undefined' ? window.localStorage : cookieStorage,
-  }),
+  ssr: false, // Disable SSR to avoid indexedDB issues
 })
 
 const queryClient = new QueryClient({
