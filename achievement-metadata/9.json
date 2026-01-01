@@ -1,0 +1,23 @@
+{
+  "name": "Rainbow",
+  "description": "Match all colors in one move",
+  "image": "ipfs://Qmc6zpogjS5prJsJKUc6S8gjss6ypxX553sAjq115bYXSM",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 9
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Rainbow match"
+    }
+  ]
+}

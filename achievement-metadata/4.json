@@ -1,0 +1,23 @@
+{
+  "name": "Star Player",
+  "description": "Reach level 10",
+  "image": "ipfs://Qmaus9i9gksXXAQHexC2L4yABmmRNLsHcKfkPef7JnjM3K",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 4
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Level 10"
+    }
+  ]
+}

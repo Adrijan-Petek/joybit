@@ -1,0 +1,23 @@
+{
+  "name": "Tempest",
+  "description": "Control the storm",
+  "image": "ipfs://QmcoYAnuQGfdTMiHzupsc4BiCGq4aALN9MSC6GAs1tTJzz",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 19
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Storm mastery"
+    }
+  ]
+}

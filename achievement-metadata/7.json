@@ -1,0 +1,23 @@
+{
+  "name": "Champion",
+  "description": "Win 50 games",
+  "image": "ipfs://QmVpDtjiXeWwrohw4rD85kG2iVnJiSmpDxkRGAJ9QTjMh3",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 7
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "50 wins"
+    }
+  ]
+}

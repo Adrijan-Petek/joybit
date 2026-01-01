@@ -1,0 +1,23 @@
+{
+  "name": "Inferno",
+  "description": "Create massive chain reactions",
+  "image": "ipfs://QmRju3Xvq7MeX8GFJnV8F3Lp66gCpyvafxE5S16kX6muC4",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 14
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Chain reactions"
+    }
+  ]
+}

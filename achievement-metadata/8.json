@@ -1,0 +1,23 @@
+{
+  "name": "Artist",
+  "description": "Create beautiful patterns",
+  "image": "ipfs://Qmcs1byUjgkLtxZm7yFUbGTvFVST97ftVeMVPmtBTh6hR5",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 8
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Special patterns"
+    }
+  ]
+}

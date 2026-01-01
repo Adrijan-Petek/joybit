@@ -1,0 +1,402 @@
+[
+  {
+    "id": 1,
+    "name": "First Win",
+    "rarity": "Common",
+    "imageHash": "QmViK5g2NqACGWp82V1E7xbrCMuZ2NQSdfUDffr4Hckkco",
+    "imageUrl": "ipfs://QmViK5g2NqACGWp82V1E7xbrCMuZ2NQSdfUDffr4Hckkco",
+    "metadataHash": "QmSFX7Yw5XW7b1MLrQnL2DV4WDT7SuKc6RyRdYLC6vvRF2",
+    "metadataUrl": "ipfs://QmSFX7Yw5XW7b1MLrQnL2DV4WDT7SuKc6RyRdYLC6vvRF2/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmSFX7Yw5XW7b1MLrQnL2DV4WDT7SuKc6RyRdYLC6vvRF2"
+  },
+  {
+    "id": 2,
+    "name": "Hot Streak",
+    "rarity": "Rare",
+    "imageHash": "QmWARt1piF8xUdXWbNfr1U4aoKWnUa77ZBRNmn5deL7e1Q",
+    "imageUrl": "ipfs://QmWARt1piF8xUdXWbNfr1U4aoKWnUa77ZBRNmn5deL7e1Q",
+    "metadataHash": "QmcRse5TxNwVd94qMi6ge4oRYZySBQgM53J6FZZcwUZvbf",
+    "metadataUrl": "ipfs://QmcRse5TxNwVd94qMi6ge4oRYZySBQgM53J6FZZcwUZvbf/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmcRse5TxNwVd94qMi6ge4oRYZySBQgM53J6FZZcwUZvbf"
+  },
+  {
+    "id": 3,
+    "name": "Gem Master",
+    "rarity": "Epic",
+    "imageHash": "QmTWeWcgrpQZZ7dKBf3HaqB6T38jCPV31ToV3qrjhcC7ga",
+    "imageUrl": "ipfs://QmTWeWcgrpQZZ7dKBf3HaqB6T38jCPV31ToV3qrjhcC7ga",
+    "metadataHash": "QmaP5kh1AvPqN8JQLdvFhvfoMtSBrgfWgh4YjBxmwqpiz3",
+    "metadataUrl": "ipfs://QmaP5kh1AvPqN8JQLdvFhvfoMtSBrgfWgh4YjBxmwqpiz3/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmaP5kh1AvPqN8JQLdvFhvfoMtSBrgfWgh4YjBxmwqpiz3"
+  },
+  {
+    "id": 4,
+    "name": "Star Player",
+    "rarity": "Legendary",
+    "imageHash": "Qmaus9i9gksXXAQHexC2L4yABmmRNLsHcKfkPef7JnjM3K",
+    "imageUrl": "ipfs://Qmaus9i9gksXXAQHexC2L4yABmmRNLsHcKfkPef7JnjM3K",
+    "metadataHash": "QmaWMaC8GW75n7kW5B3CSCksUn2EGh1AGdCRUvUgaUG9Pu",
+    "metadataUrl": "ipfs://QmaWMaC8GW75n7kW5B3CSCksUn2EGh1AGdCRUvUgaUG9Pu/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmaWMaC8GW75n7kW5B3CSCksUn2EGh1AGdCRUvUgaUG9Pu"
+  },
+  {
+    "id": 5,
+    "name": "Speed Demon",
+    "rarity": "Mythic",
+    "imageHash": "Qma4SD7FXcpsUVrLQ8i8w7aLKAtbjkghpXB44bTcGhHYGb",
+    "imageUrl": "ipfs://Qma4SD7FXcpsUVrLQ8i8w7aLKAtbjkghpXB44bTcGhHYGb",
+    "metadataHash": "QmaaK9KfTYFFjihNsjaVG4sefvDzvnTDxSKZ5m2mQHGyhQ",
+    "metadataUrl": "ipfs://QmaaK9KfTYFFjihNsjaVG4sefvDzvnTDxSKZ5m2mQHGyhQ/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmaaK9KfTYFFjihNsjaVG4sefvDzvnTDxSKZ5m2mQHGyhQ"
+  },
+  {
+    "id": 6,
+    "name": "Combo King",
+    "rarity": "Common",
+    "imageHash": "QmVPDgT1VXHpPALAkKJEaDieYoB9HMyH8Yka1hjLnPHsMC",
+    "imageUrl": "ipfs://QmVPDgT1VXHpPALAkKJEaDieYoB9HMyH8Yka1hjLnPHsMC",
+    "metadataHash": "QmdHYwqqvnEUbnq64897hvRqtB1ELYxSzdQEd8jknazYDk",
+    "metadataUrl": "ipfs://QmdHYwqqvnEUbnq64897hvRqtB1ELYxSzdQEd8jknazYDk/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmdHYwqqvnEUbnq64897hvRqtB1ELYxSzdQEd8jknazYDk"
+  },
+  {
+    "id": 7,
+    "name": "Champion",
+    "rarity": "Rare",
+    "imageHash": "QmVpDtjiXeWwrohw4rD85kG2iVnJiSmpDxkRGAJ9QTjMh3",
+    "imageUrl": "ipfs://QmVpDtjiXeWwrohw4rD85kG2iVnJiSmpDxkRGAJ9QTjMh3",
+    "metadataHash": "Qmak3EVQBxUTpYexJzxgWzTRLuq9b8WTy6VfJseKprc2LE",
+    "metadataUrl": "ipfs://Qmak3EVQBxUTpYexJzxgWzTRLuq9b8WTy6VfJseKprc2LE/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/Qmak3EVQBxUTpYexJzxgWzTRLuq9b8WTy6VfJseKprc2LE"
+  },
+  {
+    "id": 8,
+    "name": "Artist",
+    "rarity": "Epic",
+    "imageHash": "Qmcs1byUjgkLtxZm7yFUbGTvFVST97ftVeMVPmtBTh6hR5",
+    "imageUrl": "ipfs://Qmcs1byUjgkLtxZm7yFUbGTvFVST97ftVeMVPmtBTh6hR5",
+    "metadataHash": "QmRhksJTKRyremLqyPSuTRMNmVQNESxY4TUbH2Wt5mJFW6",
+    "metadataUrl": "ipfs://QmRhksJTKRyremLqyPSuTRMNmVQNESxY4TUbH2Wt5mJFW6/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmRhksJTKRyremLqyPSuTRMNmVQNESxY4TUbH2Wt5mJFW6"
+  },
+  {
+    "id": 9,
+    "name": "Rainbow",
+    "rarity": "Legendary",
+    "imageHash": "Qmc6zpogjS5prJsJKUc6S8gjss6ypxX553sAjq115bYXSM",
+    "imageUrl": "ipfs://Qmc6zpogjS5prJsJKUc6S8gjss6ypxX553sAjq115bYXSM",
+    "metadataHash": "QmWAWjh7NnA7yE38k4h2YSYRFqjuWD5W2VnLCkwEX8ECNa",
+    "metadataUrl": "ipfs://QmWAWjh7NnA7yE38k4h2YSYRFqjuWD5W2VnLCkwEX8ECNa/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmWAWjh7NnA7yE38k4h2YSYRFqjuWD5W2VnLCkwEX8ECNa"
+  },
+  {
+    "id": 10,
+    "name": "Heart Breaker",
+    "rarity": "Mythic",
+    "imageHash": "QmeXFNqFEjwmZ4H1TBgPv7Tr3Z3VmNQs4AJn7ogX2w4Sa4",
+    "imageUrl": "ipfs://QmeXFNqFEjwmZ4H1TBgPv7Tr3Z3VmNQs4AJn7ogX2w4Sa4",
+    "metadataHash": "QmNmgDHQJQGnziWppqcgmzBqfVV5dQpcTG9AgCpm6jakmb",
+    "metadataUrl": "ipfs://QmNmgDHQJQGnziWppqcgmzBqfVV5dQpcTG9AgCpm6jakmb/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmNmgDHQJQGnziWppqcgmzBqfVV5dQpcTG9AgCpm6jakmb"
+  },
+  {
+    "id": 11,
+    "name": "Royal",
+    "rarity": "Common",
+    "imageHash": "QmSpC4Gs1d16EZgVJTNP6naxESd1tZnyFZrbsnCaWVQ28t",
+    "imageUrl": "ipfs://QmSpC4Gs1d16EZgVJTNP6naxESd1tZnyFZrbsnCaWVQ28t",
+    "metadataHash": "QmRNAYkrBJzShFPCxRFCWwQtJgro6xZ4rmC1LMiQVXgSS1",
+    "metadataUrl": "ipfs://QmRNAYkrBJzShFPCxRFCWwQtJgro6xZ4rmC1LMiQVXgSS1/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmRNAYkrBJzShFPCxRFCWwQtJgro6xZ4rmC1LMiQVXgSS1"
+  },
+  {
+    "id": 12,
+    "name": "Mystic",
+    "rarity": "Rare",
+    "imageHash": "QmaGtupzarHuPFQ2UNYrynSRYrp8V89myYR9jDbdsF5yCa",
+    "imageUrl": "ipfs://QmaGtupzarHuPFQ2UNYrynSRYrp8V89myYR9jDbdsF5yCa",
+    "metadataHash": "QmPXCMxDa4AAxMDLcuZQBct6uzfHXy9wSD1zzxUBGhFrJH",
+    "metadataUrl": "ipfs://QmPXCMxDa4AAxMDLcuZQBct6uzfHXy9wSD1zzxUBGhFrJH/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmPXCMxDa4AAxMDLcuZQBct6uzfHXy9wSD1zzxUBGhFrJH"
+  },
+  {
+    "id": 13,
+    "name": "Lucky",
+    "rarity": "Epic",
+    "imageHash": "QmU8LPAz1u53RgQ9JDpu9CwS6g9dKc84AeppGHmbgPFbMc",
+    "imageUrl": "ipfs://QmU8LPAz1u53RgQ9JDpu9CwS6g9dKc84AeppGHmbgPFbMc",
+    "metadataHash": "QmULPgWbD5mkBEGZ8dLsfnXHcTtknZPHEx5zLfJXRmN1Kr",
+    "metadataUrl": "ipfs://QmULPgWbD5mkBEGZ8dLsfnXHcTtknZPHEx5zLfJXRmN1Kr/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmULPgWbD5mkBEGZ8dLsfnXHcTtknZPHEx5zLfJXRmN1Kr"
+  },
+  {
+    "id": 14,
+    "name": "Inferno",
+    "rarity": "Legendary",
+    "imageHash": "QmRju3Xvq7MeX8GFJnV8F3Lp66gCpyvafxE5S16kX6muC4",
+    "imageUrl": "ipfs://QmRju3Xvq7MeX8GFJnV8F3Lp66gCpyvafxE5S16kX6muC4",
+    "metadataHash": "QmeUskLTbsznCUmAQp89kSkbWXccvMDuKRPN5VToYQKLn5",
+    "metadataUrl": "ipfs://QmeUskLTbsznCUmAQp89kSkbWXccvMDuKRPN5VToYQKLn5/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmeUskLTbsznCUmAQp89kSkbWXccvMDuKRPN5VToYQKLn5"
+  },
+  {
+    "id": 15,
+    "name": "Frost",
+    "rarity": "Mythic",
+    "imageHash": "QmWbUqqe3Bkh6Fmik87bKHKWGBax4yrcmRwwxtJWQNCUxw",
+    "imageUrl": "ipfs://QmWbUqqe3Bkh6Fmik87bKHKWGBax4yrcmRwwxtJWQNCUxw",
+    "metadataHash": "QmeqA8vL7C82VAZToLNHhTG1B6iD43nxvuA8XXUZVd38ZJ",
+    "metadataUrl": "ipfs://QmeqA8vL7C82VAZToLNHhTG1B6iD43nxvuA8XXUZVd38ZJ/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmeqA8vL7C82VAZToLNHhTG1B6iD43nxvuA8XXUZVd38ZJ"
+  },
+  {
+    "id": 16,
+    "name": "Thespian",
+    "rarity": "Common",
+    "imageHash": "QmP9pYpp1qL4BHuKUWkbkodJtu6yaq5zFzzNPPpXQJdTDw",
+    "imageUrl": "ipfs://QmP9pYpp1qL4BHuKUWkbkodJtu6yaq5zFzzNPPpXQJdTDw",
+    "metadataHash": "QmWHVa9hA3dZrvffT4KuheWc2QwtRHDGG8HWKXvzVUS5V1",
+    "metadataUrl": "ipfs://QmWHVa9hA3dZrvffT4KuheWc2QwtRHDGG8HWKXvzVUS5V1/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmWHVa9hA3dZrvffT4KuheWc2QwtRHDGG8HWKXvzVUS5V1"
+  },
+  {
+    "id": 17,
+    "name": "Unicorn",
+    "rarity": "Rare",
+    "imageHash": "QmZUYNcjJRckW3pMc7UF3whPef27ERAZn27SeDhyqHngDM",
+    "imageUrl": "ipfs://QmZUYNcjJRckW3pMc7UF3whPef27ERAZn27SeDhyqHngDM",
+    "metadataHash": "QmWDXuN9SuP7a4SyYJjoHhVDZyE3kMWfWcEJxyRbJ5heva",
+    "metadataUrl": "ipfs://QmWDXuN9SuP7a4SyYJjoHhVDZyE3kMWfWcEJxyRbJ5heva/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmWDXuN9SuP7a4SyYJjoHhVDZyE3kMWfWcEJxyRbJ5heva"
+  },
+  {
+    "id": 18,
+    "name": "Summit",
+    "rarity": "Epic",
+    "imageHash": "Qme5pB1RFPWbzdDNKdr3Qc3aaKMrTTYQdrpNpvQs4gTaVV",
+    "imageUrl": "ipfs://Qme5pB1RFPWbzdDNKdr3Qc3aaKMrTTYQdrpNpvQs4gTaVV",
+    "metadataHash": "QmSGfEUhbmkynnNMEhW8qJMrhA2MkS9i5pRE66wmCvfeGX",
+    "metadataUrl": "ipfs://QmSGfEUhbmkynnNMEhW8qJMrhA2MkS9i5pRE66wmCvfeGX/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmSGfEUhbmkynnNMEhW8qJMrhA2MkS9i5pRE66wmCvfeGX"
+  },
+  {
+    "id": 19,
+    "name": "Tempest",
+    "rarity": "Legendary",
+    "imageHash": "QmcoYAnuQGfdTMiHzupsc4BiCGq4aALN9MSC6GAs1tTJzz",
+    "imageUrl": "ipfs://QmcoYAnuQGfdTMiHzupsc4BiCGq4aALN9MSC6GAs1tTJzz",
+    "metadataHash": "QmQ2DQw9L4ZZM9McUU2DWasaeprpHvrznztoDDURkJa8ex",
+    "metadataUrl": "ipfs://QmQ2DQw9L4ZZM9McUU2DWasaeprpHvrznztoDDURkJa8ex/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmQ2DQw9L4ZZM9McUU2DWasaeprpHvrznztoDDURkJa8ex"
+  },
+  {
+    "id": 20,
+    "name": "Phantom",
+    "rarity": "Mythic",
+    "imageHash": "QmZEFZZnG3cDPa4BT8guadeHaAAQf7ntbYR8Hya3fyWMWN",
+    "imageUrl": "ipfs://QmZEFZZnG3cDPa4BT8guadeHaAAQf7ntbYR8Hya3fyWMWN",
+    "metadataHash": "QmX4oyt8cvj7bRVaCdUSj5dV4XEDZYLB69S6eFkQLMyKne",
+    "metadataUrl": "ipfs://QmX4oyt8cvj7bRVaCdUSj5dV4XEDZYLB69S6eFkQLMyKne/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmX4oyt8cvj7bRVaCdUSj5dV4XEDZYLB69S6eFkQLMyKne"
+  },
+  {
+    "id": 21,
+    "name": "Daily Starter",
+    "rarity": "Common",
+    "imageHash": "QmeYD547kM5CQeXiJAc1Y94fW7hfPNg6VJV7WBxZd8FbD6",
+    "imageUrl": "ipfs://QmeYD547kM5CQeXiJAc1Y94fW7hfPNg6VJV7WBxZd8FbD6",
+    "metadataHash": "QmTLKGJTzRZW3vs6HbEkLzbSM7juMb6EY4EuxWt5BSANcA",
+    "metadataUrl": "ipfs://QmTLKGJTzRZW3vs6HbEkLzbSM7juMb6EY4EuxWt5BSANcA/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmTLKGJTzRZW3vs6HbEkLzbSM7juMb6EY4EuxWt5BSANcA"
+  },
+  {
+    "id": 22,
+    "name": "Streak Master",
+    "rarity": "Rare",
+    "imageHash": "QmUw6gZErehLAwieZphzHYAdEPGyeSQeYPR3oxrE5sLahW",
+    "imageUrl": "ipfs://QmUw6gZErehLAwieZphzHYAdEPGyeSQeYPR3oxrE5sLahW",
+    "metadataHash": "QmTPLK3usNkbuCF1aRJ9t8nktnpFwRsZmcKrQmFh7k4L7L",
+    "metadataUrl": "ipfs://QmTPLK3usNkbuCF1aRJ9t8nktnpFwRsZmcKrQmFh7k4L7L/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmTPLK3usNkbuCF1aRJ9t8nktnpFwRsZmcKrQmFh7k4L7L"
+  },
+  {
+    "id": 23,
+    "name": "Dedicated Player",
+    "rarity": "Epic",
+    "imageHash": "QmWHDcaM3XjUxRw7bR8Kc6H3RN5qSPokn4jdvAWVwKMpTL",
+    "imageUrl": "ipfs://QmWHDcaM3XjUxRw7bR8Kc6H3RN5qSPokn4jdvAWVwKMpTL",
+    "metadataHash": "QmeHhV7rUHqQ4AyWb6ac8HNFjcgu9wRuu1JhhYyPRGngf7",
+    "metadataUrl": "ipfs://QmeHhV7rUHqQ4AyWb6ac8HNFjcgu9wRuu1JhhYyPRGngf7/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmeHhV7rUHqQ4AyWb6ac8HNFjcgu9wRuu1JhhYyPRGngf7"
+  },
+  {
+    "id": 24,
+    "name": "Loyal Supporter",
+    "rarity": "Legendary",
+    "imageHash": "Qmd2Yaz2cJNCmmPy9xyk8f9e95WgRwSYJpR9RP5YkKKY4V",
+    "imageUrl": "ipfs://Qmd2Yaz2cJNCmmPy9xyk8f9e95WgRwSYJpR9RP5YkKKY4V",
+    "metadataHash": "QmPQjNqCEpx4CDWoaS2AZHS2ahhQoBUaqdVS5dZ6Ffghnb",
+    "metadataUrl": "ipfs://QmPQjNqCEpx4CDWoaS2AZHS2ahhQoBUaqdVS5dZ6Ffghnb/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmPQjNqCEpx4CDWoaS2AZHS2ahhQoBUaqdVS5dZ6Ffghnb"
+  },
+  {
+    "id": 25,
+    "name": "Eternal Claimant",
+    "rarity": "Mythic",
+    "imageHash": "QmVNVMidr2188D5AEBDK8am5E1DabgycofhwVdKM55GgaL",
+    "imageUrl": "ipfs://QmVNVMidr2188D5AEBDK8am5E1DabgycofhwVdKM55GgaL",
+    "metadataHash": "QmVyRUjn4HZxfoPDpHyVw2P5Zq2aa1N6UUAkPyfQzmtp6H",
+    "metadataUrl": "ipfs://QmVyRUjn4HZxfoPDpHyVw2P5Zq2aa1N6UUAkPyfQzmtp6H/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmVyRUjn4HZxfoPDpHyVw2P5Zq2aa1N6UUAkPyfQzmtp6H"
+  },
+  {
+    "id": 26,
+    "name": "Card Novice",
+    "rarity": "Common",
+    "imageHash": "Qmeu6urwwkNP58GraeWUoXa3R6ygj5DTmCX8byaQgnmVaQ",
+    "imageUrl": "ipfs://Qmeu6urwwkNP58GraeWUoXa3R6ygj5DTmCX8byaQgnmVaQ",
+    "metadataHash": "QmWCiTpfpfPAo2aeRGNp5xBBD3kB1A8jJ4LrkKp87JsFXV",
+    "metadataUrl": "ipfs://QmWCiTpfpfPAo2aeRGNp5xBBD3kB1A8jJ4LrkKp87JsFXV/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmWCiTpfpfPAo2aeRGNp5xBBD3kB1A8jJ4LrkKp87JsFXV"
+  },
+  {
+    "id": 27,
+    "name": "Card Winner",
+    "rarity": "Rare",
+    "imageHash": "QmVswzc45vJa4pcpiP87fMjBAMtyrChRQZYqxsKBHWCRE2",
+    "imageUrl": "ipfs://QmVswzc45vJa4pcpiP87fMjBAMtyrChRQZYqxsKBHWCRE2",
+    "metadataHash": "QmPr35Sx4jmZExw1FtHyeTfpVgP3JpUQjmYFsvQfa8GaB1",
+    "metadataUrl": "ipfs://QmPr35Sx4jmZExw1FtHyeTfpVgP3JpUQjmYFsvQfa8GaB1/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmPr35Sx4jmZExw1FtHyeTfpVgP3JpUQjmYFsvQfa8GaB1"
+  },
+  {
+    "id": 28,
+    "name": "Card Expert",
+    "rarity": "Epic",
+    "imageHash": "QmXFYQN5SXpVnu2LoCUSDZAmZnpXjk9j8Ts1ximnfcbJ3v",
+    "imageUrl": "ipfs://QmXFYQN5SXpVnu2LoCUSDZAmZnpXjk9j8Ts1ximnfcbJ3v",
+    "metadataHash": "Qmeh8SwQmBkKgyGumLxXVEtRDe9btxXEcXH4S8yzymDiQ2",
+    "metadataUrl": "ipfs://Qmeh8SwQmBkKgyGumLxXVEtRDe9btxXEcXH4S8yzymDiQ2/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/Qmeh8SwQmBkKgyGumLxXVEtRDe9btxXEcXH4S8yzymDiQ2"
+  },
+  {
+    "id": 29,
+    "name": "Card Master",
+    "rarity": "Legendary",
+    "imageHash": "QmUzwayXEb4tKL6SkEFayAJyan8Eg9FuQsEcvQZ4cMa9ok",
+    "imageUrl": "ipfs://QmUzwayXEb4tKL6SkEFayAJyan8Eg9FuQsEcvQZ4cMa9ok",
+    "metadataHash": "QmddwLEKorMbyviuGYACafByB5j89i8z743sAR4NWAN6kr",
+    "metadataUrl": "ipfs://QmddwLEKorMbyviuGYACafByB5j89i8z743sAR4NWAN6kr/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmddwLEKorMbyviuGYACafByB5j89i8z743sAR4NWAN6kr"
+  },
+  {
+    "id": 30,
+    "name": "Card God",
+    "rarity": "Mythic",
+    "imageHash": "QmTVvawT2dj3sCgMi25sXowNFinXRwLwWFuxSBsn19Zn3P",
+    "imageUrl": "ipfs://QmTVvawT2dj3sCgMi25sXowNFinXRwLwWFuxSBsn19Zn3P",
+    "metadataHash": "QmbAvG4xXsQz7xyzEWojVfzX6ggWn6tFYpu814iYPWqw4W",
+    "metadataUrl": "ipfs://QmbAvG4xXsQz7xyzEWojVfzX6ggWn6tFYpu814iYPWqw4W/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmbAvG4xXsQz7xyzEWojVfzX6ggWn6tFYpu814iYPWqw4W"
+  },
+  {
+    "id": 31,
+    "name": "Card Legend",
+    "rarity": "Common",
+    "imageHash": "QmWaX2F1VZqX8RbiMDxmYSpVasg1e4oDN33sMbAQoWqKCn",
+    "imageUrl": "ipfs://QmWaX2F1VZqX8RbiMDxmYSpVasg1e4oDN33sMbAQoWqKCn",
+    "metadataHash": "QmZrJ3LW4BoFEAGwfZ9b6DzK1Rk7tYEJ1amoRcmXq37Amq",
+    "metadataUrl": "ipfs://QmZrJ3LW4BoFEAGwfZ9b6DzK1Rk7tYEJ1amoRcmXq37Amq/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmZrJ3LW4BoFEAGwfZ9b6DzK1Rk7tYEJ1amoRcmXq37Amq"
+  },
+  {
+    "id": 32,
+    "name": "Card Addict",
+    "rarity": "Rare",
+    "imageHash": "QmVhDaJvPkiNX3ErULqi9dq6pScJksj7yQHWRZmLUro8z2",
+    "imageUrl": "ipfs://QmVhDaJvPkiNX3ErULqi9dq6pScJksj7yQHWRZmLUro8z2",
+    "metadataHash": "QmTahn9wpuo5UiPaLKQ3MFAXFWyCohdeP25Knw4ZbaJu1B",
+    "metadataUrl": "ipfs://QmTahn9wpuo5UiPaLKQ3MFAXFWyCohdeP25Knw4ZbaJu1B/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmTahn9wpuo5UiPaLKQ3MFAXFWyCohdeP25Knw4ZbaJu1B"
+  },
+  {
+    "id": 33,
+    "name": "Card Collector",
+    "rarity": "Epic",
+    "imageHash": "QmNYGNbQX6BVqt67RC23o7piHGNKxBJseBEHpYXYu4h4nU",
+    "imageUrl": "ipfs://QmNYGNbQX6BVqt67RC23o7piHGNKxBJseBEHpYXYu4h4nU",
+    "metadataHash": "QmYhV7sXQrAtiz1vygVypqptctztW4xuciahjiQDmcVGkK",
+    "metadataUrl": "ipfs://QmYhV7sXQrAtiz1vygVypqptctztW4xuciahjiQDmcVGkK/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmYhV7sXQrAtiz1vygVypqptctztW4xuciahjiQDmcVGkK"
+  },
+  {
+    "id": 34,
+    "name": "Card Strategist",
+    "rarity": "Legendary",
+    "imageHash": "QmQdN3sn6A49XPrwXcsp45JSg5bwwBLm3dLLGHmd2gHfPY",
+    "imageUrl": "ipfs://QmQdN3sn6A49XPrwXcsp45JSg5bwwBLm3dLLGHmd2gHfPY",
+    "metadataHash": "Qmc8iXEy2A6w4E4D8A1NWBB5x8VPMyPPu9xpcCmDNZjvQ5",
+    "metadataUrl": "ipfs://Qmc8iXEy2A6w4E4D8A1NWBB5x8VPMyPPu9xpcCmDNZjvQ5/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/Qmc8iXEy2A6w4E4D8A1NWBB5x8VPMyPPu9xpcCmDNZjvQ5"
+  },
+  {
+    "id": 35,
+    "name": "Card Veteran",
+    "rarity": "Mythic",
+    "imageHash": "QmZ7RMK7JmdS89Q8SPiZVEQwnjfAAAeYzxcWV3SrcKHCkG",
+    "imageUrl": "ipfs://QmZ7RMK7JmdS89Q8SPiZVEQwnjfAAAeYzxcWV3SrcKHCkG",
+    "metadataHash": "QmNMNFNaE43z9ML7xmwy6X3vgxZpNHMVrTnRWMNfndrEpH",
+    "metadataUrl": "ipfs://QmNMNFNaE43z9ML7xmwy6X3vgxZpNHMVrTnRWMNfndrEpH/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmNMNFNaE43z9ML7xmwy6X3vgxZpNHMVrTnRWMNfndrEpH"
+  },
+  {
+    "id": 36,
+    "name": "Well Rounded",
+    "rarity": "Common",
+    "imageHash": "QmPLhwGG91sP4UpzTLqttW9FdgMoVLg2k3SLXFBKK8kqnr",
+    "imageUrl": "ipfs://QmPLhwGG91sP4UpzTLqttW9FdgMoVLg2k3SLXFBKK8kqnr",
+    "metadataHash": "QmRpbLwfUZ26vaZW5oCQpYow3qQk4BxFqNwSxGiSUVWLL6",
+    "metadataUrl": "ipfs://QmRpbLwfUZ26vaZW5oCQpYow3qQk4BxFqNwSxGiSUVWLL6/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmRpbLwfUZ26vaZW5oCQpYow3qQk4BxFqNwSxGiSUVWLL6"
+  },
+  {
+    "id": 37,
+    "name": "High Scorer",
+    "rarity": "Rare",
+    "imageHash": "QmXwYmpRHTL4QQCDqwQjxp9cEfaFzmQedMdWxyupLtgxQj",
+    "imageUrl": "ipfs://QmXwYmpRHTL4QQCDqwQjxp9cEfaFzmQedMdWxyupLtgxQj",
+    "metadataHash": "QmbTL8grjP5CX2JCv9KNK5tAYAfJu1H5YdQFTNgE9XmZQT",
+    "metadataUrl": "ipfs://QmbTL8grjP5CX2JCv9KNK5tAYAfJu1H5YdQFTNgE9XmZQT/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmbTL8grjP5CX2JCv9KNK5tAYAfJu1H5YdQFTNgE9XmZQT"
+  },
+  {
+    "id": 38,
+    "name": "Level Climber",
+    "rarity": "Epic",
+    "imageHash": "QmeyyFARk9UsWtjFmMP9rPpFs68k9RoGDVhpbpxnA9rKPK",
+    "imageUrl": "ipfs://QmeyyFARk9UsWtjFmMP9rPpFs68k9RoGDVhpbpxnA9rKPK",
+    "metadataHash": "QmXPH2QqHQoxrjyxTiHXNXu63ePtoEwxZrib3W1RgJJGKU",
+    "metadataUrl": "ipfs://QmXPH2QqHQoxrjyxTiHXNXu63ePtoEwxZrib3W1RgJJGKU/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmXPH2QqHQoxrjyxTiHXNXu63ePtoEwxZrib3W1RgJJGKU"
+  },
+  {
+    "id": 39,
+    "name": "Perfectionist",
+    "rarity": "Legendary",
+    "imageHash": "QmeiSYosqPAZws4gtLc458RLq8E7PrdzSxHfUwvi9z4wkS",
+    "imageUrl": "ipfs://QmeiSYosqPAZws4gtLc458RLq8E7PrdzSxHfUwvi9z4wkS",
+    "metadataHash": "QmRSHx8fdTvonuPyoJDJYgFvGdnFAajL5ehVfJwxuukXBK",
+    "metadataUrl": "ipfs://QmRSHx8fdTvonuPyoJDJYgFvGdnFAajL5ehVfJwxuukXBK/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmRSHx8fdTvonuPyoJDJYgFvGdnFAajL5ehVfJwxuukXBK"
+  },
+  {
+    "id": 40,
+    "name": "Marathon Player",
+    "rarity": "Mythic",
+    "imageHash": "QmPeSLNbv6mnEWFGx2v3pNDx61rQdZFU1w1qcm4iqzQnqq",
+    "imageUrl": "ipfs://QmPeSLNbv6mnEWFGx2v3pNDx61rQdZFU1w1qcm4iqzQnqq",
+    "metadataHash": "QmfB2Pp6YTpMWNHSwTejCK28zGGxzahkbpebYsGb2axKWi",
+    "metadataUrl": "ipfs://QmfB2Pp6YTpMWNHSwTejCK28zGGxzahkbpebYsGb2axKWi/",
+    "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmfB2Pp6YTpMWNHSwTejCK28zGGxzahkbpebYsGb2axKWi"
+  }
+]

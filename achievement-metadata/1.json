@@ -1,0 +1,23 @@
+{
+  "name": "First Win",
+  "description": "Win your first Match-3 game",
+  "image": "ipfs://QmViK5g2NqACGWp82V1E7xbrCMuZ2NQSdfUDffr4Hckkco",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 1
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Win 1 game"
+    }
+  ]
+}

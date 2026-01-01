@@ -1,0 +1,23 @@
+{
+  "name": "Card Expert",
+  "description": "Win 10 card games",
+  "image": "ipfs://QmXFYQN5SXpVnu2LoCUSDZAmZnpXjk9j8Ts1ximnfcbJ3v",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 28
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "10 wins"
+    }
+  ]
+}

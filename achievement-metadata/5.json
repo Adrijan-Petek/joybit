@@ -1,0 +1,23 @@
+{
+  "name": "Speed Demon",
+  "description": "Complete a level in under 30 seconds",
+  "image": "ipfs://Qma4SD7FXcpsUVrLQ8i8w7aLKAtbjkghpXB44bTcGhHYGb",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Mythic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 5
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Fast completion"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Combo King",
+  "description": "Achieve a 10x combo",
+  "image": "ipfs://QmVPDgT1VXHpPALAkKJEaDieYoB9HMyH8Yka1hjLnPHsMC",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 6
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "10x combo"
+    }
+  ]
+}

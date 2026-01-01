@@ -1,0 +1,23 @@
+{
+  "name": "Perfectionist",
+  "description": "Achieve perfect scores",
+  "image": "ipfs://QmeiSYosqPAZws4gtLc458RLq8E7PrdzSxHfUwvi9z4wkS",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Category",
+      "value": "general"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 39
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Perfect games"
+    }
+  ]
+}

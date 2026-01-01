@@ -1,0 +1,23 @@
+{
+  "name": "Lucky",
+  "description": "Win with lucky bonuses",
+  "image": "ipfs://QmU8LPAz1u53RgQ9JDpu9CwS6g9dKc84AeppGHmbgPFbMc",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 13
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Lucky wins"
+    }
+  ]
+}

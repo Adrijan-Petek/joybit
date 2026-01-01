@@ -51,7 +51,7 @@ async function addAchievementsToContract() {
   console.log('🎯 Adding achievements to AchievementERC1155 contract...\n')
 
   // Get contract address
-  const contractAddress = "0x6032d7F9514393C470269e88fC350053a6b1AE0a"
+  const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_ERC1155_ADDRESS || "0x3DDfe21080b8852496414535DA65AC2C3005f5DE"
 
   // Get contract
   const AchievementERC1155 = await ethers.getContractFactory('contracts/AchievementERC1155.sol:AchievementERC1155')

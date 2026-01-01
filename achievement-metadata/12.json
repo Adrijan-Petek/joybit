@@ -1,0 +1,23 @@
+{
+  "name": "Mystic",
+  "description": "Unlock all power-ups",
+  "image": "ipfs://QmaGtupzarHuPFQ2UNYrynSRYrp8V89myYR9jDbdsF5yCa",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 12
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "All power-ups"
+    }
+  ]
+}

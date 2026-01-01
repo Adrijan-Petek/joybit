@@ -1,0 +1,23 @@
+{
+  "name": "Phantom",
+  "description": "Become untouchable",
+  "image": "ipfs://QmZEFZZnG3cDPa4BT8guadeHaAAQf7ntbYR8Hya3fyWMWN",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Mythic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 20
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Phantom moves"
+    }
+  ]
+}

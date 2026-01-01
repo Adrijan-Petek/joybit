@@ -1,0 +1,23 @@
+{
+  "name": "Card God",
+  "description": "Win 100 card games",
+  "image": "ipfs://QmTVvawT2dj3sCgMi25sXowNFinXRwLwWFuxSBsn19Zn3P",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Mythic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 30
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "100 wins"
+    }
+  ]
+}

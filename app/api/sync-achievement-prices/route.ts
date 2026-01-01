@@ -15,17 +15,22 @@ export async function POST(request: NextRequest) {
     const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
     const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_ERC1155_ABI, provider)
 
-    // Get all achievement IDs from contract
-    const allIds = await contract.getAllAchievementIds()
+    // Get achievement count from contract
+    const achievementCount = await contract.getAchievementCount()
+    console.log('Achievement count from contract:', Number(achievementCount))
+
+    // Create array of IDs from 1 to achievementCount
+    const allIds = Array.from({ length: Number(achievementCount) }, (_, i) => BigInt(i + 1))
+    console.log('Achievement IDs to sync prices for:', allIds)
 
     // Fetch prices for all achievements
     const contractPrices: Record<string, string> = {}
 
     for (const achievementId of allIds) {
       try {
-        const result = await contract.achievements(achievementId)
-        const [, , price] = result
-        contractPrices[achievementId] = ethers.formatEther(price)
+        const result = await contract.getAchievement(achievementId)
+        const [, price] = result
+        contractPrices[String(achievementId)] = ethers.formatEther(price)
       } catch (error) {
         console.error(`Failed to get price for ${achievementId}:`, error instanceof Error ? error.message : String(error))
         // Skip achievements that don't exist in contract

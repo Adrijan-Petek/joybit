@@ -1,0 +1,23 @@
+{
+  "name": "Card Master",
+  "description": "Win 25 card games",
+  "image": "ipfs://QmUzwayXEb4tKL6SkEFayAJyan8Eg9FuQsEcvQZ4cMa9ok",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 29
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "25 wins"
+    }
+  ]
+}

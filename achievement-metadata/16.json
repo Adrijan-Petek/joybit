@@ -1,0 +1,23 @@
+{
+  "name": "Thespian",
+  "description": "Master all game modes",
+  "image": "ipfs://QmP9pYpp1qL4BHuKUWkbkodJtu6yaq5zFzzNPPpXQJdTDw",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 16
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "All modes"
+    }
+  ]
+}

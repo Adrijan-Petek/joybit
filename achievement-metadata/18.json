@@ -1,0 +1,23 @@
+{
+  "name": "Summit",
+  "description": "Reach the highest peaks",
+  "image": "ipfs://Qme5pB1RFPWbzdDNKdr3Qc3aaKMrTTYQdrpNpvQs4gTaVV",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 18
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Peak performance"
+    }
+  ]
+}

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
 import { parseEther, formatEther } from 'viem'
-import { ethers } from 'ethers'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
@@ -22,6 +21,19 @@ import { notifyAdminReward } from '@/lib/utils/farcasterNotifications'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 import { toast } from 'react-hot-toast'
 import { useTheme, themes } from '@/components/theme/ThemeContext'
+
+// Type definitions
+interface DatabaseAchievement {
+  id: string | number
+  name: string
+  description: string
+  requirement: string
+  emoji: string
+  rarity: string
+  category: string
+  price?: string | null
+  created_at?: string
+}
 
 // Professional Tab Button Component
 function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
@@ -2207,47 +2219,51 @@ function AchievementPricesOverview() {
   useEffect(() => {
     const loadAchievements = async () => {
       try {
-        // Fetch from database first
-        const dbResponse = await fetch('/api/achievements')
-        if (dbResponse.ok) {
-          const dbData = await dbResponse.json()
-          if (dbData.achievements) {
-            setAchievements(dbData.achievements.slice(0, 8)) // Show first 8 achievements
-          }
-        }
-
-        // Try to get live prices from contract
+        // Try to get achievements from contract via API first
         try {
-          const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
-          const contract = new ethers.Contract(CONTRACT_ADDRESSES.achievementERC1155, ACHIEVEMENT_ERC1155_ABI, provider)
-
-          const allIds = await contract.getAllAchievementIds()
-          const contractPrices: Record<string, string> = {}
-
-          // Get prices for first 8 achievements
-          for (let i = 0; i < Math.min(allIds.length, 8); i++) {
-            const id = allIds[i]
-            try {
-              const result = await contract.getAchievement(id)
-              const [, price] = result
-              contractPrices[String(id)] = ethers.formatEther(price)
-            } catch (error) {
-              console.warn(`Failed to get price for achievement ${id}:`, error)
+          const contractResponse = await fetch('/api/contract-achievements')
+          if (contractResponse.ok) {
+            const contractData = await contractResponse.json()
+            if (contractData.achievements && contractData.achievements.length > 0) {
+              // Use first 8 contract achievements
+              const contractAchievements = contractData.achievements.slice(0, 8).map((achievement: any) => ({
+                id: String(achievement.id), // Ensure id is a string
+                name: `Achievement #${achievement.id}`,
+                price: achievement.price,
+                active: achievement.active,
+                rarity: achievement.rarity
+              }))
+              setAchievements(contractAchievements)
+            } else {
+              // Fall back to database
+              loadFromDatabase()
             }
+          } else {
+            // Fall back to database
+            loadFromDatabase()
           }
-
-          // Update achievements with live prices
-          setAchievements(prev => prev.map(achievement => ({
-            ...achievement,
-            price: contractPrices[achievement.id] || achievement.price
-          })))
         } catch (contractError) {
-          console.warn('Failed to load contract prices:', contractError)
+          console.warn('Failed to load contract achievements, falling back to database:', contractError)
+          loadFromDatabase()
         }
       } catch (error) {
         console.error('Failed to load achievements:', error)
       } finally {
         setLoading(false)
+      }
+    }
+
+    const loadFromDatabase = async () => {
+      const dbResponse = await fetch('/api/achievements')
+      if (dbResponse.ok) {
+        const dbData = await dbResponse.json()
+        if (dbData.achievements) {
+          const dbAchievements = dbData.achievements.slice(0, 8).map((achievement: any) => ({
+            ...achievement,
+            id: String(achievement.id) // Ensure id is a string
+          }))
+          setAchievements(dbAchievements)
+        }
       }
     }
 
@@ -4611,26 +4627,10 @@ function ContractSettings() {
   const { writeContractAsync: updateAchievement, isPending } = useWriteContract()
   const { isLoading: isProcessing, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
-  // Achievement data for reference - load from database
-  const [achievementData, setAchievementData] = useState<any[]>([])
+  // Metadata map for IPFS URLs
   const [metadataMap, setMetadataMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    // Load achievements from database
-    const loadAchievementData = async () => {
-      try {
-        const response = await fetch('/api/achievements?action=all')
-        const achievements = await response.json()
-        setAchievementData(achievements)
-      } catch (error) {
-        console.error('Failed to load achievements:', error)
-        // Fallback to basic data
-        setAchievementData([
-          { id: 'first_win', name: 'First Win', description: 'Win your first Match-3 game', emoji: '🎯', rarity: 'Common' },
-        ])
-      }
-    }
-
     // Load metadata URLs
     const loadMetadata = async () => {
       try {
@@ -4646,7 +4646,6 @@ function ContractSettings() {
       }
     }
 
-    loadAchievementData()
     loadMetadata()
   }, [])
 
@@ -4654,111 +4653,100 @@ function ContractSettings() {
   // Achievement data is now loaded from database above
 
   useEffect(() => {
-    if (achievementData.length > 0) {
-      loadAchievements()
-    }
-  }, [achievementData])
+    loadAchievements()
+  }, [])
 
   const loadAchievements = async () => {
     try {
       setLoading(true)
 
-      // Read achievements from contract using ethers
-      const contractAchievements = []
-
-      // Try to read from contract first
-      let contractAchievementsMap = new Map()
-
-// Try to read from contract first
-      let existingAchievements = new Map()
-
-      try {
-        // Use read-only provider instead of requiring wallet connection
-        const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
-        const contract = new ethers.Contract(CONTRACT_ADDRESSES.achievementERC1155, ACHIEVEMENT_ERC1155_ABI, provider)
-
-        // Get all achievement IDs from contract
-        const allIds = await contract.getAllAchievementIds()
-        console.log('Contract achievement IDs:', allIds)
-
-        // Fetch all achievement data in parallel
-        const promises = allIds.map(async (id: bigint) => {
-          try {
-            const result = await contract.getAchievement(id)
-            const [rarity, price, active] = result
-            console.log(`Achievement ${id}:`, { rarity, price: ethers.formatEther(price), active })
-            
-            // Convert uint256 ID to string ID for database lookup
-            const stringId = String(id)
-            
-            return {
-              id: stringId,
-              contractId: Number(id),
-              rarity: Number(rarity),
-              metadataUrl: '', // Not returned by contract
-              price: ethers.formatEther(price),
-              rawPrice: price,
-              active,
-              exists: true
-            }
-          } catch (error) {
-            console.error(`Failed to load achievement ${id} from contract:`, error)
-            return null
+      // Load achievements from database first
+      const dbResponse = await fetch('/api/achievements?action=all')
+      if (dbResponse.ok) {
+        const dbData = await dbResponse.json()
+        const dbAchievements = dbData.map((achievement: DatabaseAchievement) => {
+          // Clean ID - remove decimals and convert to integer
+          const cleanId = String(Math.floor(Number(achievement.id)))
+          
+          // Map rarity string to number
+          let rarityNum = 0
+          if (achievement.rarity === 'Common') rarityNum = 0
+          else if (achievement.rarity === 'Rare') rarityNum = 1
+          else if (achievement.rarity === 'Epic') rarityNum = 2
+          else if (achievement.rarity === 'Legendary') rarityNum = 3
+          else if (achievement.rarity === 'Mythic') rarityNum = 4
+          
+          return {
+            ...achievement,
+            id: cleanId,
+            rarity: rarityNum,
+            active: false, // Will be updated from contract
+            price: achievement.price || '0.001',
+            rawPrice: parseEther(achievement.price || '0.001'),
+            exists: false // Will be updated if exists in contract
           }
         })
 
-        const results = await Promise.all(promises)
-        results.filter(result => result !== null).forEach(result => {
-          contractAchievementsMap.set(result!.id, result)
-        })
-      } catch (contractError) {
-        console.error('Failed to read from contract:', contractError)
-        // Continue with database data only
-      }
-
-      // Combine with database data - prioritize contract data for price/active status
-      for (const achievement of achievementData) {
-        const existing = contractAchievementsMap.get(achievement.id)
-        if (existing) {
-          // Use database data as base, override with contract data for dynamic fields
-          contractAchievements.push({
-            ...achievement, // Database data first (has name, description, emoji)
-            rarity: existing.rarity, // Use contract rarity
-            price: existing.price, // Use contract price
-            rawPrice: existing.rawPrice, // Use contract raw price
-            active: existing.active, // Use contract active status
-            metadataUrl: existing.metadataUrl, // Use contract metadata URL
-            exists: true, // Exists in contract
-            requirement: achievement.requirement || achievement.description,
-            category: achievement.category || 'achievement'
-          })
-        } else {
-          // Achievement not in contract
-          contractAchievements.push({
-            ...achievement,
-            rarity: achievement.rarity === 'Common' ? 0 : achievement.rarity === 'Rare' ? 1 : achievement.rarity === 'Epic' ? 2 : achievement.rarity === 'Legendary' ? 3 : 4,
-            active: true,
-            price: '0.001',
-            rawPrice: parseEther('0.001'),
-            exists: false
-          })
+        console.log('Loaded achievements from database:', dbAchievements.length)
+        
+        // Now check contract status for each achievement
+        try {
+          console.log('Fetching contract achievements from API...')
+          const contractResponse = await fetch('/api/contract-achievements')
+          console.log('Contract API response status:', contractResponse.status)
+          
+          if (contractResponse.ok) {
+            const contractData = await contractResponse.json()
+            console.log('Contract API response:', contractData)
+            
+            if (contractData.achievements && contractData.achievements.length > 0) {
+              console.log('Contract achievements loaded:', contractData.achievements.length)
+              console.log('Sample contract achievement:', contractData.achievements[0])
+              console.log('Sample DB achievement:', dbAchievements[0])
+              
+              // Update achievements with contract status
+              const updatedAchievements = dbAchievements.map((dbAch: any) => {
+                const contractAch = contractData.achievements.find((ca: any) => {
+                  const match = Number(ca.contractId) === Number(dbAch.id)
+                  if (match) {
+                    console.log(`✓ Matched: DB ID ${dbAch.id} with Contract ID ${ca.contractId}`)
+                  }
+                  return match
+                })
+                
+                if (contractAch) {
+                  return {
+                    ...dbAch,
+                    exists: true,
+                    active: contractAch.active,
+                    price: contractAch.price,
+                    rawPrice: parseEther(contractAch.price)
+                  }
+                }
+                return dbAch
+              })
+              
+              setAchievements(updatedAchievements)
+              console.log('✅ Updated achievements with contract status:', updatedAchievements.filter((a: any) => a.exists).length, 'exist in contract')
+              console.log('Sample updated achievement:', updatedAchievements[0])
+            } else {
+              console.log('⚠️ No achievements in contract response')
+              setAchievements(dbAchievements)
+            }
+          } else {
+            const errorText = await contractResponse.text()
+            console.error('❌ Contract API failed:', contractResponse.status, errorText)
+            setAchievements(dbAchievements)
+          }
+        } catch (contractError) {
+          console.error('❌ Error loading contract data:', contractError)
+          setAchievements(dbAchievements)
         }
+      } else {
+        console.error('Failed to load achievements from database')
       }
-
-      console.log('Final achievements:', contractAchievements)
-      setAchievements(contractAchievements)
     } catch (error) {
       console.error('Failed to load achievements:', error)
-      // Fallback to mock data
-      const mockAchievements = achievementData.map(achievement => ({
-        ...achievement,
-        rarity: achievement.rarity === 'Common' ? 0 : achievement.rarity === 'Rare' ? 1 : achievement.rarity === 'Epic' ? 2 : achievement.rarity === 'Legendary' ? 3 : 4,
-        active: true,
-        price: '0.001',
-        rawPrice: parseEther('0.001'),
-        exists: false
-      }))
-      setAchievements(mockAchievements)
     } finally {
       setLoading(false)
     }
@@ -4770,28 +4758,31 @@ function ContractSettings() {
     try {
       setUpdatingAchievement(achievementId)
       const priceInWei = parseEther(newPrice)
-      const achievementIdNum = BigInt(achievementId) // Convert string ID to uint256
+      // Clean the achievement ID to remove any ".0" suffix
+      const cleanAchievementId = achievementId.replace(/\.0$/, '')
+      const achievementIdNum = BigInt(cleanAchievementId)
       
       if (!exists) {
         // Achievement doesn't exist, need to add it first
-        const achievement = achievementData.find(a => a.id === achievementId)
-        if (!achievement) return
-        
-        // Get metadata URL from map or use default
-        const metadataUrl = metadataMap[achievementId] || `https://gateway.pinata.cloud/ipfs/QmDefaultMetadata/${achievementId}.json`
+        const achievement = achievements.find(a => a.id === achievementId)
+        if (!achievement) {
+          toast.error('Achievement not found')
+          return
+        }
         
         const hash = await updateAchievement({
           address: CONTRACT_ADDRESSES.achievementERC1155,
           abi: ACHIEVEMENT_ERC1155_ABI,
           functionName: 'addAchievement',
           args: [
-            achievementIdNum, // uint256 ID
-            achievement.rarity === 'Common' ? 0 : achievement.rarity === 'Rare' ? 1 : achievement.rarity === 'Epic' ? 2 : achievement.rarity === 'Legendary' ? 3 : 4,
+            achievementIdNum,
+            achievement.rarity, // Already a number (0-4)
             priceInWei
           ],
           gas: 150000n,
         })
         
+        toast.success('Adding achievement to contract...')
         setTxHash(hash)
       } else {
         // Achievement exists, update it
@@ -4799,14 +4790,16 @@ function ContractSettings() {
           address: CONTRACT_ADDRESSES.achievementERC1155,
           abi: ACHIEVEMENT_ERC1155_ABI,
           functionName: 'updateAchievement',
-          args: [achievementIdNum, priceInWei, active], // uint256 ID
+          args: [achievementIdNum, priceInWei, active],
           gas: 120000n,
         })
         
+        toast.success('Updating achievement...')
         setTxHash(hash)
       }
     } catch (error) {
       console.error('Failed to update achievement:', error)
+      toast.error('Failed to update achievement')
     } finally {
       setUpdatingAchievement(null)
     }
@@ -4881,8 +4874,9 @@ function ContractSettings() {
       if (response.ok) {
         const result = await response.json()
         toast.success(`✅ Synced ${result.synced} achievement prices to database`)
-        // Refresh the achievements list to show updated prices
-        loadAchievements()
+        
+        // Refresh achievements to show updated prices from database
+        await loadAchievements()
       } else {
         toast.error('❌ Failed to sync prices')
       }
@@ -4904,8 +4898,9 @@ function ContractSettings() {
       if (response.ok) {
         const result = await response.json()
         toast.success(`✅ Synced ${result.synced} achievements to database`)
-        // Refresh the achievements list to show updated data
-        loadAchievements()
+        
+        // Refresh achievements to show updated data from database
+        await loadAchievements()
       } else {
         toast.error('❌ Failed to sync achievements')
       }

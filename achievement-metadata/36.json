@@ -1,0 +1,23 @@
+{
+  "name": "Well Rounded",
+  "description": "Play all game types",
+  "image": "ipfs://QmPLhwGG91sP4UpzTLqttW9FdgMoVLg2k3SLXFBKK8kqnr",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Category",
+      "value": "general"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 36
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "1 game in each type"
+    }
+  ]
+}

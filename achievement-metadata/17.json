@@ -1,0 +1,23 @@
+{
+  "name": "Unicorn",
+  "description": "Achieve the impossible",
+  "image": "ipfs://QmZUYNcjJRckW3pMc7UF3whPef27ERAZn27SeDhyqHngDM",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 17
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Impossible feat"
+    }
+  ]
+}

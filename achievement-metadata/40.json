@@ -1,0 +1,23 @@
+{
+  "name": "Marathon Player",
+  "description": "Play for 24 hours total",
+  "image": "ipfs://QmPeSLNbv6mnEWFGx2v3pNDx61rQdZFU1w1qcm4iqzQnqq",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Mythic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "general"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 40
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "24 hours gameplay"
+    }
+  ]
+}

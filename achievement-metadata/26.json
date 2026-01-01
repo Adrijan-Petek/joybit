@@ -1,0 +1,23 @@
+{
+  "name": "Card Novice",
+  "description": "Play your first card game",
+  "image": "ipfs://Qmeu6urwwkNP58GraeWUoXa3R6ygj5DTmCX8byaQgnmVaQ",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 26
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "1 game played"
+    }
+  ]
+}

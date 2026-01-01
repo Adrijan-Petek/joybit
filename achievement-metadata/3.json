@@ -1,0 +1,23 @@
+{
+  "name": "Gem Master",
+  "description": "Collect 1000 gems",
+  "image": "ipfs://QmTWeWcgrpQZZ7dKBf3HaqB6T38jCPV31ToV3qrjhcC7ga",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 3
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "1000 total gems"
+    }
+  ]
+}

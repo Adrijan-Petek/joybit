@@ -1,0 +1,23 @@
+{
+  "name": "Eternal Claimant",
+  "description": "Claim rewards for 90 days",
+  "image": "ipfs://QmVNVMidr2188D5AEBDK8am5E1DabgycofhwVdKM55GgaL",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Mythic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "daily"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 25
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "90 total claims"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Card Veteran",
+  "description": "Play 500 card games",
+  "image": "ipfs://QmZ7RMK7JmdS89Q8SPiZVEQwnjfAAAeYzxcWV3SrcKHCkG",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Mythic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 35
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "500 games played"
+    }
+  ]
+}

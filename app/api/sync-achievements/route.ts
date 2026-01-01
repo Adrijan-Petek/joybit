@@ -15,8 +15,13 @@ export async function POST(request: NextRequest) {
     const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
     const contract = new ethers.Contract(contractAddress, ACHIEVEMENT_ERC1155_ABI, provider)
 
-    // Get all achievement IDs from contract
-    const allIds = await contract.getAllAchievementIds()
+    // Get achievement count from contract
+    const achievementCount = await contract.getAchievementCount()
+    console.log('Achievement count from contract:', Number(achievementCount))
+
+    // Create array of IDs from 1 to achievementCount
+    const allIds = Array.from({ length: Number(achievementCount) }, (_, i) => BigInt(i + 1))
+    console.log('Achievement IDs to sync:', allIds)
 
     // Fetch full achievement data for all achievements
     const contractAchievements: any[] = []

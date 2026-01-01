@@ -1,0 +1,23 @@
+{
+  "name": "Heart Breaker",
+  "description": "Break 10,000 hearts",
+  "image": "ipfs://QmeXFNqFEjwmZ4H1TBgPv7Tr3Z3VmNQs4AJn7ogX2w4Sa4",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Mythic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 10
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "10,000 hearts"
+    }
+  ]
+}

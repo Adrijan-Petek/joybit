@@ -20,6 +20,41 @@ import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 import AchievementNFTMinter from '@/components/AchievementNFTMinter'
 
+// Type definitions
+interface Achievement {
+  id: number
+  name: string
+  description: string
+  requirement: string
+  emoji: string
+  rarity: string
+  category: string
+  price?: string
+  unlocked?: boolean
+  gradient?: string
+  border?: string
+  textColor?: string
+  unlocked_at?: string
+  minted?: boolean
+}
+
+interface UserAchievement {
+  achievement_id: number
+  unlocked_at: string
+  minted: boolean
+}
+
+interface UserStats {
+  match3_games_played?: number
+  match3_high_score?: number
+  match3_high_score_level?: number
+  card_games_played?: number
+  card_games_won?: number
+  daily_total_claims?: number
+  daily_current_streak?: number
+  [key: string]: any
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -28,13 +63,50 @@ export default function ProfilePage() {
   const [tokenImages, setTokenImages] = useState<Record<string, { image: string; symbol: string }>>({})
   const [showSharePrompt, setShowSharePrompt] = useState(false)
   const [claimCooldown, setClaimCooldown] = useState(false)
-  const [selectedAchievement, setSelectedAchievement] = useState<any>(null)
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
   const [showAchievementModal, setShowAchievementModal] = useState(false)
-  const [achievements, setAchievements] = useState<any[]>([])
-  const [userAchievements, setUserAchievements] = useState<any[]>([])
-  const [userStats, setUserStats] = useState<any>(null)
+  const [achievements, setAchievements] = useState<Achievement[]>([])
+  const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([])
+  const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [userData, setUserData] = useState<{ username?: string; pfp?: string }>({})
   const [farcasterUserData, setFarcasterUserData] = useState<{ username?: string; pfpUrl?: string }>({})
+
+  // Helper function to get rarity styling
+  const getRarityStyling = (rarity: string) => {
+    let gradient = 'from-gray-500/20 to-gray-600/20'
+    let border = 'border-gray-500/30'
+    let textColor = 'text-gray-400'
+
+    switch (rarity) {
+      case 'Common':
+        gradient = 'from-yellow-500/20 to-orange-500/20'
+        border = 'border-yellow-500/30'
+        textColor = 'text-yellow-400'
+        break
+      case 'Rare':
+        gradient = 'from-blue-500/20 to-cyan-500/20'
+        border = 'border-blue-500/30'
+        textColor = 'text-blue-400'
+        break
+      case 'Epic':
+        gradient = 'from-purple-500/20 to-pink-500/20'
+        border = 'border-purple-500/30'
+        textColor = 'text-purple-400'
+        break
+      case 'Legendary':
+        gradient = 'from-teal-500/20 to-cyan-500/20'
+        border = 'border-teal-500/30'
+        textColor = 'text-teal-400'
+        break
+      case 'Mythic':
+        gradient = 'from-rose-500/20 to-red-500/20'
+        border = 'border-rose-500/30'
+        textColor = 'text-rose-400'
+        break
+    }
+
+    return { gradient, border, textColor }
+  }
 
   const { claimRewards, isClaiming } = useTreasury()
   const { allPendingRewards, refetch: refetchTreasury } = useTreasuryData(address)
@@ -57,37 +129,7 @@ export default function ProfilePage() {
         // Show all achievements as locked if no wallet connected
         const achievementsWithStatus = allAchievements.map((achievement: any) => {
           // Add visual styling based on rarity
-          let gradient = 'from-gray-500/20 to-gray-600/20'
-          let border = 'border-gray-500/30'
-          let textColor = 'text-gray-400'
-
-          switch (achievement.rarity) {
-            case 'Common':
-              gradient = 'from-yellow-500/20 to-orange-500/20'
-              border = 'border-yellow-500/30'
-              textColor = 'text-yellow-400'
-              break
-            case 'Rare':
-              gradient = 'from-blue-500/20 to-cyan-500/20'
-              border = 'border-blue-500/30'
-              textColor = 'text-blue-400'
-              break
-            case 'Epic':
-              gradient = 'from-purple-500/20 to-pink-500/20'
-              border = 'border-purple-500/30'
-              textColor = 'text-purple-400'
-              break
-            case 'Legendary':
-              gradient = 'from-teal-500/20 to-cyan-500/20'
-              border = 'border-teal-500/30'
-              textColor = 'text-teal-400'
-              break
-            case 'Mythic':
-              gradient = 'from-rose-500/20 to-red-500/20'
-              border = 'border-rose-500/30'
-              textColor = 'text-rose-400'
-              break
-          }
+          const { gradient, border, textColor } = getRarityStyling(achievement.rarity)
 
           return {
             ...achievement,
@@ -97,7 +139,7 @@ export default function ProfilePage() {
             textColor,
             unlocked_at: null,
             minted: false
-          }
+          } as Achievement
         })
         setAchievements(achievementsWithStatus)
         setUserAchievements([])
@@ -117,41 +159,11 @@ export default function ProfilePage() {
 
       // Combine achievements with unlock status
       const achievementsWithStatus = allAchievements.map((achievement: any) => {
-        const userAchievement = userAchievementData.find((ua: any) => ua.achievement_id === achievement.id)
+        const userAchievement = userAchievementData.find((ua: UserAchievement) => ua.achievement_id === achievement.id)
         const unlocked = !!userAchievement
 
         // Add visual styling based on rarity
-        let gradient = 'from-gray-500/20 to-gray-600/20'
-        let border = 'border-gray-500/30'
-        let textColor = 'text-gray-400'
-
-        switch (achievement.rarity) {
-          case 'Common':
-            gradient = 'from-yellow-500/20 to-orange-500/20'
-            border = 'border-yellow-500/30'
-            textColor = 'text-yellow-400'
-            break
-          case 'Rare':
-            gradient = 'from-blue-500/20 to-cyan-500/20'
-            border = 'border-blue-500/30'
-            textColor = 'text-blue-400'
-            break
-          case 'Epic':
-            gradient = 'from-purple-500/20 to-pink-500/20'
-            border = 'border-purple-500/30'
-            textColor = 'text-purple-400'
-            break
-          case 'Legendary':
-            gradient = 'from-teal-500/20 to-cyan-500/20'
-            border = 'border-teal-500/30'
-            textColor = 'text-teal-400'
-            break
-          case 'Mythic':
-            gradient = 'from-rose-500/20 to-red-500/20'
-            border = 'border-rose-500/30'
-            textColor = 'text-rose-400'
-            break
-        }
+        const { gradient, border, textColor } = getRarityStyling(achievement.rarity)
 
         return {
           ...achievement,
@@ -161,7 +173,7 @@ export default function ProfilePage() {
           textColor,
           unlocked_at: userAchievement?.unlocked_at,
           minted: userAchievement?.minted || false
-        }
+        } as Achievement
       })
 
       setAchievements(achievementsWithStatus)
@@ -817,55 +829,40 @@ export default function ProfilePage() {
                   setShowAchievementModal(true)
                 }}
               >
-                {/* Glow effect for unlocked achievements */}
-                {achievement.unlocked && (
-                  <div className={`absolute inset-0 rounded-lg ${achievement.gradient} opacity-20 blur-sm group-hover:opacity-40 transition-opacity`} />
-                )}
-
-                {/* Main badge container */}
-                <div className={`relative p-3 rounded-lg border backdrop-blur-sm transition-all duration-300 ${
-                  achievement.unlocked
-                    ? `${achievement.gradient} ${achievement.border} bg-black/30 shadow-lg`
-                    : 'bg-gray-900/60 border-gray-700/40 grayscale group-hover:grayscale-25'
-                }`}>
-
-                  {/* Rarity indicator - smaller and more subtle */}
-                  <div className={`absolute -top-1.5 left-1/2 transform -translate-x-1/2 px-1.5 py-0.5 rounded-full text-xs font-bold text-xs ${
-                    achievement.rarity === 'Mythic' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' :
-                    achievement.rarity === 'Legendary' ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black' :
-                    achievement.rarity === 'Epic' ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' :
-                    achievement.rarity === 'Rare' ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white' :
-                    'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
-                  }`}>
-                    {achievement.rarity[0]}
-                  </div>
-
+                {/* Achievement Card Image from local public folder */}
+                <div className="relative w-full aspect-square rounded-lg overflow-hidden">
+                  {/* Card image */}
+                  <img
+                    src={`/achievement-cards/${achievement.id}.png`}
+                    alt={achievement.name}
+                    className={`w-full h-full object-cover transition-all duration-300 ${
+                      achievement.unlocked ? '' : 'grayscale brightness-50'
+                    }`}
+                    onError={(e) => {
+                      // Fallback to emoji if image fails to load
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                  
                   {/* Lock overlay for locked achievements */}
                   {!achievement.unlocked && (
-                    <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                      <div className="text-2xl">🔒</div>
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
+                      <div className="text-4xl">🔒</div>
                     </div>
                   )}
-
-                  {/* Achievement icon */}
-                  <div className={`text-3xl mb-2 text-center relative ${achievement.unlocked ? '' : 'opacity-50'}`}>
-                    {achievement.emoji}
-                    {achievement.unlocked && (
-                      <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md">
-                        ✓
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Achievement name */}
-                  <div className={`text-xs font-bold text-center mb-1 leading-tight ${achievement.unlocked ? achievement.textColor : 'text-gray-400'}`}>
-                    {achievement.name}
-                  </div>
-
-                  {/* NFT mint indicator for unlocked achievements */}
+                  
+                  {/* Unlocked checkmark */}
                   {achievement.unlocked && (
-                    <div className="absolute bottom-1 right-1 w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-black text-xs font-bold shadow-sm">
-                      🏆
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg">
+                      ✓
+                    </div>
+                  )}
+                  
+                  {/* Minted indicator */}
+                  {achievement.minted && (
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center gap-1 text-xs font-bold text-black shadow-lg">
+                      <span>🏆</span>
+                      <span>Minted</span>
                     </div>
                   )}
                 </div>
@@ -978,13 +975,21 @@ export default function ProfilePage() {
                     {selectedAchievement.rarity} Achievement
                   </div>
 
-                  {/* Achievement icon */}
+                  {/* Achievement Card Image */}
                   <motion.div
-                    className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-3 ${selectedAchievement.gradient} border-2 ${selectedAchievement.border} shadow-lg`}
-                    whileHover={{ scale: 1.05 }}
+                    className="w-48 h-48 mx-auto mb-3 rounded-lg overflow-hidden border-2 border-gray-700 shadow-2xl"
+                    whileHover={{ scale: 1.02 }}
                     transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   >
-                    <span className="text-3xl">{selectedAchievement.emoji}</span>
+                    <img
+                      src={`/achievement-cards/${selectedAchievement.id}.png`}
+                      alt={selectedAchievement.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback to emoji
+                        e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center w-full h-full bg-gradient-to-br ${selectedAchievement.gradient}"><span class="text-6xl">${selectedAchievement.emoji}</span></div>`
+                      }}
+                    />
                   </motion.div>
 
                   <h3 className="text-xl font-bold text-white mb-1">{selectedAchievement.name}</h3>

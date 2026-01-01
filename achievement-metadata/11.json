@@ -1,0 +1,23 @@
+{
+  "name": "Royal",
+  "description": "Reach the top of the leaderboard",
+  "image": "ipfs://QmSpC4Gs1d16EZgVJTNP6naxESd1tZnyFZrbsnCaWVQ28t",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 11
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "#1 position"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Card Strategist",
+  "description": "Win with perfect strategy",
+  "image": "ipfs://QmQdN3sn6A49XPrwXcsp45JSg5bwwBLm3dLLGHmd2gHfPY",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 34
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Strategic wins"
+    }
+  ]
+}

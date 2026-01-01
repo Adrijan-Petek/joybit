@@ -104,14 +104,14 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
         // Set price immediately
         setPrice(formattedPrice)
       } catch (error) {
-        console.error('❌ Error loading contract data:', error)
-        // Fallback to default values
+        console.error('❌ Achievement not in contract or error loading:', error)
+        // Achievement doesn't exist in contract yet - set as not available for minting
         setContractData({
           rarity: 0,
-          active: true,
-          price: '0.0001'
+          active: false,
+          price: '0'
         })
-        setPrice('0.0001')
+        setPrice('Not Available')
       } finally {
         setIsLoadingContractData(false)
       }
@@ -148,6 +148,8 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
         const minted = balance > 0
         setIsMinted(minted)
       } catch (error) {
+        console.log('⚠️ Achievement not mintable yet (not in contract)')
+        setIsMinted(false)
         console.error('Error checking mint status:', error)
       } finally {
         setIsChecking(false)
@@ -240,7 +242,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
 
   const isLoading = isWriteLoading || isTxLoading || isChecking || isLoadingContractData
   const isOnSupportedNetwork = chainId === 8453 || chainId === 84532 // Base mainnet or Base Sepolia
-  const canMint = isConnected && hasAchievement && !isMinted && !isLoading && contractData?.active && isOnSupportedNetwork && price !== 'Loading...'
+  const canMint = isConnected && hasAchievement && !isMinted && !isLoading && contractData?.active && isOnSupportedNetwork && price !== 'Loading...' && price !== 'Not Available'
 
   const isActive = contractData?.active ?? true
 
@@ -261,9 +263,10 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
 
       <div className="flex items-center justify-between">
         <div className="text-xs text-gray-600">
-          <span className="font-medium">Price: {price} ETH</span>
+          <span className="font-medium">Price: {price === 'Not Available' ? 'N/A' : price + ' ETH'}</span>
           {price === 'Loading...' && <span className="ml-2 animate-pulse">⏳</span>}
           {!isActive && <span className="text-red-500 ml-2">(Disabled)</span>}
+          {price === 'Not Available' && <span className="text-orange-500 ml-2">(Not in contract)</span>}
         </div>
 
         <div className="flex items-center gap-2">
@@ -276,6 +279,8 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
               <span className="text-xs text-red-500">Connect wallet to mint</span>
             ) : !isOnSupportedNetwork ? (
               <span className="text-xs text-red-500">Please switch to Base network</span>
+            ) : price === 'Not Available' ? (
+              <span className="text-xs text-orange-500">⚠️ Not mintable yet</span>
             ) : !contractData?.active ? (
               <span className="text-xs text-red-500">Achievement not available</span>
             ) : price === 'Loading...' ? (

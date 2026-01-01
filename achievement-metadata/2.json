@@ -1,0 +1,23 @@
+{
+  "name": "Hot Streak",
+  "description": "Win 5 games in a row",
+  "image": "ipfs://QmWARt1piF8xUdXWbNfr1U4aoKWnUa77ZBRNmn5deL7e1Q",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 2
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "5 consecutive wins"
+    }
+  ]
+}

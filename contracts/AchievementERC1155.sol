@@ -93,18 +93,22 @@ contract AchievementERC1155 is ERC1155, Ownable {
         uint8 rarity,
         uint256 price
     ) external onlyOwner {
-        require(!_achievementExists[id], "Exists");
         require(rarity <= uint8(Rarity.Mythic), "Invalid rarity");
         require(price > 0 && price <= type(uint240).max, "Invalid price");
 
+        // Allow overwriting - more flexible for admin
+        bool isNew = !_achievementExists[id];
+        
         achievements[id] = Achievement({
             rarity: rarity,
             active: true,
             price: uint240(price)
         });
 
-        _achievementExists[id] = true;
-        _achievementIds.push(id);
+        if (isNew) {
+            _achievementExists[id] = true;
+            _achievementIds.push(id);
+        }
 
         emit AchievementAdded(id, rarity, price);
     }
@@ -123,7 +127,9 @@ contract AchievementERC1155 is ERC1155, Ownable {
 
         emit AchievementUpdated(id, newPrice, active);
     }
-
+    function setBaseMetadataURI(string memory newBaseURI) external onlyOwner {
+        baseMetadataURI = newBaseURI;
+    }
     /*//////////////////////////////////////////////////////////////
                             MINTING LOGIC
     //////////////////////////////////////////////////////////////*/

@@ -1,0 +1,23 @@
+{
+  "name": "Card Winner",
+  "description": "Win your first card game",
+  "image": "ipfs://QmVswzc45vJa4pcpiP87fMjBAMtyrChRQZYqxsKBHWCRE2",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 27
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "1 game won"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Card Legend",
+  "description": "Win 50 card games",
+  "image": "ipfs://QmWaX2F1VZqX8RbiMDxmYSpVasg1e4oDN33sMbAQoWqKCn",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 31
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "50 wins"
+    }
+  ]
+}

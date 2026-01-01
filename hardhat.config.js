@@ -33,6 +33,12 @@ module.exports = {
     hardhat: {
       chainId: 1337,
     },
+    baseSepolia: {
+      url: "https://sepolia.base.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 84532,
+      gasPrice: "auto",
+    },
     base: {
       url: process.env.NEXT_PUBLIC_BASE_RPC_URL || "https://mainnet.base.org",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],

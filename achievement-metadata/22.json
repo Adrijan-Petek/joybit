@@ -1,0 +1,23 @@
+{
+  "name": "Streak Master",
+  "description": "Maintain a 7-day claim streak",
+  "image": "ipfs://QmUw6gZErehLAwieZphzHYAdEPGyeSQeYPR3oxrE5sLahW",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Category",
+      "value": "daily"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 22
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "7 consecutive days"
+    }
+  ]
+}

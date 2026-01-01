@@ -1,0 +1,23 @@
+{
+  "name": "Card Addict",
+  "description": "Play 200 card games",
+  "image": "ipfs://QmVhDaJvPkiNX3ErULqi9dq6pScJksj7yQHWRZmLUro8z2",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 32
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "200 games played"
+    }
+  ]
+}

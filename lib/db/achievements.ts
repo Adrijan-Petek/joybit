@@ -58,7 +58,13 @@ export async function initAchievementTables() {
         )
       `)
       console.log('✅ Achievements table created')
+    }
 
+    // Check if achievements table has data, if not, insert default achievements
+    const achievementsCount = await client.execute(`SELECT COUNT(*) as count FROM achievements`)
+    if (achievementsCount.rows[0].count === 0) {
+      console.log('✅ Inserting default achievements data...')
+      
       // Insert all achievements - IDs must match contract (1-40)
       const achievements = [
         // Match3 Achievements (IDs 1-20)
@@ -98,6 +104,9 @@ export async function initAchievementTables() {
         { id: 30, name: 'Card God', description: 'Win 100 card games', requirement: '100 wins', emoji: '⚡', rarity: 'Mythic', category: 'card' },
         { id: 31, name: 'Card Legend', description: 'Win 50 card games', requirement: '50 wins', emoji: '👑', rarity: 'Common', category: 'card' },
         { id: 32, name: 'Card Addict', description: 'Play 200 card games', requirement: '200 games played', emoji: '🎰', rarity: 'Rare', category: 'card' },
+        { id: 33, name: 'Card Collector', description: 'Collect all card types', requirement: 'All card types', emoji: '🗃️', rarity: 'Epic', category: 'card' },
+        { id: 34, name: 'Card Strategist', description: 'Win with perfect strategy', requirement: 'Strategic wins', emoji: '🧠', rarity: 'Legendary', category: 'card' },
+        { id: 35, name: 'Card Veteran', description: 'Play 500 card games', requirement: '500 games played', emoji: '🎖️', rarity: 'Mythic', category: 'card' },
 
         // General Achievements (IDs 36-40)
         { id: 36, name: 'Well Rounded', description: 'Play all game types', requirement: '1 game in each type', emoji: '🎭', rarity: 'Common', category: 'general' },

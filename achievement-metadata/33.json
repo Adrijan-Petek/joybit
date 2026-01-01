@@ -1,0 +1,23 @@
+{
+  "name": "Card Collector",
+  "description": "Collect all card types",
+  "image": "ipfs://QmNYGNbQX6BVqt67RC23o7piHGNKxBJseBEHpYXYu4h4nU",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "card"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 33
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "All card types"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "High Scorer",
+  "description": "Reach a high score of 1000",
+  "image": "ipfs://QmXwYmpRHTL4QQCDqwQjxp9cEfaFzmQedMdWxyupLtgxQj",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Category",
+      "value": "general"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 37
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "1000 points"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Daily Starter",
+  "description": "Claim your first daily reward",
+  "image": "ipfs://QmeYD547kM5CQeXiJAc1Y94fW7hfPNg6VJV7WBxZd8FbD6",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Category",
+      "value": "daily"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 21
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "1 daily claim"
+    }
+  ]
+}

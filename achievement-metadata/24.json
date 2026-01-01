@@ -1,0 +1,23 @@
+{
+  "name": "Loyal Supporter",
+  "description": "Claim rewards for 30 days",
+  "image": "ipfs://Qmd2Yaz2cJNCmmPy9xyk8f9e95WgRwSYJpR9RP5YkKKY4V",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Category",
+      "value": "daily"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 24
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "30 total claims"
+    }
+  ]
+}

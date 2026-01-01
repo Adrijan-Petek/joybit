@@ -1,0 +1,23 @@
+{
+  "name": "Frost",
+  "description": "Freeze time perfectly",
+  "image": "ipfs://QmWbUqqe3Bkh6Fmik87bKHKWGBax4yrcmRwwxtJWQNCUxw",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Mythic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "match3"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 15
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Perfect freeze"
+    }
+  ]
+}

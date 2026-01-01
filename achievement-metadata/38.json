@@ -1,0 +1,23 @@
+{
+  "name": "Level Climber",
+  "description": "Reach level 5 in Match-3",
+  "image": "ipfs://QmeyyFARk9UsWtjFmMP9rPpFs68k9RoGDVhpbpxnA9rKPK",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "general"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 38
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Level 5"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Dedicated Player",
+  "description": "Claim rewards for 14 days",
+  "image": "ipfs://QmWHDcaM3XjUxRw7bR8Kc6H3RN5qSPokn4jdvAWVwKMpTL",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Category",
+      "value": "daily"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": 23
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "14 total claims"
+    }
+  ]
+}
