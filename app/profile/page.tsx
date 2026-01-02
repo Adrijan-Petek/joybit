@@ -281,10 +281,43 @@ export default function ProfilePage() {
         })
         
         setUserData(farcasterData)
-      } else {
-        // No data available
-        setUserData({})
+        return
       }
+      
+      // If no Farcaster data, try to fetch Basename for external wallets
+      try {
+        console.log('🔍 Attempting to fetch Basename for external wallet...')
+        const basenameResponse = await fetch(`/api/get-basename?address=${address}`)
+        const basenameData = await basenameResponse.json()
+        
+        if (basenameData.username) {
+          console.log(`✅ Found Basename: ${basenameData.username}`)
+          const basenameUserData = {
+            username: basenameData.username,
+            pfp: undefined
+          }
+          
+          // Store Basename in database
+          await fetch('/api/leaderboard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              address, 
+              score: data.currentScore || 0,
+              username: basenameUserData.username,
+              pfp: undefined
+            })
+          })
+          
+          setUserData(basenameUserData)
+          return
+        }
+      } catch (basenameError) {
+        console.log('❌ Could not fetch Basename:', basenameError)
+      }
+      
+      // No data available from any source
+      setUserData({})
     } catch (error) {
       console.error('Error fetching user data:', error)
       setUserData({})

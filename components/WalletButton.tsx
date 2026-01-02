@@ -13,6 +13,7 @@ export function WalletButton() {
   const [context, setContext] = useState<{ user?: { username?: string; fid?: number; pfpUrl?: string } } | null>(null)
   const [isInMiniApp, setIsInMiniApp] = useState(false)
   const [ready, setReady] = useState(false)
+  const [basename, setBasename] = useState<string | null>(null)
 
   // Initialize SDK context and check if in MiniApp
   useEffect(() => {
@@ -33,6 +34,28 @@ export function WalletButton() {
     }
     init()
   }, [])
+
+  // Fetch Basename for external wallets
+  useEffect(() => {
+    if (!address || isInMiniApp || context?.user?.username) return
+
+    const fetchBasename = async () => {
+      try {
+        console.log('🔍 Fetching Basename for external wallet...')
+        const response = await fetch(`/api/get-basename?address=${address}`)
+        const data = await response.json()
+        
+        if (data.username) {
+          console.log(`✅ Found Basename: ${data.username}`)
+          setBasename(data.username)
+        }
+      } catch (error) {
+        console.log('❌ Could not fetch Basename:', error)
+      }
+    }
+
+    fetchBasename()
+  }, [address, isInMiniApp, context])
 
   // Auto-connect to Farcaster Wallet when in MiniApp
   useEffect(() => {
@@ -74,6 +97,8 @@ export function WalletButton() {
   }
 
   if (isConnected && address) {
+    const displayName = context?.user?.username || basename || formatAddress(address)
+    
     return (
       <div className="relative group">
         <button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-3 md:px-6 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-xs md:text-base flex items-center gap-2">
@@ -84,7 +109,7 @@ export function WalletButton() {
               className="w-6 h-6 rounded-full object-cover"
             />
           )}
-          {context?.user?.username || formatAddress(address)}
+          {displayName}
         </button>
         
         {/* Dropdown on hover */}
@@ -98,6 +123,12 @@ export function WalletButton() {
               <p className="text-xs text-gray-400">Farcaster User</p>
               <p className="text-sm text-white">@{context.user.username || 'Unknown'}</p>
               <p className="text-xs text-gray-400">FID: {context.user.fid}</p>
+            </div>
+          )}
+          {basename && !context?.user && (
+            <div className="p-4 border-b border-gray-700">
+              <p className="text-xs text-gray-400">Basename</p>
+              <p className="text-sm text-white">{basename}</p>
             </div>
           )}
           <button

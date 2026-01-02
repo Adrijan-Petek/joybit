@@ -2106,44 +2106,64 @@ function LeaderboardSyncSection() {
         try {
           setSyncStatus(`Syncing ${synced + failed + 1}/${leaderboard.length}: ${entry.address.slice(0, 6)}...`)
           
-          // Get user by verification address
-          const userResponse = await fetch(`https://api.farcaster.xyz/v2/user-by-verification?address=${entry.address}`)
-          if (!userResponse.ok) {
-            console.log(`User by verification API failed for ${entry.address}:`, userResponse.status)
-            failed++
-            continue
+          let username = null
+          let pfp = null
+          
+          // First, try to get user by verification address (Farcaster)
+          try {
+            const userResponse = await fetch(`https://api.farcaster.xyz/v2/user-by-verification?address=${entry.address}`)
+            if (userResponse.ok) {
+              const userData = await userResponse.json()
+              if (userData.result?.user) {
+                username = userData.result.user.username
+                pfp = userData.result.user.pfp?.url
+                console.log(`Found Farcaster user ${username} for ${entry.address}`)
+              }
+            }
+          } catch (farcasterError) {
+            console.log(`Farcaster API failed for ${entry.address}:`, farcasterError)
           }
           
-          const userData = await userResponse.json()
-          if (!userData.result?.user) {
-            console.log(`No user found for verified address ${entry.address}`)
-            failed++
-            continue
+          // If no Farcaster data found, try to fetch Basename
+          if (!username) {
+            try {
+              const basenameResponse = await fetch(`/api/get-basename?address=${entry.address}`)
+              if (basenameResponse.ok) {
+                const basenameData = await basenameResponse.json()
+                if (basenameData.username) {
+                  username = basenameData.username
+                  console.log(`Found Basename ${username} for ${entry.address}`)
+                }
+              }
+            } catch (basenameError) {
+              console.log(`Basename fetch failed for ${entry.address}:`, basenameError)
+            }
           }
           
-          const username = userData.result.user.username
-          const pfp = userData.result.user.pfp?.url
-          console.log(`Found user ${username} with PFP for verified address ${entry.address}`)
-          
-          // Update the leaderboard entry
-          const updateResponse = await fetch('/api/leaderboard', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              address: entry.address,
-              score: entry.score,
-              username,
-              pfp
+          // If we found any data, update the leaderboard
+          if (username || pfp) {
+            const updateResponse = await fetch('/api/leaderboard', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                address: entry.address,
+                score: entry.score,
+                username,
+                pfp
+              })
             })
-          })
-          
-          if (!updateResponse.ok) {
-            console.error(`Update failed for ${entry.address}:`, updateResponse.status)
+            
+            if (!updateResponse.ok) {
+              console.error(`Update failed for ${entry.address}:`, updateResponse.status)
+              failed++
+              continue
+            }
+            
+            synced++
+          } else {
+            console.log(`No username found for ${entry.address}`)
             failed++
-            continue
           }
-          
-          synced++
           
           // Small delay to avoid rate limits
           await new Promise(resolve => setTimeout(resolve, 500))
@@ -2174,7 +2194,8 @@ function LeaderboardSyncSection() {
       
       <div className="space-y-4">
         <div className="text-sm text-gray-300">
-          <p>Sync Farcaster usernames and profile pictures for all leaderboard players.</p>
+          <p>Sync Farcaster usernames and Basenames for all leaderboard players.</p>
+          <p className="text-gray-400 mt-1">Attempts to fetch Farcaster data first, then falls back to Basename lookup.</p>
           <p className="text-yellow-400 mt-1">⚠️ This may take several minutes for large leaderboards.</p>
         </div>
         
