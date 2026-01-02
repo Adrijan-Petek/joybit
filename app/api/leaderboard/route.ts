@@ -68,12 +68,18 @@ export async function GET(request: NextRequest) {
     console.log('Turso Token:', process.env.TURSO_AUTH_TOKEN ? 'Set' : 'Missing')
     
     // Get all users from leaderboard_scores table with their data
+    // Ensure no duplicates by grouping and getting the highest score per address
     const allUsersResult = await client.execute(`
-      SELECT ls.address, ls.score, lu.username, lu.pfp 
+      SELECT 
+        ls.address, 
+        MAX(ls.score) as score, 
+        lu.username, 
+        lu.pfp 
       FROM leaderboard_scores ls 
-      LEFT JOIN leaderboard_users lu ON ls.address = lu.address 
+      LEFT JOIN leaderboard_users lu ON LOWER(ls.address) = LOWER(lu.address) 
       WHERE ls.score > 0
-      ORDER BY ls.score DESC
+      GROUP BY LOWER(ls.address), lu.username, lu.pfp
+      ORDER BY score DESC
       LIMIT 50
     `)
 
@@ -84,7 +90,11 @@ export async function GET(request: NextRequest) {
       pfp: (row.pfp as string) || undefined
     }))
 
-    console.log('Leaderboard fetched:', leaderboard.slice(0, 10))
+    console.log('Leaderboard fetched:', leaderboard.length, 'unique entries')
+    console.log('Top 5 entries:', leaderboard.slice(0, 5).map((entry, index) => 
+      `${index + 1}. ${entry.username || entry.address.slice(0, 8)}...: ${entry.score}`
+    ))
+    
     return NextResponse.json({ leaderboard })
   } catch (error) {
     console.error('Error fetching leaderboard:', error)
@@ -107,6 +117,17 @@ export async function POST(request: NextRequest) {
       console.log('🔄 Recalculating all leaderboard scores...')
       const { calculateUserScore } = await import('@/lib/db/achievements')
       
+      // First, clean up any duplicate entries
+      console.log('🧹 Cleaning up duplicate leaderboard entries...')
+      await client.execute(`
+        DELETE FROM leaderboard_scores 
+        WHERE rowid NOT IN (
+          SELECT MIN(rowid) 
+          FROM leaderboard_scores 
+          GROUP BY LOWER(address)
+        )
+      `)
+      
       // Get all unique addresses from user_stats
       const allUsersResult = await client.execute(`
         SELECT DISTINCT user_address FROM user_stats
@@ -119,13 +140,13 @@ export async function POST(request: NextRequest) {
         
         await client.execute({
           sql: 'INSERT OR REPLACE INTO leaderboard_scores (address, score) VALUES (?, ?)',
-          args: [userAddress, newScore]
+          args: [userAddress.toLowerCase(), newScore]
         })
         
         recalculated++
       }
       
-      console.log(`✅ Recalculated ${recalculated} user scores`)
+      console.log(`✅ Recalculated ${recalculated} user scores and cleaned up duplicates`)
       return NextResponse.json({ success: true, recalculated })
     }
 
@@ -136,27 +157,28 @@ export async function POST(request: NextRequest) {
     // Normalize address to lowercase to avoid duplicates
     const normalizedAddress = address.toLowerCase()
 
-    // Delete any existing entries with different casing
+    // Clean up any existing duplicate entries for this address
     await client.execute({
-      sql: 'DELETE FROM leaderboard_scores WHERE LOWER(address) = ?',
-      args: [normalizedAddress]
+      sql: 'DELETE FROM leaderboard_scores WHERE LOWER(address) = ? AND address != ?',
+      args: [normalizedAddress, normalizedAddress]
     })
 
-    // Insert with normalized address
+    // Update or insert the score
     await client.execute({
-      sql: 'INSERT INTO leaderboard_scores (address, score) VALUES (?, ?)',
+      sql: 'INSERT OR REPLACE INTO leaderboard_scores (address, score) VALUES (?, ?)',
       args: [normalizedAddress, score]
     })
     
     // Always store user data if provided (also normalized)
     if (username !== undefined || pfp !== undefined) {
+      // Clean up any existing duplicate user entries
       await client.execute({
-        sql: 'DELETE FROM leaderboard_users WHERE LOWER(address) = ?',
-        args: [normalizedAddress]
+        sql: 'DELETE FROM leaderboard_users WHERE LOWER(address) = ? AND address != ?',
+        args: [normalizedAddress, normalizedAddress]
       })
       
       await client.execute({
-        sql: 'INSERT INTO leaderboard_users (address, username, pfp) VALUES (?, ?, ?)',
+        sql: 'INSERT OR REPLACE INTO leaderboard_users (address, username, pfp) VALUES (?, ?, ?)',
         args: [normalizedAddress, username || null, pfp || null]
       })
     }
