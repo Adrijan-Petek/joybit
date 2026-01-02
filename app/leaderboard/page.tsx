@@ -107,7 +107,7 @@ export default function Leaderboard() {
           <h3 className="text-lg font-semibold mb-2 text-green-300">✅ Daily Tasks</h3>
           <div className="space-y-1 text-xs md:text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-green-400">🎮</span>
+              <span className="text-green-400">�</span>
               <span>Play Match-3 Game (+50 pts)</span>
             </div>
             <div className="flex items-center gap-2">

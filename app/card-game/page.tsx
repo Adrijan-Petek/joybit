@@ -10,7 +10,6 @@ import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
 import { useCardGame, useCardGameData } from '@/lib/hooks/useCardGame'
-import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
 
 interface Card {
@@ -26,7 +25,6 @@ export default function CardGame() {
 
   const { playGame, isPlaying: isPlayingTx } = useCardGame()
   const { playerData, canPlayFree, playFee, winReward, refetch } = useCardGameData(address)
-  const { updateScore } = useLeaderboard()
 
   const [cards, setCards] = useState<Card[]>([
     { id: 0, isFlipped: false, isWinner: false },
@@ -122,20 +120,32 @@ export default function CardGame() {
       setGameResult(won ? 'win' : 'lose')
       playSound(won ? 'win' : 'lose')
       
-      // Update leaderboard with proper scoring
+      // Update stats and leaderboard
       try {
         if (!address) return
-        
-        // Award points for playing the game
-        const gamePoints = calculateLeaderboardPoints('card_game')
-        // Award bonus points for winning
-        const winPoints = won ? calculateLeaderboardPoints('card_win') : 0
-        const totalPoints = gamePoints + winPoints
-        
-        await updateScore(address, totalPoints)
-        console.log(`✅ Card game leaderboard updated: +${totalPoints} points (${gamePoints} for playing${won ? ` + ${winPoints} for winning` : ''})`)
+
+        // Update stats for scoring system
+        const currentStats = {
+          card_games_played: 1,
+          card_games_won: won ? 1 : 0,
+          card_last_played: Date.now()
+        }
+
+        await fetch('/api/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_stats',
+            userAddress: address,
+            stats: currentStats
+          })
+        })
+
+        // Update leaderboard (scores calculated automatically)
+
+        console.log(`✅ Card game completed: ${won ? 'Won' : 'Lost'}`)
       } catch (error) {
-        console.error('Failed to update card game leaderboard:', error)
+        console.error('Failed to update card game stats:', error)
       }
       
     } catch (error) {

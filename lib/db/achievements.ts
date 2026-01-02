@@ -205,19 +205,22 @@ export async function initAchievementTables() {
 // Get user stats
 export async function getUserStats(userAddress: string) {
   try {
+    // Normalize address to lowercase for consistent lookups
+    const normalizedAddress = userAddress.toLowerCase()
+    
     const result = await client.execute({
-      sql: `SELECT * FROM user_stats WHERE user_address = ?`,
-      args: [userAddress]
+      sql: `SELECT * FROM user_stats WHERE LOWER(user_address) = ?`,
+      args: [normalizedAddress]
     })
 
     if (result.rows.length === 0) {
-      // Create default stats for new user
+      // Create default stats for new user with normalized address
       await client.execute({
         sql: `INSERT INTO user_stats (user_address) VALUES (?)`,
-        args: [userAddress]
+        args: [normalizedAddress]
       })
       return {
-        user_address: userAddress,
+        user_address: normalizedAddress,
         match3_games_played: 0,
         match3_games_won: 0,
         match3_high_score: 0,
@@ -253,17 +256,20 @@ export async function getUserStats(userAddress: string) {
 // Update user stats
 export async function updateUserStats(userAddress: string, stats: Partial<any>) {
   try {
+    // Normalize address to lowercase
+    const normalizedAddress = userAddress.toLowerCase()
+    
     const fields = Object.keys(stats)
     const values = Object.values(stats)
 
     if (fields.length === 0) return
 
     const setClause = fields.map(field => `${field} = ?`).join(', ')
-    const sql = `UPDATE user_stats SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE user_address = ?`
+    const sql = `UPDATE user_stats SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE LOWER(user_address) = ?`
 
     await client.execute({
       sql,
-      args: [...values, userAddress]
+      args: [...values, normalizedAddress]
     })
   } catch (error) {
     console.error('Error updating user stats:', error)
@@ -316,7 +322,7 @@ export async function unlockAchievement(userAddress: string, achievementId: numb
 
     // Award leaderboard points for unlocking achievement
     try {
-      const unlockPoints = 10 // Points for unlocking achievement
+      const unlockPoints = SCORING_SYSTEM.UNLOCKED_ACHIEVEMENT // Points for unlocking achievement
       const currentScoreResult = await client.execute({
         sql: 'SELECT score FROM leaderboard_scores WHERE address = ?',
         args: [userAddress]
@@ -351,7 +357,7 @@ export async function markAchievementMinted(userAddress: string, achievementId: 
 
     // Award leaderboard points for minting achievement
     try {
-      const mintPoints = 20 // Points for minting achievement
+      const mintPoints = SCORING_SYSTEM.MINTED_ACHIEVEMENT // Points for minting achievement
       const currentScoreResult = await client.execute({
         sql: 'SELECT score FROM leaderboard_scores WHERE address = ?',
         args: [userAddress]
@@ -368,9 +374,11 @@ export async function markAchievementMinted(userAddress: string, achievementId: 
     } catch (scoreError) {
       console.error('Failed to award leaderboard points for minting achievement:', scoreError)
     }
+
+    return true
   } catch (error) {
     console.error('Error marking achievement as minted:', error)
-    throw error
+    return false
   }
 }
 
@@ -723,6 +731,177 @@ export async function getAchievementPrice(achievementId: number): Promise<string
     console.error('Database unavailable for price lookup, falling back to contract:', error)
     // Fallback to contract data
     return await getAchievementPriceFromContract(achievementId)
+  }
+}
+
+// Scoring system constants
+const SCORING_SYSTEM = {
+  MATCH3_WIN: 100,
+  MATCH3_GAME: 50,
+  CARD_WIN: 150,
+  CARD_GAME: 30,
+  DAILY_CLAIM: 80,
+  STREAK_DAY: 20,
+  MINTED_ACHIEVEMENT: 20,
+  UNLOCKED_ACHIEVEMENT: 10,
+  TOKEN_HOLDER_BONUS: 500 // For holding 5M+ of Joybit or adrijan tokens
+}
+
+// Token contract addresses
+const TOKEN_ADDRESSES = {
+  JOYBIT: '0x3DDfe21080b8852496414535DA65AC2C3005f5DE', // Joybit token
+  ADRIJAN: '0xf348930442f3afB04F1f1bbE473C5F57De7b26eb'  // adrijan token
+}
+
+// Calculate comprehensive score for a user
+export async function calculateUserScore(userAddress: string): Promise<number> {
+  try {
+    const stats = await getUserStats(userAddress)
+    let totalScore = 0
+
+    // Match-3 scoring
+    totalScore += stats.match3_games_won * SCORING_SYSTEM.MATCH3_WIN
+    totalScore += stats.match3_games_played * SCORING_SYSTEM.MATCH3_GAME
+
+    // Card game scoring
+    totalScore += stats.card_games_won * SCORING_SYSTEM.CARD_WIN
+    totalScore += stats.card_games_played * SCORING_SYSTEM.CARD_GAME
+
+    // Daily claim scoring - ensure daily_total_claims is a reasonable number
+    // If it's a huge number (wei value), convert it or use 0
+    const dailyClaims = stats.daily_total_claims > 1000 ? 0 : stats.daily_total_claims
+    totalScore += dailyClaims * SCORING_SYSTEM.DAILY_CLAIM
+    totalScore += stats.daily_current_streak * SCORING_SYSTEM.STREAK_DAY
+
+    // Achievement scoring
+    const userAchievements = await client.execute({
+      sql: 'SELECT COUNT(*) as unlocked_count FROM user_achievements WHERE LOWER(user_address) = ?',
+      args: [userAddress.toLowerCase()]
+    })
+    const unlockedCount = userAchievements.rows[0]?.unlocked_count as number || 0
+    totalScore += unlockedCount * SCORING_SYSTEM.UNLOCKED_ACHIEVEMENT
+
+    const mintedAchievements = await client.execute({
+      sql: 'SELECT COUNT(*) as minted_count FROM user_achievements WHERE LOWER(user_address) = ? AND minted = TRUE',
+      args: [userAddress.toLowerCase()]
+    })
+    const mintedCount = mintedAchievements.rows[0]?.minted_count as number || 0
+    totalScore += mintedCount * SCORING_SYSTEM.MINTED_ACHIEVEMENT
+
+    // Token holder bonuses
+    const tokenBonuses = await calculateTokenHolderBonuses(userAddress)
+    totalScore += tokenBonuses
+
+    return totalScore
+  } catch (error) {
+    console.error('Error calculating user score:', error)
+    return 0
+  }
+}
+
+// Check if user holds minimum token amounts for bonuses
+export async function calculateTokenHolderBonuses(userAddress: string): Promise<number> {
+  let bonuses = 0
+
+  try {
+    // Check Joybit token holdings
+    const joybitBalance = await checkTokenBalance(userAddress, TOKEN_ADDRESSES.JOYBIT)
+    if (joybitBalance >= 5000000) { // 5M tokens
+      bonuses += SCORING_SYSTEM.TOKEN_HOLDER_BONUS
+      console.log(`✅ ${userAddress} qualifies for Joybit token bonus (+${SCORING_SYSTEM.TOKEN_HOLDER_BONUS})`)
+    }
+
+    // Check adrijan token holdings
+    const adrijanBalance = await checkTokenBalance(userAddress, TOKEN_ADDRESSES.ADRIJAN)
+    if (adrijanBalance >= 5000000) { // 5M tokens
+      bonuses += SCORING_SYSTEM.TOKEN_HOLDER_BONUS
+      console.log(`✅ ${userAddress} qualifies for adrijan token bonus (+${SCORING_SYSTEM.TOKEN_HOLDER_BONUS})`)
+    }
+
+  } catch (error) {
+    console.error('Error checking token holdings:', error)
+  }
+
+  return bonuses
+}
+
+// Check token balance using ethers
+async function checkTokenBalance(userAddress: string, tokenAddress: string): Promise<number> {
+  try {
+    const { ethers } = await import('ethers')
+
+    // Use Alchemy RPC
+    const rpcUrl = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
+      ? `https://base-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`
+      : 'https://mainnet.base.org'
+
+    const provider = new ethers.JsonRpcProvider(rpcUrl)
+
+    // ERC20 ABI for balanceOf
+    const erc20Abi = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function decimals() view returns (uint8)"
+    ]
+
+    const contract = new ethers.Contract(tokenAddress, erc20Abi, provider)
+
+    // Get balance and decimals
+    const [balance, decimals] = await Promise.all([
+      contract.balanceOf(userAddress),
+      contract.decimals()
+    ])
+
+    // Convert to readable number
+    const readableBalance = Number(ethers.formatUnits(balance, decimals))
+    console.log(`Token balance for ${userAddress} (${tokenAddress}): ${readableBalance}`)
+
+    return readableBalance
+  } catch (error) {
+    console.error(`Error checking token balance for ${tokenAddress}:`, error)
+    return 0
+  }
+}
+
+// Update user score in leaderboard
+export async function updateUserScore(userAddress: string): Promise<number> {
+  try {
+    const totalScore = await calculateUserScore(userAddress)
+
+    await client.execute({
+      sql: 'INSERT OR REPLACE INTO leaderboard_scores (address, score) VALUES (?, ?)',
+      args: [userAddress, totalScore]
+    })
+
+    console.log(`✅ Updated score for ${userAddress}: ${totalScore}`)
+    return totalScore
+  } catch (error) {
+    console.error('Error updating user score:', error)
+    return 0
+  }
+}
+
+// Award points for specific actions
+export async function awardPoints(userAddress: string, action: keyof typeof SCORING_SYSTEM, multiplier: number = 1): Promise<number> {
+  try {
+    const points = SCORING_SYSTEM[action] * multiplier
+
+    const currentScoreResult = await client.execute({
+      sql: 'SELECT score FROM leaderboard_scores WHERE address = ?',
+      args: [userAddress]
+    })
+    const currentScore = currentScoreResult.rows.length > 0 ? currentScoreResult.rows[0].score as number : 0
+    const newScore = currentScore + points
+
+    await client.execute({
+      sql: 'INSERT OR REPLACE INTO leaderboard_scores (address, score) VALUES (?, ?)',
+      args: [userAddress, newScore]
+    })
+
+    console.log(`✅ Awarded ${points} points for ${action} to ${userAddress}`)
+    return newScore
+  } catch (error) {
+    console.error('Error awarding points:', error)
+    return 0
   }
 }
 

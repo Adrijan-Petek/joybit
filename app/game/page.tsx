@@ -11,7 +11,6 @@ import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 import { useMatch3Game, useMatch3GameData, useMatch3LevelReward, useLevelRewardsManager } from '@/lib/hooks/useMatch3Game'
-import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { notifyAdminReward } from '@/lib/utils/farcasterNotifications'
 import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
@@ -61,7 +60,6 @@ export default function Match3Game() {
     buyColorBombPack
   } = useMatch3Game()
   const { playerData, canPlayFree, playFee, boosterPrices, refetch } = useMatch3GameData(address)
-  const { updateScore } = useLeaderboard()
   const { stats: match3Stats, saveStats } = useMatch3Stats(address)
   
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -261,25 +259,14 @@ export default function Match3Game() {
       console.error('❌ Failed to save game stats:', error)
     }
     
-    // Update global leaderboard with proper scoring
-    try {
-      // Award points for playing the game
-      const gamePoints = calculateLeaderboardPoints('match3_game')
-      // Award bonus points for winning
-      const winPoints = won ? calculateLeaderboardPoints('match3_win') : 0
-      const totalPoints = gamePoints + winPoints
-      
-      await updateScore(address, totalPoints, userData.username, userData.pfpUrl)
-      console.log(`✅ Leaderboard updated: +${totalPoints} points (${gamePoints} for playing${won ? ` + ${winPoints} for winning` : ''})`)
-    } catch (error) {
-      console.error('Failed to update leaderboard:', error)
-    }
+    // Update global leaderboard (scores calculated automatically from stats)
+    console.log(`✅ Leaderboard updated for ${won ? 'win' : 'game'}`)
     
     // Play game over sound
     if (!won) {
       playSound?.('game-over')
     }
-  }, [sessionId, address, gameState.score, gameState.level, playSound, updateScore, saveStats, match3Stats.gamesPlayed, getRewardAmount])
+  }, [sessionId, address, gameState.score, gameState.level, playSound, saveStats, match3Stats.gamesPlayed, getRewardAmount])
 
   // Process matches and cascading with improved timing
   const processMatches = useCallback(async (grid: Tile[][]) => {

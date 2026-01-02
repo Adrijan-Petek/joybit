@@ -8,7 +8,8 @@ import {
   markAchievementMinted,
   getAllAchievements,
   checkAndUnlockAchievements,
-  getAchievementPrice
+  getAchievementPrice,
+  awardPoints
 } from '@/lib/db/achievements'
 
 // Initialize tables on first request
@@ -86,7 +87,16 @@ export async function POST(request: NextRequest) {
         if (!stats) {
           return NextResponse.json({ error: 'Stats data required' }, { status: 400 })
         }
+        
+        // Get previous stats to calculate differences
+        const previousStats = await getUserStats(userAddress)
+        
+        // Update stats in database
         await updateUserStats(userAddress, stats)
+
+        // Recalculate and update leaderboard score
+        const { updateUserScore } = await import('@/lib/db/achievements')
+        await updateUserScore(userAddress)
 
         // Check for new achievements after stats update
         const unlockedAchievements = await checkAndUnlockAchievements(userAddress)
