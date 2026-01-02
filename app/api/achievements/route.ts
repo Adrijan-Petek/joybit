@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         // Get previous stats to calculate differences
         const previousStats = await getUserStats(userAddress)
         
-        // Update stats in database
+        // Update stats in database (SET values)
         await updateUserStats(userAddress, stats)
 
         // Recalculate and update leaderboard score
@@ -104,6 +104,27 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           unlockedAchievements
+        })
+
+      case 'increment_stats':
+        if (!stats) {
+          return NextResponse.json({ error: 'Stats data required' }, { status: 400 })
+        }
+        
+        // Increment stats in database (ADD to existing values)
+        const { incrementUserStats } = await import('@/lib/db/achievements')
+        await incrementUserStats(userAddress, stats)
+
+        // Recalculate and update leaderboard score
+        const { updateUserScore: updateScore } = await import('@/lib/db/achievements')
+        await updateScore(userAddress)
+
+        // Check for new achievements after stats update
+        const newAchievements = await checkAndUnlockAchievements(userAddress)
+
+        return NextResponse.json({
+          success: true,
+          unlockedAchievements: newAchievements
         })
 
       case 'unlock_achievement':

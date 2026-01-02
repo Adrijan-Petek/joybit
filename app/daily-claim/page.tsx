@@ -71,7 +71,7 @@ export default function DailyClaim() {
   }, [canClaim, claimableReward, mounted, address])
 
   const handleClaim = async () => {
-    if (!canClaim || !isConnected) return
+    if (!canClaim || !isConnected || !address) return
 
     try {
       const rewardAmount = formatEther(claimableReward || 0n)
@@ -79,6 +79,43 @@ export default function DailyClaim() {
 
       // Send notification for successful daily claim
       notifyDailyReward(rewardAmount)
+      
+      // Update database stats after successful claim
+      try {
+        const newTotalClaims = totalClaims + 1
+        const newCurrentStreak = currentStreak + 1
+
+        // Update user_stats with increment for claims
+        await fetch('/api/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'increment_stats',
+            userAddress: address,
+            stats: {
+              daily_total_claims: 1
+            }
+          })
+        })
+
+        // Set streak and timestamp separately
+        await fetch('/api/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_stats',
+            userAddress: address,
+            stats: {
+              daily_current_streak: newCurrentStreak,
+              daily_last_claim: Date.now()
+            }
+          })
+        })
+
+        console.log(`✅ Daily claim stats updated in database`)
+      } catch (dbError) {
+        console.error('Failed to update daily claim stats in database:', dbError)
+      }
       
       // Update leaderboard (scores calculated automatically from stats)
       console.log(`✅ Daily claim leaderboard updated`)

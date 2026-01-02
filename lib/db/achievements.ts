@@ -250,11 +250,14 @@ export async function getUserStats(userAddress: string) {
   }
 }
 
-// Update user stats
+// Update user stats (SET values - replaces existing)
 export async function updateUserStats(userAddress: string, stats: Partial<any>) {
   try {
     // Normalize address to lowercase
     const normalizedAddress = userAddress.toLowerCase()
+    
+    // Ensure user exists first
+    await getUserStats(normalizedAddress)
     
     const fields = Object.keys(stats)
     const values = Object.values(stats)
@@ -270,6 +273,36 @@ export async function updateUserStats(userAddress: string, stats: Partial<any>) 
     })
   } catch (error) {
     console.error('Error updating user stats:', error)
+    throw error
+  }
+}
+
+// Increment user stats (ADD to existing values)
+export async function incrementUserStats(userAddress: string, stats: Partial<any>) {
+  try {
+    // Normalize address to lowercase
+    const normalizedAddress = userAddress.toLowerCase()
+    
+    // Ensure user exists first
+    await getUserStats(normalizedAddress)
+    
+    const fields = Object.keys(stats)
+    const values = Object.values(stats)
+
+    if (fields.length === 0) return
+
+    // Build INCREMENT clause: field = field + ?
+    const setClause = fields.map(field => `${field} = ${field} + ?`).join(', ')
+    const sql = `UPDATE user_stats SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE LOWER(user_address) = ?`
+
+    await client.execute({
+      sql,
+      args: [...values, normalizedAddress]
+    })
+
+    console.log(`✅ Incremented stats for ${normalizedAddress}:`, stats)
+  } catch (error) {
+    console.error('Error incrementing user stats:', error)
     throw error
   }
 }

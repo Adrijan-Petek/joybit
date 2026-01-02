@@ -124,24 +124,38 @@ export default function CardGame() {
       try {
         if (!address) return
 
-        // Update stats for scoring system
-        const currentStats = {
+        // Increment stats for scoring system
+        const statsToIncrement = {
           card_games_played: 1,
-          card_games_won: won ? 1 : 0,
+          card_games_won: won ? 1 : 0
+        }
+
+        // Update timestamp separately (SET, not increment)
+        const statsToSet = {
           card_last_played: Date.now()
         }
 
+        // Increment counters
+        await fetch('/api/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'increment_stats',
+            userAddress: address,
+            stats: statsToIncrement
+          })
+        })
+
+        // Set timestamps
         await fetch('/api/achievements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'update_stats',
             userAddress: address,
-            stats: currentStats
+            stats: statsToSet
           })
         })
-
-        // Update leaderboard (scores calculated automatically)
 
         console.log(`✅ Card game completed: ${won ? 'Won' : 'Lost'}`)
       } catch (error) {

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
+import { InfoModal } from '@/components/InfoModal'
 import { Logo } from '@/components/Logo'
 import Image from 'next/image'
 import { useAudio } from '@/components/audio/AudioContext'
@@ -90,6 +91,7 @@ export default function Home() {
   const [isPaused, setIsPaused] = useState(false)
   const [showNotification, setShowNotification] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
+  const [showInfoModal, setShowInfoModal] = useState(false)
   const [rewardTokens, setRewardTokens] = useState<Array<{ address: string; image: string; symbol: string }>>([])
 
   // Read supported tokens from blockchain
@@ -368,8 +370,18 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+      {/* Info Modal */}
+      <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
+
       {/* Audio Controls & Wallet Button */}
       <div className="fixed top-3 right-3 md:top-4 md:right-4 z-50 flex items-center gap-2">
+        <button
+          onClick={() => setShowInfoModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-10 h-10 md:w-11 md:h-11 flex items-center justify-center transition-all shadow-lg hover:scale-110 font-bold text-lg"
+          title="How to Play"
+        >
+          ℹ️
+        </button>
         <AudioButtons />
         <SettingsButton />
         <WalletButton />
