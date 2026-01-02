@@ -4903,6 +4903,28 @@ function ContractSettings() {
     }
   }
 
+  // Handle successful achievement update
+  useEffect(() => {
+    if (isSuccess && updatingAchievement) {
+      console.log('✅ Achievement update successful, updating local state...')
+      
+      // Update the achievement in local state immediately
+      setAchievements(prevAchievements => 
+        prevAchievements.map(ach => 
+          ach.id === updatingAchievement 
+            ? { ...ach, exists: true, active: true } // Assume it becomes active after update
+            : ach
+        )
+      )
+      
+      setUpdatingAchievement(null)
+      toast.success('Achievement updated successfully!')
+      
+      // Also refresh from server to ensure consistency
+      loadAchievements()
+    }
+  }, [isSuccess, updatingAchievement])
+
   // Sync prices from contract to database
   const syncPricesFromContract = async () => {
     try {

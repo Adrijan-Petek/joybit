@@ -12,6 +12,7 @@ interface AchievementNFTMinterProps {
   achievement: Achievement
   hasAchievement: boolean
   onMintSuccess?: () => void
+  onMintStateChange?: (achievementId: number, minted: boolean) => void
 }
 
 const RARITY_COLORS = {
@@ -25,7 +26,7 @@ const RARITY_COLORS = {
 // AchievementERC1155 contract ABI imported from extracted ABIs
 const ACHIEVEMENT_ERC1155_ABI = AchievementNFTABI
 
-export default function AchievementNFTMinter({ achievement, hasAchievement, onMintSuccess }: AchievementNFTMinterProps) {
+export default function AchievementNFTMinter({ achievement, hasAchievement, onMintSuccess, onMintStateChange }: AchievementNFTMinterProps) {
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const [isMinted, setIsMinted] = useState(false)
@@ -208,6 +209,7 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
       setIsMinted(true)
       toast.success(`🎉 ${achievement.name} NFT minted successfully!`)
       onMintSuccess?.()
+      onMintStateChange?.(Number(achievement.id), true)
     }
   }, [isSuccess, hash, address, achievement.id, achievement.name, onMintSuccess])
 

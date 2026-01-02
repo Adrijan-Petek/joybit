@@ -375,11 +375,29 @@ export default function ProfilePage() {
     loadTokenMetadata()
 
     // Reload when window gains focus (for when returning from admin panel)
-    const handleFocus = () => loadTokenMetadata()
+    const handleFocus = () => {
+      loadTokenMetadata()
+      // Also refresh achievements when returning to profile
+      if (address) {
+        fetchAchievementsData()
+      }
+    }
     window.addEventListener('focus', handleFocus)
 
     return () => window.removeEventListener('focus', handleFocus)
   }, [mounted])
+
+  // Periodic refresh of achievements data
+  useEffect(() => {
+    if (!address || !mounted) return
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Periodic achievement refresh...')
+      fetchAchievementsData()
+    }, 30000) // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval)
+  }, [address, mounted])
 
   // Auto-refresh data when page loads
   useEffect(() => {
@@ -1078,6 +1096,16 @@ export default function ProfilePage() {
                     onMintSuccess={() => {
                       setShowAchievementModal(false)
                       fetchAchievementsData()
+                    }}
+                    onMintStateChange={(achievementId, minted) => {
+                      // Update local achievement state immediately
+                      setAchievements(prevAchievements =>
+                        prevAchievements.map(ach =>
+                          ach.id === achievementId
+                            ? { ...ach, minted }
+                            : ach
+                        )
+                      )
                     }}
                   />
                 )}
