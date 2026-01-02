@@ -377,7 +377,7 @@ export default function Home() {
       <div className="fixed top-3 right-3 md:top-4 md:right-4 z-50 flex items-center gap-2">
         <button
           onClick={() => setShowInfoModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-10 h-10 md:w-11 md:h-11 flex items-center justify-center transition-all shadow-lg hover:scale-110 font-bold text-lg"
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all shadow-lg hover:scale-110 text-sm"
           title="How to Play"
         >
           ℹ️

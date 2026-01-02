@@ -26,12 +26,18 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900/30 to-gray-900 rounded-2xl shadow-2xl border border-purple-500/30 z-[101]"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 flex items-center justify-center p-4 z-[101]"
           >
-            <div className="p-6 md:p-8">
+            <motion.div
+              initial={{ y: 20 }}
+              animate={{ y: 0 }}
+              exit={{ y: 20 }}
+              className="w-full max-w-md h-[80vh] max-h-[500px] overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900/30 to-gray-900 rounded-2xl shadow-2xl border border-purple-500/30"
+            >
+              <div className="h-full overflow-y-auto p-6 md:p-8">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -184,7 +190,8 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   Let's Play! 🎮
                 </button>
               </div>
-            </div>
+              </div>
+            </motion.div>
           </motion.div>
         </>
       )}
