@@ -36,6 +36,8 @@ interface Achievement {
   textColor?: string
   unlocked_at?: string
   minted?: boolean
+  exists?: boolean
+  active?: boolean
 }
 
 interface UserAchievement {
@@ -178,10 +180,40 @@ export default function ProfilePage() {
       const userAchievementData = await userAchievementsResponse.json()
       console.log('User achievements:', userAchievementData)
 
-      // Combine achievements with unlock status
+      // Fetch contract achievements to get prices and active status
+      console.log('Fetching contract achievements for profile...')
+      let contractAchievements = []
+      try {
+        const contractResponse = await fetch('/api/contract-achievements')
+        if (contractResponse.ok) {
+          const contractData = await contractResponse.json()
+          contractAchievements = contractData.achievements || []
+          console.log('Contract achievements loaded for profile:', contractAchievements.length)
+        }
+      } catch (error) {
+        console.error('Error fetching contract achievements:', error)
+      }
+
+      // Combine achievements with unlock status and contract data
       const achievementsWithStatus = allAchievements.map((achievement: any) => {
         const userAchievement = userAchievementData.find((ua: UserAchievement) => ua.achievement_id === achievement.id)
         const unlocked = !!userAchievement
+
+        // Find matching contract achievement - try both id and contractId
+        const contractAch = contractAchievements.find((ca: any) => {
+          const caId = ca.contractId || ca.id
+          return Number(caId) === Number(achievement.id) || String(caId) === String(achievement.id)
+        })
+
+        if (contractAch) {
+          console.log(`✅ Profile: Found contract data for achievement ${achievement.id}:`, {
+            exists: true,
+            active: contractAch.active,
+            price: contractAch.price
+          })
+        } else {
+          console.log(`⚠️ Profile: No contract data for achievement ${achievement.id}`)
+        }
 
         // Add visual styling based on rarity
         const { gradient, border, textColor } = getRarityStyling(achievement.rarity)
@@ -193,7 +225,11 @@ export default function ProfilePage() {
           border,
           textColor,
           unlocked_at: userAchievement?.unlocked_at,
-          minted: userAchievement?.minted || false
+          minted: userAchievement?.minted || false,
+          // Add contract data
+          exists: !!contractAch,
+          active: contractAch?.active || false,
+          price: contractAch?.price || achievement.price || '0.001'
         } as Achievement
       })
 

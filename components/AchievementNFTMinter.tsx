@@ -37,10 +37,29 @@ export default function AchievementNFTMinter({ achievement, hasAchievement, onMi
   // Contract address - this should come from environment or deployment config
   const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_ERC1155_ADDRESS || '0x0000000000000000000000000000000000000000'
 
-  // Load contract data on mount - fetch price from database first
+  // Load contract data on mount - check if already provided in achievement prop
   useEffect(() => {
     const loadPrice = async () => {
       console.log('🔄 Loading price for achievement:', achievement.id)
+      
+      // Check if achievement already has contract data (from profile page)
+      if (achievement.exists !== undefined && achievement.price && achievement.price !== '0') {
+        console.log('✅ Using pre-loaded contract data from achievement:', {
+          exists: achievement.exists,
+          active: achievement.active,
+          price: achievement.price
+        })
+        setPrice(achievement.price)
+        setContractData({
+          rarity: 0, // Not used if we have price
+          active: achievement.active || false,
+          price: achievement.price
+        })
+        setIsLoadingContractData(false)
+        return
+      }
+      
+      // Otherwise fetch from database or contract
       try {
         // First try to get price from database
         console.log('📡 Fetching price from database...')

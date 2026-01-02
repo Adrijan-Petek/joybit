@@ -17,6 +17,9 @@ export interface Achievement {
   category: string
   price?: string
   created_at?: string
+  // Contract-related fields
+  exists?: boolean
+  active?: boolean
 }
 
 // Helper function to convert BigInts to numbers
@@ -292,10 +295,13 @@ export async function getUserAchievements(userAddress: string) {
 // Unlock achievement
 export async function unlockAchievement(userAddress: string, achievementId: number) {
   try {
+    // Convert achievementId to string to match database schema
+    const achievementIdStr = achievementId.toString()
+    
     // Check if already unlocked
     const existing = await client.execute({
       sql: `SELECT * FROM user_achievements WHERE user_address = ? AND achievement_id = ?`,
-      args: [userAddress, achievementId]
+      args: [userAddress, achievementIdStr]
     })
 
     if (existing.rows.length > 0) {
@@ -305,7 +311,7 @@ export async function unlockAchievement(userAddress: string, achievementId: numb
     // Unlock achievement
     await client.execute({
       sql: `INSERT INTO user_achievements (user_address, achievement_id) VALUES (?, ?)`,
-      args: [userAddress, achievementId]
+      args: [userAddress, achievementIdStr]
     })
 
     // Award leaderboard points for unlocking achievement
@@ -601,9 +607,12 @@ export async function checkAndUnlockAchievements(userAddress: string) {
 // Helper function to check if achievement is unlocked
 async function isAchievementUnlocked(userAddress: string, achievementId: number): Promise<boolean> {
   try {
+    // Convert achievementId to string to match database schema
+    const achievementIdStr = achievementId.toString()
+    
     const result = await client.execute({
       sql: `SELECT * FROM user_achievements WHERE user_address = ? AND achievement_id = ?`,
-      args: [userAddress, achievementId]
+      args: [userAddress, achievementIdStr]
     })
     return result.rows.length > 0
   } catch (error) {
