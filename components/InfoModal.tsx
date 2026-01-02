@@ -88,7 +88,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                         1
                       </div>
                       <div>
-                        <h4 className="font-bold text-white mb-1">Connect Your Wallet</h4>
+                        <h4 className="text-xl font-bold text-white mb-1">Connect Your Wallet</h4>
                         <p className="text-sm">Click the wallet button in the top right to connect your Base wallet.</p>
                       </div>
                     </div>
@@ -99,7 +99,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                         2
                       </div>
                       <div>
-                        <h4 className="font-bold text-white mb-1">Play Games & Earn</h4>
+                        <h4 className="text-xl font-bold text-white mb-1">Play Games & Earn</h4>
                         <p className="text-sm">
                           • <span className="text-green-400">Match-3:</span> Complete milestone levels (15, 20, 30) for big rewards<br/>
                           • <span className="text-blue-400">Card Game:</span> Win 2,000 JOYB per victory<br/>
@@ -114,7 +114,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                         3
                       </div>
                       <div>
-                        <h4 className="font-bold text-white mb-1">Climb the Leaderboard</h4>
+                        <h4 className="text-xl font-bold text-white mb-1">Climb the Leaderboard</h4>
                         <p className="text-sm">Earn points for every action and compete for seasonal prizes and rewards!</p>
                       </div>
                     </div>
@@ -125,7 +125,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                         4
                       </div>
                       <div>
-                        <h4 className="font-bold text-white mb-1">Unlock Achievements</h4>
+                        <h4 className="text-xl font-bold text-white mb-1">Unlock Achievements</h4>
                         <p className="text-sm">Collect NFT achievements by reaching milestones and completing challenges.</p>
                       </div>
                     </div>

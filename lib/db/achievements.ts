@@ -196,6 +196,60 @@ export async function initAchievementTables() {
       console.log('✅ User achievements table created')
     }
 
+    // Create leaderboard_scores table
+    const leaderboardScoresCheck = await client.execute(`
+      SELECT name FROM sqlite_master
+      WHERE type='table' AND name='leaderboard_scores'
+    `)
+
+    if (leaderboardScoresCheck.rows.length === 0) {
+      await client.execute(`
+        CREATE TABLE leaderboard_scores (
+          address TEXT PRIMARY KEY,
+          score INTEGER DEFAULT 0,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `)
+      console.log('✅ Leaderboard scores table created')
+    }
+
+    // Create indexes for better performance
+    const userAchievementsIndexCheck = await client.execute(`
+      SELECT name FROM sqlite_master
+      WHERE type='index' AND name='idx_user_achievements_address'
+    `)
+
+    if (userAchievementsIndexCheck.rows.length === 0) {
+      await client.execute(`
+        CREATE INDEX idx_user_achievements_address ON user_achievements(user_address)
+      `)
+      console.log('✅ User achievements address index created')
+    }
+
+    const userAchievementsAchievementIndexCheck = await client.execute(`
+      SELECT name FROM sqlite_master
+      WHERE type='index' AND name='idx_user_achievements_id'
+    `)
+
+    if (userAchievementsAchievementIndexCheck.rows.length === 0) {
+      await client.execute(`
+        CREATE INDEX idx_user_achievements_id ON user_achievements(achievement_id)
+      `)
+      console.log('✅ User achievements ID index created')
+    }
+
+    const leaderboardScoresIndexCheck = await client.execute(`
+      SELECT name FROM sqlite_master
+      WHERE type='index' AND name='idx_leaderboard_scores'
+    `)
+
+    if (leaderboardScoresIndexCheck.rows.length === 0) {
+      await client.execute(`
+        CREATE INDEX idx_leaderboard_scores ON leaderboard_scores(score DESC)
+      `)
+      console.log('✅ Leaderboard scores index created')
+    }
+
   } catch (error) {
     console.error('❌ Error initializing achievement tables:', error)
     throw error
@@ -307,12 +361,28 @@ export async function incrementUserStats(userAddress: string, stats: Partial<any
   }
 }
 
-// Get user achievements
+// Get user achievements (legacy function for backward compatibility)
 export async function getUserAchievements(userAddress: string) {
+  return getUserAchievementsDetailed(userAddress)
+}
+
+// Get user achievements with full details (optimized for profile display)
+export async function getUserAchievementsDetailed(userAddress: string) {
   try {
     const result = await client.execute({
       sql: `
-        SELECT ua.*, a.name, a.description, a.requirement, a.emoji, a.rarity, a.category
+        SELECT 
+          ua.achievement_id,
+          ua.unlocked_at,
+          ua.minted,
+          ua.minted_at,
+          ua.transaction_hash,
+          a.name,
+          a.description,
+          a.requirement,
+          a.emoji,
+          a.rarity,
+          a.category
         FROM user_achievements ua
         JOIN achievements a ON ua.achievement_id = a.id
         WHERE ua.user_address = ?
@@ -323,8 +393,35 @@ export async function getUserAchievements(userAddress: string) {
 
     return convertBigInts(result.rows)
   } catch (error) {
-    console.error('Error getting user achievements:', error)
+    console.error('Error getting detailed user achievements:', error)
     throw error
+  }
+}
+
+// Get user achievements summary (for faster loading)
+export async function getUserAchievementsSummary(userAddress: string) {
+  try {
+    const result = await client.execute({
+      sql: `
+        SELECT 
+          COUNT(*) as total_unlocked,
+          COUNT(CASE WHEN minted = TRUE THEN 1 END) as total_minted,
+          GROUP_CONCAT(achievement_id) as achievement_ids
+        FROM user_achievements 
+        WHERE user_address = ?
+      `,
+      args: [userAddress]
+    })
+
+    const row = result.rows[0]
+    return {
+      total_unlocked: Number(row.total_unlocked) || 0,
+      total_minted: Number(row.total_minted) || 0,
+      achievement_ids: row.achievement_ids ? String(row.achievement_ids).split(',') : []
+    }
+  } catch (error) {
+    console.error('Error getting user achievements summary:', error)
+    return { total_unlocked: 0, total_minted: 0, achievement_ids: [] }
   }
 }
 

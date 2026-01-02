@@ -4,6 +4,8 @@ import {
   getUserStats,
   updateUserStats,
   getUserAchievements,
+  getUserAchievementsDetailed,
+  getUserAchievementsSummary,
   unlockAchievement,
   markAchievementMinted,
   getAllAchievements,
@@ -51,8 +53,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(stats)
 
       case 'achievements':
-        const achievements = await getUserAchievements(userAddress)
+        const achievements = await getUserAchievementsDetailed(userAddress)
         return NextResponse.json(achievements)
+
+      case 'achievements_summary':
+        const summary = await getUserAchievementsSummary(userAddress)
+        return NextResponse.json(summary)
 
       case 'all':
         const allAchievements = await getAllAchievements()
