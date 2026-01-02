@@ -84,10 +84,11 @@ export default function Leaderboard() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/50 rounded-lg p-2 md:p-3 mb-3 text-xs"
         >
-          <h3 className="text-lg font-semibold mb-1 text-purple-300">📊 Scoring System</h3>
-          <div className="grid grid-cols-2 gap-1 text-gray-300">
+          <h3 className="text-lg font-semibold mb-2 text-purple-300">📊 Scoring System</h3>
+          <div className="grid grid-cols-2 gap-1 text-gray-300 mb-2">
             <div>• Match-3 Win: <span className="text-green-400">100 pts</span></div>
             <div>• Match-3 Game: <span className="text-green-400">50 pts</span></div>
+            <div>• Level Complete: <span className="text-green-400">150 pts</span></div>
             <div>• Card Win: <span className="text-blue-400">150 pts</span></div>
             <div>• Card Game: <span className="text-blue-400">30 pts</span></div>
             <div>• Daily Claim: <span className="text-yellow-400">80 pts</span></div>
@@ -95,6 +96,25 @@ export default function Leaderboard() {
             <div>• Minted Achievement: <span className="text-purple-400">20 pts</span></div>
             <div>• Unlocked Achievement: <span className="text-purple-400">10 pts</span></div>
           </div>
+
+          {/* Token Holder Bonus - Animated Special Section */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3, duration: 0.5, type: "spring", stiffness: 100 }}
+            className="mt-2 p-2 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-orange-400/50 rounded-md text-center"
+          >
+            <motion.div
+              animate={{ textShadow: ["0px 0px 0px rgba(255,165,0,0)", "0px 0px 10px rgba(255,165,0,0.5)", "0px 0px 0px rgba(255,165,0,0)"] }}
+              transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+              className="text-orange-300 font-semibold text-sm"
+            >
+              🏆 Token Holder Bonus 🏆
+            </motion.div>
+            <div className="text-orange-400 text-xs mt-1">
+              Hold 5M+ JOYB or adrijan tokens: <span className="text-yellow-300 font-bold">+500 pts each</span>
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* To-Do List */}

@@ -205,22 +205,19 @@ export async function initAchievementTables() {
 // Get user stats
 export async function getUserStats(userAddress: string) {
   try {
-    // Normalize address to lowercase for consistent lookups
-    const normalizedAddress = userAddress.toLowerCase()
-    
     const result = await client.execute({
-      sql: `SELECT * FROM user_stats WHERE LOWER(user_address) = ?`,
-      args: [normalizedAddress]
+      sql: `SELECT * FROM user_stats WHERE LOWER(user_address) = LOWER(?)`,
+      args: [userAddress]
     })
 
     if (result.rows.length === 0) {
-      // Create default stats for new user with normalized address
+      // Create default stats for new user
       await client.execute({
         sql: `INSERT INTO user_stats (user_address) VALUES (?)`,
-        args: [normalizedAddress]
+        args: [userAddress]
       })
       return {
-        user_address: normalizedAddress,
+        user_address: userAddress,
         match3_games_played: 0,
         match3_games_won: 0,
         match3_high_score: 0,
@@ -738,6 +735,7 @@ export async function getAchievementPrice(achievementId: number): Promise<string
 const SCORING_SYSTEM = {
   MATCH3_WIN: 100,
   MATCH3_GAME: 50,
+  MATCH3_LEVEL_COMPLETE: 150, // Per level completed
   CARD_WIN: 150,
   CARD_GAME: 30,
   DAILY_CLAIM: 80,
@@ -762,6 +760,7 @@ export async function calculateUserScore(userAddress: string): Promise<number> {
     // Match-3 scoring
     totalScore += stats.match3_games_won * SCORING_SYSTEM.MATCH3_WIN
     totalScore += stats.match3_games_played * SCORING_SYSTEM.MATCH3_GAME
+    totalScore += stats.match3_high_score_level * SCORING_SYSTEM.MATCH3_LEVEL_COMPLETE // Level completion bonus
 
     // Card game scoring
     totalScore += stats.card_games_won * SCORING_SYSTEM.CARD_WIN
@@ -775,15 +774,15 @@ export async function calculateUserScore(userAddress: string): Promise<number> {
 
     // Achievement scoring
     const userAchievements = await client.execute({
-      sql: 'SELECT COUNT(*) as unlocked_count FROM user_achievements WHERE LOWER(user_address) = ?',
-      args: [userAddress.toLowerCase()]
+      sql: 'SELECT COUNT(*) as unlocked_count FROM user_achievements WHERE LOWER(user_address) = LOWER(?)',
+      args: [userAddress]
     })
     const unlockedCount = userAchievements.rows[0]?.unlocked_count as number || 0
     totalScore += unlockedCount * SCORING_SYSTEM.UNLOCKED_ACHIEVEMENT
 
     const mintedAchievements = await client.execute({
-      sql: 'SELECT COUNT(*) as minted_count FROM user_achievements WHERE LOWER(user_address) = ? AND minted = TRUE',
-      args: [userAddress.toLowerCase()]
+      sql: 'SELECT COUNT(*) as minted_count FROM user_achievements WHERE LOWER(user_address) = LOWER(?) AND minted = TRUE',
+      args: [userAddress]
     })
     const mintedCount = mintedAchievements.rows[0]?.minted_count as number || 0
     totalScore += mintedCount * SCORING_SYSTEM.MINTED_ACHIEVEMENT

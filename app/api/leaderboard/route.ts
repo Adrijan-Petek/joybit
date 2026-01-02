@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
       SELECT ls.address, ls.score, lu.username, lu.pfp 
       FROM leaderboard_scores ls 
       LEFT JOIN leaderboard_users lu ON ls.address = lu.address 
+      WHERE ls.score > 0
       ORDER BY ls.score DESC
       LIMIT 50
     `)
