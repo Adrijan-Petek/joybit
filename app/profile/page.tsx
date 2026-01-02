@@ -147,53 +147,36 @@ export default function ProfilePage() {
         return
       }
 
-      // First, sync blockchain stats to database
-      console.log('Syncing blockchain stats to database...')
+      // Fetch user stats from database first
+      console.log('Fetching user stats from database...')
+      const userStatsResponse = await fetch(`/api/achievements?action=stats&address=${address}`)
+      const userStatsData = await userStatsResponse.json()
+      console.log('User stats from database:', userStatsData)
+
+      // Check and unlock achievements based on database stats
+      console.log('Checking for achievements to unlock based on database stats...')
       try {
-        // Get current blockchain data
-        const match3Response = await fetch(`/api/game-stats/match3?address=${address}`)
-        const match3Stats = await match3Response.json()
+        const checkResponse = await fetch(`/api/achievements?action=check&address=${address}`)
+        const checkResult = await checkResponse.json()
+        console.log('Achievement check result:', checkResult)
         
-        // Sync stats to database
-        const syncResponse = await fetch('/api/achievements', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'update_stats',
-            userAddress: address,
-            stats: {
-              match3_games_played: match3Stats.gamesPlayed || 0,
-              match3_high_score: match3Stats.highScore || 0,
-              match3_high_score_level: match3Stats.highScoreLevel || 0,
-              last_login: Date.now()
-            }
-          })
-        })
-        const syncResult = await syncResponse.json()
-        console.log('Stats synced, checking achievements...', syncResult)
-        
-        if (syncResult.unlockedAchievements && syncResult.unlockedAchievements.length > 0) {
-          console.log('New achievements unlocked:', syncResult.unlockedAchievements)
-          syncResult.unlockedAchievements.forEach((achievementId: number) => {
+        if (checkResult.unlocked && checkResult.unlocked.length > 0) {
+          console.log('🎉 New achievements unlocked:', checkResult.unlocked)
+          checkResult.unlocked.forEach((achievementId: number) => {
             const achievement = allAchievements.find((a: any) => a.id === achievementId)
             if (achievement) {
-              console.log(`🎉 Achievement unlocked: ${achievement.name}`)
+              console.log(`✅ Unlocked: ${achievement.name}`)
             }
           })
         }
       } catch (error) {
-        console.error('Error syncing stats:', error)
+        console.error('Error checking achievements:', error)
       }
 
       // Fetch user achievements
       const userAchievementsResponse = await fetch(`/api/achievements?action=achievements&address=${address}`)
       const userAchievementData = await userAchievementsResponse.json()
       console.log('User achievements:', userAchievementData)
-
-      // Fetch user stats
-      const userStatsResponse = await fetch(`/api/achievements?action=stats&address=${address}`)
-      const userStatsData = await userStatsResponse.json()
-      console.log('User stats:', userStatsData)
 
       // Combine achievements with unlock status
       const achievementsWithStatus = allAchievements.map((achievement: any) => {

@@ -495,99 +495,102 @@ export async function checkAndUnlockAchievements(userAddress: string) {
       unlockedAchievements.push(7)
     }
 
-    // ID 37: High Scorer - score 1000+
-    if (stats.match3_high_score >= 1000 && !(await isAchievementUnlocked(userAddress, 37))) {
-      console.log('Unlocking achievement 37: High Scorer')
-      await unlockAchievement(userAddress, 37)
-      unlockedAchievements.push(37)
-    }
-
-    // ID 38: Summit - reach level 5
-    if (stats.match3_high_score_level >= 5 && !(await isAchievementUnlocked(userAddress, 38))) {
-      console.log('Unlocking achievement 38: Summit')
-      await unlockAchievement(userAddress, 38)
-      unlockedAchievements.push(38)
-    }
-
     // Daily claim achievements
+    // ID 21: Daily Starter - first claim
     if (stats.daily_total_claims > 0 && !(await isAchievementUnlocked(userAddress, 21))) {
+      console.log('Unlocking achievement 21: Daily Starter')
       await unlockAchievement(userAddress, 21)
       unlockedAchievements.push(21)
     }
 
+    // ID 22: Streak Master - 7 day streak
     if (stats.daily_current_streak >= 7 && !(await isAchievementUnlocked(userAddress, 22))) {
+      console.log('Unlocking achievement 22: Streak Master')
       await unlockAchievement(userAddress, 22)
       unlockedAchievements.push(22)
     }
 
+    // ID 23: Dedicated Player - 14 total claims
     if (stats.daily_total_claims >= 14 && !(await isAchievementUnlocked(userAddress, 23))) {
+      console.log('Unlocking achievement 23: Dedicated Player')
       await unlockAchievement(userAddress, 23)
       unlockedAchievements.push(23)
     }
 
+    // ID 24: Loyal Supporter - 30 total claims
     if (stats.daily_total_claims >= 30 && !(await isAchievementUnlocked(userAddress, 24))) {
+      console.log('Unlocking achievement 24: Loyal Supporter')
       await unlockAchievement(userAddress, 24)
       unlockedAchievements.push(24)
     }
 
+    // ID 25: Eternal Claimant - 90 total claims
     if (stats.daily_total_claims >= 90 && !(await isAchievementUnlocked(userAddress, 25))) {
+      console.log('Unlocking achievement 25: Eternal Claimant')
       await unlockAchievement(userAddress, 25)
       unlockedAchievements.push(25)
     }
 
     // Card game achievements
+    // ID 26: Card Novice - first card game
     if (stats.card_games_played > 0 && !(await isAchievementUnlocked(userAddress, 26))) {
+      console.log('Unlocking achievement 26: Card Novice')
       await unlockAchievement(userAddress, 26)
       unlockedAchievements.push(26)
     }
 
+    // ID 27: Card Winner - first win
     if (stats.card_games_won > 0 && !(await isAchievementUnlocked(userAddress, 27))) {
+      console.log('Unlocking achievement 27: Card Winner')
       await unlockAchievement(userAddress, 27)
       unlockedAchievements.push(27)
     }
 
+    // ID 28: Card Addict - 10 wins
     if (stats.card_games_won >= 10 && !(await isAchievementUnlocked(userAddress, 28))) {
+      console.log('Unlocking achievement 28: Card Addict')
       await unlockAchievement(userAddress, 28)
       unlockedAchievements.push(28)
     }
 
+    // ID 29: Card Expert - 25 wins
     if (stats.card_games_won >= 25 && !(await isAchievementUnlocked(userAddress, 29))) {
+      console.log('Unlocking achievement 29: Card Expert')
       await unlockAchievement(userAddress, 29)
       unlockedAchievements.push(29)
     }
 
-    if (stats.card_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 31))) {
-      await unlockAchievement(userAddress, 31)
-      unlockedAchievements.push(31)
-    }
-
+    // ID 30: Card God - 100 wins
     if (stats.card_games_won >= 100 && !(await isAchievementUnlocked(userAddress, 30))) {
+      console.log('Unlocking achievement 30: Card God')
       await unlockAchievement(userAddress, 30)
       unlockedAchievements.push(30)
     }
 
+    // ID 31: Card Master - 50 wins
+    if (stats.card_games_won >= 50 && !(await isAchievementUnlocked(userAddress, 31))) {
+      console.log('Unlocking achievement 31: Card Master')
+      await unlockAchievement(userAddress, 31)
+      unlockedAchievements.push(31)
+    }
+
+    // ID 32: Card Collector - 200 games played
     if (stats.card_games_played >= 200 && !(await isAchievementUnlocked(userAddress, 32))) {
+      console.log('Unlocking achievement 32: Card Collector')
       await unlockAchievement(userAddress, 32)
       unlockedAchievements.push(32)
     }
 
     // General achievements
+    // ID 36: Well Rounded - played all game types
     const hasPlayedAllGames = stats.match3_games_played > 0 && stats.card_games_played > 0 && stats.daily_total_claims > 0
     if (hasPlayedAllGames && !(await isAchievementUnlocked(userAddress, 36))) {
+      console.log('Unlocking achievement 36: Well Rounded')
       await unlockAchievement(userAddress, 36)
       unlockedAchievements.push(36)
     }
 
-    if (stats.match3_high_score >= 1000 && !(await isAchievementUnlocked(userAddress, 37))) {
-      await unlockAchievement(userAddress, 37)
-      unlockedAchievements.push(37)
-    }
-
-    if (stats.match3_high_score_level >= 5 && !(await isAchievementUnlocked(userAddress, 38))) {
-      await unlockAchievement(userAddress, 38)
-      unlockedAchievements.push(38)
-    }
-
+    console.log('Total achievements unlocked:', unlockedAchievements.length)
     return unlockedAchievements
   } catch (error) {
     console.error('Error checking achievements:', error)
