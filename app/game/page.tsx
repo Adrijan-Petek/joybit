@@ -14,6 +14,7 @@ import { useMatch3Game, useMatch3GameData, useMatch3LevelReward, useLevelRewards
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { notifyAdminReward } from '@/lib/utils/farcasterNotifications'
 import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
+import { detectInvalidScore, detectSpeedHack } from '@/lib/utils/cheatingDetection'
 import {
   initializeGrid,
   findAllMatches,
@@ -209,7 +210,20 @@ export default function Match3Game() {
   // Submit game result
   const endGame = useCallback(async (won: boolean) => {
     if (!sessionId || !address) return
-    
+
+    // Cheating detection
+    const levelConfig = getLevelConfig(gameState.level)
+    const expectedMaxScore = levelConfig.targetScore * 3 // Allow reasonable margin for combos
+
+    // Check for invalid score (too high for level)
+    detectInvalidScore(address, gameState.score, expectedMaxScore)
+
+    // Check for speed hack (completed too fast)
+    if (levelConfig.timeLimit > 0) {
+      const expectedMinTime = Math.max(30, levelConfig.timeLimit - gameState.timeLeft) // At least 30 seconds or time spent
+      detectSpeedHack(address, expectedMinTime, levelConfig.timeLimit)
+    }
+
     setGameState(prev => ({ ...prev, isPlaying: false }))
     setGameResult(won ? 'win' : 'lose')
     setShowResultPopup(true)

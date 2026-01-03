@@ -5675,6 +5675,7 @@ function SecurityDashboard() {
     blockDurationMinutes: 15
   })
   const [securityLogs, setSecurityLogs] = useState<any[]>([])
+  const [cheatingLogs, setCheatingLogs] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [activeSecurityTab, setActiveSecurityTab] = useState('dashboard')
 
@@ -5724,11 +5725,11 @@ function SecurityDashboard() {
         setSuspiciousActivities(data.suspiciousActivities || suspiciousActivities)
       }
 
-      // Load email settings
-      const emailResponse = await fetch('/api/admin/security/email')
-      if (emailResponse.ok) {
-        const emailData = await emailResponse.json()
-        setEmailSettings(emailData)
+      // Load cheating logs
+      const cheatingResponse = await fetch('/api/admin/security/cheating')
+      if (cheatingResponse.ok) {
+        const cheatingData = await cheatingResponse.json()
+        setCheatingLogs(cheatingData.cheatingLogs || [])
       }
     } catch (error) {
       console.error('Failed to load security data:', error)
@@ -5879,6 +5880,7 @@ function SecurityDashboard() {
           {[
             { id: 'dashboard', label: 'Dashboard', icon: '📊' },
             { id: 'threats', label: 'Threats', icon: '🚨' },
+            { id: 'cheating', label: 'Cheating', icon: '🎭' },
             { id: 'firewall', label: 'Firewall', icon: '🛡️' },
             { id: 'logs', label: 'Logs', icon: '📋' },
             { id: 'email', label: 'Email Alerts', icon: '📧' },
@@ -6139,6 +6141,144 @@ function SecurityDashboard() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cheating Tab */}
+        {activeSecurityTab === 'cheating' && (
+          <div className="space-y-6">
+            <div className="bg-black/40 border border-purple-500/30 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <span>🎭</span>
+                  Cheating Detection Logs
+                  <span className="text-sm bg-purple-500/30 text-purple-300 px-3 py-1 rounded-full">
+                    {cheatingLogs.length} Attempts
+                  </span>
+                </h3>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Are you sure you want to clear all cheating logs?')) return
+                    try {
+                      // Note: We don't have a clear endpoint for cheating logs yet
+                      // For now, just refresh to show current state
+                      loadSecurityData()
+                      toast.success('Cheating logs refreshed')
+                    } catch (error) {
+                      toast.error('Failed to refresh cheating logs')
+                    }
+                  }}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded font-medium transition-colors"
+                >
+                  🔄 Refresh
+                </button>
+              </div>
+
+              <div className="bg-black/50 rounded-lg max-h-96 overflow-y-auto">
+                {cheatingLogs.length > 0 ? (
+                  <div className="divide-y divide-gray-700">
+                    {cheatingLogs.map((log, i) => {
+                      const details = JSON.parse(log.details || '{}')
+                      return (
+                        <div key={i} className="p-4 hover:bg-gray-800/50 transition-colors">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <span className={`text-lg ${
+                                log.action.includes('multiple_claims') ? '💰' :
+                                log.action.includes('invalid_score') ? '📊' :
+                                log.action.includes('speed_hack') ? '⚡' :
+                                log.action.includes('game_manipulation') ? '🎮' :
+                                log.action.includes('reward_exploit') ? '🏆' : '🎭'
+                              }`}></span>
+                              <span className="font-medium text-white">{log.action}</span>
+                            </div>
+                            <span className="text-sm text-gray-400">{new Date(log.timestamp).toLocaleString()}</span>
+                          </div>
+                          <div className="text-sm text-gray-300 ml-8">
+                            <span className="text-gray-500">Player:</span> {log.user ? `${log.user.slice(0, 6)}...${log.user.slice(-4)}` : 'Unknown'} •
+                            <span className="text-gray-500"> IP:</span> {log.ip || 'Unknown'} •
+                            <span className="text-gray-500"> Type:</span> {details.cheating_type || 'Unknown'}
+                          </div>
+                          {details.details && (
+                            <div className="text-sm text-red-300 ml-8 mt-1">
+                              <span className="text-red-500">Details:</span> {details.details}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    <span className="text-4xl mb-2 block">✅</span>
+                    No cheating attempts detected
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Cheating Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="bg-black/40 border border-purple-500/30 rounded-lg p-4"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">💰</span>
+                  <div>
+                    <p className="text-sm text-gray-400">Multiple Claims</p>
+                    <p className="text-2xl font-bold text-purple-400">
+                      {cheatingLogs.filter(log => log.action.includes('multiple_claims')).length}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="bg-black/40 border border-blue-500/30 rounded-lg p-4"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">📊</span>
+                  <div>
+                    <p className="text-sm text-gray-400">Invalid Scores</p>
+                    <p className="text-2xl font-bold text-blue-400">
+                      {cheatingLogs.filter(log => log.action.includes('invalid_score')).length}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="bg-black/40 border border-green-500/30 rounded-lg p-4"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">⚡</span>
+                  <div>
+                    <p className="text-sm text-gray-400">Speed Hacks</p>
+                    <p className="text-2xl font-bold text-green-400">
+                      {cheatingLogs.filter(log => log.action.includes('speed_hack')).length}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="bg-black/40 border border-orange-500/30 rounded-lg p-4"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">🎮</span>
+                  <div>
+                    <p className="text-sm text-gray-400">Game Manipulation</p>
+                    <p className="text-2xl font-bold text-orange-400">
+                      {cheatingLogs.filter(log => log.action.includes('game_manipulation')).length}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </div>
         )}

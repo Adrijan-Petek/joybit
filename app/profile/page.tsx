@@ -19,6 +19,7 @@ import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { notifyRewardAvailable } from '@/lib/utils/farcasterNotifications'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
+import { logCheatingAttempt } from '@/lib/utils/cheatingDetection'
 import AchievementNFTMinter from '@/components/AchievementNFTMinter'
 
 // Type definitions
@@ -545,11 +546,24 @@ export default function ProfilePage() {
     if (!isConnected || !allPendingRewards || allPendingRewards.tokens.length === 0) return
 
     try {
+      // Check for multiple claims (cheating detection)
+      const lastClaimTime = await getStorageItem(`last_claim_${address}`)
+      const now = Date.now()
+      const timeSinceLastClaim = lastClaimTime ? now - parseInt(lastClaimTime) : Infinity
+
+      // If claimed within last 30 seconds, flag as potential cheating
+      if (timeSinceLastClaim < 30000 && address) {
+        logCheatingAttempt('multiple_claims', address, `Claimed ${timeSinceLastClaim}ms after last claim`)
+      }
+
       // Store the rewards before claiming for notification
       const rewardsBeforeClaim = allPendingRewards
 
       await claimRewards()
       refetchTreasury()
+
+      // Store claim timestamp for cheating detection
+      setStorageItem(`last_claim_${address}`, Date.now().toString())
 
       // Set cooldown to prevent immediate re-claiming
       setClaimCooldown(true)
