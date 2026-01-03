@@ -2,6 +2,8 @@
 
 <div align="center">
 
+![Joybit Promo](public/joybit-promo.png)
+
 **A Decentralized Gaming Platform on Base Blockchain**
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.1+-000000?style=for-the-badge&logo=next.js)](https://nextjs.org/)
