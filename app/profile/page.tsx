@@ -21,6 +21,7 @@ import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 import { logCheatingAttempt } from '@/lib/utils/cheatingDetection'
 import AchievementNFTMinter from '@/components/AchievementNFTMinter'
+import { Avatar } from '@coinbase/onchainkit/identity'
 
 // Type definitions
 interface Achievement {
@@ -708,12 +709,20 @@ export default function ProfilePage() {
         >
           <div className="flex items-center">
             <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mr-3 overflow-hidden">
-              {userData.pfp ? (
+              {farcasterUserData.pfpUrl ? (
+                <img 
+                  src={farcasterUserData.pfpUrl} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : userData.pfp ? (
                 <img 
                   src={userData.pfp} 
                   alt="Profile" 
                   className="w-full h-full object-cover"
                 />
+              ) : address ? (
+                <Avatar address={address} className="w-full h-full rounded-full" />
               ) : (
                 <div className="w-full h-full bg-cyan-500 rounded-full flex items-center justify-center">
                   🎮

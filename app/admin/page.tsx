@@ -5668,7 +5668,7 @@ function ThemeSettings() {
 // Security Dashboard Component
 function SecurityDashboard() {
   const [securityAlerts, setSecurityAlerts] = useState<any[]>([])
-  const [blockedIPs, setBlockedIPs] = useState<string[]>([])
+  const [blockedIPs, setBlockedIPs] = useState<any[]>([])
   const [rateLimitSettings, setRateLimitSettings] = useState({
     maxRequestsPerMinute: 60,
     maxRequestsPerHour: 1000,
@@ -5766,7 +5766,8 @@ function SecurityDashboard() {
         body: JSON.stringify({ ip })
       })
       if (response.ok) {
-        setBlockedIPs(prev => [...prev, ip])
+        // Refresh the blocked IPs list to show updated data
+        await loadSecurityData()
         toast.success(`IP ${ip} has been blocked`)
       }
     } catch (error) {
@@ -5782,7 +5783,8 @@ function SecurityDashboard() {
         body: JSON.stringify({ ip })
       })
       if (response.ok) {
-        setBlockedIPs(prev => prev.filter(blocked => blocked !== ip))
+        // Refresh the blocked IPs list to show updated data
+        await loadSecurityData()
         toast.success(`IP ${ip} has been unblocked`)
       }
     } catch (error) {
@@ -6097,15 +6099,22 @@ function SecurityDashboard() {
                 <div className="bg-black/50 rounded-lg p-4 max-h-64 overflow-y-auto">
                   {blockedIPs.length > 0 ? (
                     <div className="space-y-2">
-                      {blockedIPs.map((ip, i) => (
-                        <div key={i} className="flex items-center justify-between bg-red-500/10 border border-red-500/20 rounded p-3">
-                          <span className="font-mono text-red-300">{ip}</span>
-                          <button
-                            onClick={() => unblockIP(ip)}
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm font-medium transition-colors"
-                          >
-                            Unblock
-                          </button>
+                      {blockedIPs.map((blockedIP, i) => (
+                        <div key={i} className="bg-red-500/10 border border-red-500/20 rounded p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-mono text-red-300 text-lg font-bold">{blockedIP.ip}</span>
+                            <button
+                              onClick={() => unblockIP(blockedIP.ip)}
+                              className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm font-medium transition-colors"
+                            >
+                              Unblock
+                            </button>
+                          </div>
+                          <div className="text-sm text-gray-400 space-y-1">
+                            <div><span className="text-gray-500">Reason:</span> {blockedIP.reason}</div>
+                            <div><span className="text-gray-500">Blocked:</span> {new Date(blockedIP.blockedAt).toLocaleString()}</div>
+                            <div><span className="text-gray-500">By:</span> {blockedIP.blockedBy}</div>
+                          </div>
                         </div>
                       ))}
                     </div>

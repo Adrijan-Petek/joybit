@@ -4,6 +4,7 @@ import { useAccount, useDisconnect, useConnect } from 'wagmi'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { sdk } from '@farcaster/miniapp-sdk'
 import { useEffect, useState } from 'react'
+import { Avatar } from '@coinbase/onchainkit/identity'
 
 export function WalletButton() {
   const { address, isConnected } = useAccount()
@@ -102,12 +103,18 @@ export function WalletButton() {
     return (
       <div className="relative group">
         <button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-3 md:px-6 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-xs md:text-base flex items-center gap-2">
-          {context?.user?.pfpUrl && (
+          {context?.user?.pfpUrl ? (
             <img 
               src={context.user.pfpUrl} 
               alt="PFP"
               className="w-6 h-6 rounded-full object-cover"
             />
+          ) : !isInMiniApp ? (
+            <Avatar address={address} className="w-6 h-6 rounded-full" />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
           )}
           {displayName}
         </button>
