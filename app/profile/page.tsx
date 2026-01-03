@@ -114,7 +114,7 @@ export default function ProfilePage() {
   const { claimRewards, isClaiming } = useTreasury()
   const { allPendingRewards, refetch: refetchTreasury } = useTreasuryData(address)
   const { playerData: match3Data, refetch: refetchMatch3 } = useMatch3GameData(address)
-  const { playerData: cardData, refetch: refetchCard } = useCardGameData(address)
+  const { playerData: cardData, refetch: refetchCard, isLoading: isLoadingCard } = useCardGameData(address)
   const { playerData: claimData, refetch: refetchClaim } = useClaimData(address)
   const { stats: match3Stats, fetchStats: refetchMatch3Stats } = useMatch3Stats(address)
   const { leaderboard: globalLeaderboard } = useLeaderboard()
@@ -434,13 +434,21 @@ export default function ProfilePage() {
     return () => clearInterval(refreshInterval)
   }, [address, mounted])
 
-  // Auto-refresh data when page loads
+  // Auto-refresh data when page loads and periodically
   useEffect(() => {
     if (address) {
+      // Initial fetch
       refetchMatch3?.()
       refetchCard?.()
       refetchClaim?.()
       refetchTreasury()
+
+      // Set up periodic refresh for card game stats (more frequent since games are quick)
+      const cardRefreshInterval = setInterval(() => {
+        refetchCard?.()
+      }, 10000) // Refresh card stats every 10 seconds
+
+      return () => clearInterval(cardRefreshInterval)
     }
   }, [address, refetchMatch3, refetchCard, refetchClaim, refetchTreasury])
 
@@ -642,10 +650,9 @@ export default function ProfilePage() {
   const match3HighScore = match3Stats.highScore
   const match3HighScoreLevel = match3Stats.highScoreLevel
   
-  // Parse Card game data
-  // PlayerData: [0]=lastFreePlayTime, [1]=gamesPlayed, [2]=gamesWon, [3]=totalRewardsEarned
-  const cardPlayed = cardData ? Number((cardData as any)[1]) || 0 : 0
-  const cardWon = cardData ? Number((cardData as any)[2]) || 0 : 0
+  // Parse Card game data from contract (authoritative source)
+  const cardPlayed = cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0
+  const cardWon = cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0
   const cardWinRate = cardPlayed > 0 ? ((cardWon / cardPlayed) * 100).toFixed(1) : '0.0'
 
   // Parse Daily claim data
@@ -824,19 +831,34 @@ export default function ProfilePage() {
             transition={{ delay: 0.3 }}
             className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 border border-gray-800"
           >
-            <h3 className="text-sm md:text-base font-bold mb-2 text-gray-300">Card Game Stats</h3>
+            <h3 className="text-sm md:text-base font-bold mb-2 text-gray-300 flex items-center justify-between">
+              Card Game Stats
+              <button
+                onClick={() => refetchCard?.()}
+                className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
+                title="Refresh stats"
+              >
+                ↻
+              </button>
+            </h3>
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs md:text-sm">
                 <span className="text-gray-400">Total Plays:</span>
-                <span className="font-bold">{cardPlayed}</span>
+                <span className="font-bold">
+                  {isLoadingCard ? '...' : cardPlayed}
+                </span>
               </div>
               <div className="flex justify-between text-xs md:text-sm">
                 <span className="text-gray-400">Wins:</span>
-                <span className="font-bold text-green-400">{cardWon}</span>
+                <span className="font-bold text-green-400">
+                  {isLoadingCard ? '...' : cardWon}
+                </span>
               </div>
               <div className="flex justify-between text-xs md:text-sm">
                 <span className="text-gray-400">Win Rate:</span>
-                <span className="font-bold text-blue-400">{cardWinRate}%</span>
+                <span className="font-bold text-blue-400">
+                  {isLoadingCard ? '...' : cardWinRate}%
+                </span>
               </div>
             </div>
           </motion.div>

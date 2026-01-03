@@ -33,8 +33,9 @@ export default function CardGame() {
   ])
   const [selectedCard, setSelectedCard] = useState<number | null>(null)
   const [gameResult, setGameResult] = useState<'win' | 'lose' | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const [userStats, setUserStats] = useState<any>(null)
   const [mounted, setMounted] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -56,8 +57,21 @@ export default function CardGame() {
   useEffect(() => {
     if (address) {
       refetch()
+      // Fetch user stats from database
+      fetchUserStats()
     }
   }, [address, refetch])
+
+  const fetchUserStats = async () => {
+    if (!address) return
+    try {
+      const response = await fetch(`/api/achievements?action=stats&address=${address}`)
+      const data = await response.json()
+      setUserStats(data)
+    } catch (error) {
+      console.error('Failed to fetch user stats:', error)
+    }
+  }
 
   const resetGame = () => {
     setCards([
@@ -157,6 +171,9 @@ export default function CardGame() {
           })
         })
 
+        // Refresh user stats display
+        await fetchUserStats()
+
         console.log(`✅ Card game completed: ${won ? 'Won' : 'Lost'}`)
       } catch (error) {
         console.error('Failed to update card game stats:', error)
@@ -170,8 +187,8 @@ export default function CardGame() {
 
   if (!mounted) return null
 
-  const totalPlays = playerData ? Number(playerData[1]) : 0
-  const wins = playerData ? Number(playerData[2]) : 0
+  const totalPlays = userStats?.card_games_played || 0
+  const wins = userStats?.card_games_won || 0
   const winRate = totalPlays > 0 ? ((wins / totalPlays) * 100).toFixed(1) : '0.0'
 
   return (
