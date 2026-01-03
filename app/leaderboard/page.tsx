@@ -9,6 +9,7 @@ import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
 import { useAudio } from '@/components/audio/AudioContext'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
+import { Avatar } from '@coinbase/onchainkit/identity'
 
 export default function Leaderboard() {
   const router = useRouter()
@@ -200,12 +201,14 @@ export default function Leaderboard() {
                       <div className="text-sm md:text-base font-bold">{getRankEmoji(index + 1)}</div>
                     </td>
                     <td className="px-2 md:px-3 py-2 font-mono text-[10px] md:text-xs flex items-center gap-2">
-                      {entry.pfp && (
+                      {entry.pfp ? (
                         <img 
                           src={entry.pfp} 
                           alt="PFP"
                           className="w-6 h-6 rounded-full object-cover"
                         />
+                      ) : (
+                        <Avatar address={entry.address as `0x${string}`} className="w-6 h-6 rounded-full" />
                       )}
                       <span>
                         {entry.username || `${entry.address.slice(0, 6)}...${entry.address.slice(-4)}`}
