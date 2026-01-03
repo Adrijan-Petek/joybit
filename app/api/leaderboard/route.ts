@@ -83,6 +83,7 @@ export async function GET(request: NextRequest) {
       LIMIT 50
     `)
 
+    // Process leaderboard entries (don't auto-generate profiles here)
     const leaderboard = allUsersResult.rows.map(row => ({
       address: row.address as string,
       score: row.score as number,

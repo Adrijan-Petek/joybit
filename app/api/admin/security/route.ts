@@ -251,7 +251,7 @@ export async function GET() {
 
     // Get blocked IPs
     const blockedIPsResult = await client.execute(`
-      SELECT ip, reason, blocked_at, blocked_by FROM blocked_ips
+      SELECT ip FROM blocked_ips
       ORDER BY blocked_at DESC
     `)
 
@@ -304,12 +304,7 @@ export async function GET() {
         resolved: row.resolved,
         timestamp: row.timestamp
       })),
-      blockedIPs: blockedIPsResult.rows.map(row => ({
-        ip: row.ip,
-        reason: row.reason || 'No reason provided',
-        blockedAt: row.blocked_at,
-        blockedBy: row.blocked_by || 'Unknown'
-      })),
+      blockedIPs: blockedIPsResult.rows.map(row => row.ip),
       logs: logsResult.rows.map(row => ({
         id: row.id,
         action: row.action,

@@ -6,6 +6,11 @@ import { sdk } from '@farcaster/miniapp-sdk'
 import { useEffect, useState } from 'react'
 import { Avatar } from '@coinbase/onchainkit/identity'
 
+interface UserData {
+  username: string | null
+  avatar: string | null
+}
+
 export function WalletButton() {
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
@@ -15,6 +20,7 @@ export function WalletButton() {
   const [isInMiniApp, setIsInMiniApp] = useState(false)
   const [ready, setReady] = useState(false)
   const [basename, setBasename] = useState<string | null>(null)
+  const [userData, setUserData] = useState<UserData | null>(null)
 
   // Initialize SDK context and check if in MiniApp
   useEffect(() => {
@@ -58,6 +64,25 @@ export function WalletButton() {
     fetchBasename()
   }, [address, isInMiniApp, context])
 
+  // Fetch user profile data (only for users without ENS/Farcaster)
+  useEffect(() => {
+    if (!address || context?.user?.username || basename) return
+
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch(`/api/user-profile?address=${address}`)
+        if (response.ok) {
+          const data = await response.json()
+          setUserData(data)
+        }
+      } catch (error) {
+        console.log('Could not fetch user profile:', error)
+      }
+    }
+
+    fetchUserData()
+  }, [address, context?.user?.username, basename])
+
   // Auto-connect to Farcaster Wallet when in MiniApp
   useEffect(() => {
     if (!isInMiniApp) return
@@ -98,7 +123,7 @@ export function WalletButton() {
   }
 
   if (isConnected && address) {
-    const displayName = context?.user?.username || basename || formatAddress(address)
+    const displayName = context?.user?.username || basename || userData?.username || formatAddress(address)
     
     return (
       <div className="relative group">
@@ -109,8 +134,14 @@ export function WalletButton() {
               alt="PFP"
               className="w-6 h-6 rounded-full object-cover"
             />
-          ) : !isInMiniApp ? (
+          ) : !isInMiniApp && !userData?.avatar ? (
             <Avatar address={address} className="w-6 h-6 rounded-full" />
+          ) : userData?.avatar ? (
+            <img 
+              src={userData.avatar} 
+              alt="Avatar"
+              className="w-6 h-6 rounded-full object-cover"
+            />
           ) : (
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
               {displayName.charAt(0).toUpperCase()}

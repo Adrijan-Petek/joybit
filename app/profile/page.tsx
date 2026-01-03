@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAccount } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { sdk } from '@farcaster/miniapp-sdk'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
@@ -22,6 +23,8 @@ import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 import { logCheatingAttempt } from '@/lib/utils/cheatingDetection'
 import AchievementNFTMinter from '@/components/AchievementNFTMinter'
 import { Avatar } from '@coinbase/onchainkit/identity'
+import { generateUserProfile, validateUsername } from '@/lib/utils/userProfile'
+import toast from 'react-hot-toast'
 
 // Type definitions
 interface Achievement {
@@ -75,6 +78,9 @@ export default function ProfilePage() {
   const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [userData, setUserData] = useState<{ username?: string; pfp?: string }>({})
   const [farcasterUserData, setFarcasterUserData] = useState<{ username?: string; pfpUrl?: string }>({})
+  const [isEditingUsername, setIsEditingUsername] = useState(false)
+  const [editingUsername, setEditingUsername] = useState('')
+  const [usernameError, setUsernameError] = useState('')
 
   // Helper function to get rarity styling
   const getRarityStyling = (rarity: string) => {
@@ -253,19 +259,7 @@ export default function ProfilePage() {
     if (!address) return
 
     try {
-      const response = await fetch(`/api/leaderboard?address=${address}`)
-      const data = await response.json()
-      
-      // If we have username/pfp from database, use it
-      if (data.username || data.pfp) {
-        setUserData({
-          username: data.username,
-          pfp: data.pfp
-        })
-        return
-      }
-      
-      // If no data in database, use Farcaster data if available
+      // First, check if we have Farcaster data (highest priority)
       if (farcasterUserData.username || farcasterUserData.pfpUrl) {
         const farcasterData = {
           username: farcasterUserData.username,
@@ -273,6 +267,9 @@ export default function ProfilePage() {
         }
         
         // Store this data in database for future use
+        const response = await fetch(`/api/leaderboard?address=${address}`)
+        const data = await response.json()
+        
         await fetch('/api/leaderboard', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -288,7 +285,7 @@ export default function ProfilePage() {
         return
       }
       
-      // If no Farcaster data, try to fetch Basename for external wallets
+      // Second, try to fetch Basename (ENS) for external wallets
       try {
         console.log('🔍 Attempting to fetch Basename for external wallet...')
         const basenameResponse = await fetch(`/api/get-basename?address=${address}`)
@@ -302,6 +299,9 @@ export default function ProfilePage() {
           }
           
           // Store Basename in database
+          const response = await fetch(`/api/leaderboard?address=${address}`)
+          const data = await response.json()
+          
           await fetch('/api/leaderboard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -320,8 +320,36 @@ export default function ProfilePage() {
         console.log('❌ Could not fetch Basename:', basenameError)
       }
       
-      // No data available from any source
-      setUserData({})
+      // Third, check database for existing profile (only for users without ENS/Farcaster)
+      const response = await fetch(`/api/leaderboard?address=${address}`)
+      const data = await response.json()
+      
+      if (data.username || data.pfp) {
+        setUserData({
+          username: data.username,
+          pfp: data.pfp
+        })
+        return
+      }
+      
+      // Only generate profile if user has no ENS or Farcaster data
+      console.log('🎨 No ENS/Farcaster found, generating profile for user without external identity...')
+      const generatedProfile = generateUserProfile()
+      
+      // Store generated profile in database
+      await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          address, 
+          score: data.currentScore || 0,
+          username: generatedProfile.username,
+          pfp: generatedProfile.avatar
+        })
+      })
+      
+      setUserData(generatedProfile)
+      return
     } catch (error) {
       console.error('Error fetching user data:', error)
       setUserData({})
@@ -589,15 +617,68 @@ export default function ProfilePage() {
     // This function is no longer used - functionality split into separate Claim and Share buttons
   }
 
+  const handleSaveUsername = async () => {
+    if (!address) return
+
+    const validation = validateUsername(editingUsername)
+    if (!validation.valid) {
+      setUsernameError(validation.error!)
+      return
+    }
+
+    try {
+      // Save to database
+      await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address,
+          score: 0, // Don't update score
+          username: editingUsername,
+          pfp: userData.pfp // Keep existing PFP
+        })
+      })
+
+      // Update local state
+      setUserData(prev => ({ ...prev, username: editingUsername }))
+      setIsEditingUsername(false)
+      setUsernameError('')
+      toast.success('Username updated successfully!')
+    } catch (error) {
+      console.error('Failed to save username:', error)
+      toast.error('Failed to save username')
+    }
+  }
+
+  const handleGenerateProfile = async () => {
+    if (!address) return
+
+    try {
+      const profile = generateUserProfile()
+
+      // Save to database
+      await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address,
+          score: 0, // Don't update score
+          username: profile.username,
+          pfp: profile.avatar
+        })
+      })
+
+      // Update local state
+      setUserData(profile)
+      toast.success('Profile generated successfully!')
+    } catch (error) {
+      console.error('Failed to generate profile:', error)
+      toast.error('Failed to generate profile')
+    }
+  }
+
   const handleShareLeaderboard = async () => {
     try {
-      const { sdk } = await import('@farcaster/miniapp-sdk')
-
-      if (!await sdk.isInMiniApp()) {
-        console.log('Not in Farcaster Mini App context - sharing skipped')
-        return
-      }
-
       // Get game stats for the message
       const match3Played = match3Stats.gamesPlayed || (match3Data && Array.isArray(match3Data) ? Number(match3Data[1]) || 0 : 0)
       const leaderboardScore = globalLeaderboard.find(p => p.address.toLowerCase() === address?.toLowerCase())?.score || 0
@@ -729,12 +810,71 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-            <div className="overflow-hidden">
-              <h2 className="text-base md:text-lg font-bold mb-0.5">
-                {userData.username || 'Player'}
-              </h2>
-              <p className="text-gray-400 font-mono text-xs md:text-sm truncate">{address}</p>
+            <div className="overflow-hidden flex-1">
+              {isEditingUsername ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={editingUsername}
+                    onChange={(e) => {
+                      setEditingUsername(e.target.value)
+                      setUsernameError('')
+                    }}
+                    placeholder="Enter username"
+                    className="w-full px-3 py-1 bg-gray-800 border border-gray-600 rounded text-white text-sm"
+                    maxLength={20}
+                  />
+                  {usernameError && (
+                    <p className="text-red-400 text-xs">{usernameError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveUsername}
+                      className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-medium"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingUsername(false)
+                        setEditingUsername('')
+                        setUsernameError('')
+                      }}
+                      className="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-xs font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base md:text-lg font-bold mb-0.5">
+                      {userData.username || 'Player'}
+                    </h2>
+                    <p className="text-gray-400 font-mono text-xs md:text-sm truncate">{address}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsEditingUsername(true)
+                      setEditingUsername(userData.username || '')
+                    }}
+                    className="ml-2 p-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                    title="Edit username"
+                  >
+                    ✏️
+                  </button>
+                </div>
+              )}
             </div>
+            {!userData.username && !farcasterUserData.username && (
+              <button
+                onClick={handleGenerateProfile}
+                className="ml-2 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs font-medium"
+              >
+                Generate Profile
+              </button>
+            )}
           </div>
         </motion.div>
 
