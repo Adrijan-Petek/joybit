@@ -14,6 +14,7 @@ import { useMatch3GameData } from '@/lib/hooks/useMatch3Game'
 import { useCardGameData } from '@/lib/hooks/useCardGame'
 import { useClaimData } from '@/lib/hooks/useDailyClaim'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
+import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { notifyRewardAvailable } from '@/lib/utils/farcasterNotifications'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
@@ -63,7 +64,7 @@ export default function ProfilePage() {
   const { playMusic } = useAudio()
   const [mounted, setMounted] = useState(false)
   const [tokenImages, setTokenImages] = useState<Record<string, { image: string; symbol: string }>>({})
-  const [showSharePrompt, setShowSharePrompt] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
   const [claimCooldown, setClaimCooldown] = useState(false)
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
   const [showAchievementModal, setShowAchievementModal] = useState(false)
@@ -116,6 +117,7 @@ export default function ProfilePage() {
   const { playerData: cardData, refetch: refetchCard } = useCardGameData(address)
   const { playerData: claimData, refetch: refetchClaim } = useClaimData(address)
   const { stats: match3Stats, fetchStats: refetchMatch3Stats } = useMatch3Stats(address)
+  const { leaderboard: globalLeaderboard } = useLeaderboard()
 
   // Fetch achievements and user data from database
   const fetchAchievementsData = async () => {
@@ -534,17 +536,7 @@ export default function ProfilePage() {
   const handleClaimRewards = async () => {
     if (!isConnected || !allPendingRewards || allPendingRewards.tokens.length === 0) return
 
-    // Show share prompt first
-    setShowSharePrompt(true)
-  }
-
-  const handleShareAndClaim = async () => {
-    if (!isConnected || !allPendingRewards || allPendingRewards.tokens.length === 0) return
-
     try {
-      // Share on Farcaster first
-      await handleShareResults()
-
       // Store the rewards before claiming for notification
       const rewardsBeforeClaim = allPendingRewards
 
@@ -565,15 +557,16 @@ export default function ProfilePage() {
 
         notifyRewardAvailable(formatTokenBalance(totalClaimed), tokenSymbol)
       }
-
-      // Hide share prompt
-      setShowSharePrompt(false)
     } catch (error) {
       console.error('Failed to claim rewards:', error)
     }
   }
 
-  const handleShareResults = async () => {
+  const handleShareAndClaim = async () => {
+    // This function is no longer used - functionality split into separate Claim and Share buttons
+  }
+
+  const handleShareLeaderboard = async () => {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk')
 
@@ -584,27 +577,22 @@ export default function ProfilePage() {
 
       // Get game stats for the message
       const match3Played = match3Stats.gamesPlayed || (match3Data && Array.isArray(match3Data) ? Number(match3Data[1]) || 0 : 0)
-      const match3HighScore = match3Stats.highScore || 0
+      const leaderboardScore = globalLeaderboard.find(p => p.address.toLowerCase() === address?.toLowerCase())?.score || 0
       const cardPlayed = cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0
       const cardWon = cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0
+      const rewardsAmount = allPendingRewards ? formatTokenBalance(allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)) : '0'
 
-      // Create catchy share message
-      const rewardsText = allPendingRewards.tokens.map((tokenAddress, index) => {
-        const amount = allPendingRewards.amounts[index]
-        const tokenData = tokenImages[tokenAddress.toLowerCase()]
-        const symbol = tokenData?.symbol || (tokenAddress.toLowerCase() === CONTRACT_ADDRESSES.joybitToken.toLowerCase() ? 'JOYB' : tokenAddress.slice(0, 6) + '...')
-        return `  ${formatTokenBalance(amount)} ${symbol}`
-      }).join('\n')
-
-      const shareText = `🎮 Just crushed it in Joybit!\n\n` +
-        `🏆 Match-3: ${match3Played} games played, High Score: ${match3HighScore}\n` +
+      // Create share message matching the preview
+      const shareText = `🎮 Just crushed it in Joybit!\n` +
+        `🏆 Leaderboard Score: ${leaderboardScore.toLocaleString()} points\n` +
+        `🏆 Match-3: ${match3Played} games played\n` +
         `🃏 Card Game: ${cardPlayed} games, ${cardWon} wins\n` +
-        `💰 Claiming rewards:\n${rewardsText}\n\n` +
-        `Who's next? Come play and win big! 🚀\n\n` +
+        `💰 Claiming ${rewardsAmount} JOYB in rewards!\n\n` +
+        `Who's next? Come play and win big! 🚀\n` +
         `#Joybit #GameFi #MiniApp`
 
       // Share using Farcaster's composer
-      const shareUrl = `${window.location.origin}/profile`
+      const shareUrl = `${window.location.origin}/leaderboard`
       await sdk.actions.openUrl({
         url: `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}`
       })
@@ -612,7 +600,6 @@ export default function ProfilePage() {
       console.log('✅ Shared results on Farcaster!')
     } catch (error) {
       console.error('Failed to share on Farcaster:', error)
-      // Continue with claiming even if sharing fails
     }
   }
 
@@ -776,62 +763,28 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Share Prompt or Claim Button */}
-          {showSharePrompt ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/50 rounded-lg p-4 mb-4"
+          {/* Action Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex gap-3 justify-center mb-4"
+          >
+            <button
+              onClick={handleClaimRewards}
+              disabled={isClaiming || claimCooldown || !allPendingRewards || allPendingRewards.tokens.length === 0}
+              className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 text-black font-bold py-3 px-6 rounded-lg transition-all disabled:cursor-not-allowed text-sm"
             >
-              <div className="text-center mb-4">
-                <div className="text-2xl mb-2">🎉</div>
-                <h4 className="text-lg font-bold text-purple-300 mb-2">Share Your Victory!</h4>
-                <p className="text-sm text-gray-300 mb-4">
-                  Show off your gaming skills and inspire others to join the fun!
-                </p>
+              {isClaiming ? 'Claiming...' : claimCooldown ? 'Cooldown...' : '💰 Claim All'}
+            </button>
 
-                {/* Share Preview */}
-                <div className="bg-black/40 border border-purple-500/30 rounded-lg p-3 mb-4 text-left">
-                  <div className="text-xs text-gray-400 mb-2">📤 Share Preview:</div>
-                  <div className="text-sm text-white font-mono bg-black/20 p-2 rounded">
-                    🎮 Just crushed it in Joybit!<br/>
-                    🏆 Match-3: {match3Stats.gamesPlayed || (match3Data && Array.isArray(match3Data) ? Number(match3Data[1]) || 0 : 0)} games played, High Score: {match3Stats.highScore || 0}<br/>
-                    🃏 Card Game: {cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0} games, {cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0} wins<br/>
-                    💰 Claiming {allPendingRewards ? formatTokenBalance(allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)) : '0'} JOYB in rewards!<br/>
-                    <br/>
-                    Who&apos;s next? Come play and win big! 🚀<br/>
-                    #Joybit #GameFi #MiniApp
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-center">
-                <button
-                  onClick={() => setShowSharePrompt(false)}
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm"
-                >
-                  Skip & Claim
-                </button>
-                <button
-                  onClick={handleShareAndClaim}
-                  disabled={isClaiming}
-                  className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-2 px-6 rounded-lg transition-all disabled:opacity-50 text-sm"
-                >
-                  {isClaiming ? 'Sharing & Claiming...' : '🚀 Share & Claim!'}
-                </button>
-              </div>
-            </motion.div>
-          ) : (
-            <div className="flex justify-end">
-              <button
-                onClick={handleClaimRewards}
-                disabled={isClaiming || claimCooldown || !allPendingRewards || allPendingRewards.tokens.length === 0}
-                className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 text-black font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg transition-all disabled:cursor-not-allowed text-xs md:text-sm"
-              >
-                {isClaiming ? 'Claiming...' : claimCooldown ? 'Cooldown...' : 'Claim All Tokens'}
-              </button>
-            </div>
-          )}
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition-all text-sm"
+            >
+              🚀 Share Results
+            </button>
+          </motion.div>
         </motion.div>
 
         {/* Stats Grid */}
@@ -850,14 +803,14 @@ export default function ProfilePage() {
               </div>
               <div className="flex flex-col text-xs md:text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">High Score:</span>
+                  <span className="text-gray-400">Leaderboard Score:</span>
                   <span className="font-bold text-purple-400">
-                    {match3HighScore > 0 ? match3HighScore : '0'}
+                    {globalLeaderboard.find(p => p.address.toLowerCase() === address?.toLowerCase())?.score.toLocaleString() || '0'}
                   </span>
                 </div>
                 {match3HighScoreLevel > 0 && (
                   <div className="flex justify-between mt-1">
-                    <span className="text-gray-400">Level:</span>
+                    <span className="text-gray-400">Best Level:</span>
                     <span className="font-bold text-purple-300">lvl {match3HighScoreLevel}</span>
                   </div>
                 )}
@@ -1142,6 +1095,76 @@ export default function ProfilePage() {
                     }}
                   />
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Share Results Modal */}
+        {showShareModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowShareModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl rounded-xl p-6 max-w-lg w-full border border-gray-700/50 shadow-2xl relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Subtle glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 blur-xl" />
+
+              <div className="relative z-10">
+                <div className="text-center mb-6">
+                  <div className="text-4xl mb-3">🎉</div>
+                  <h3 className="text-2xl font-bold text-purple-300 mb-2">Share Your Victory!</h3>
+                  <p className="text-gray-300 text-sm">
+                    Show off your gaming skills and inspire others to join the fun!
+                  </p>
+                </div>
+
+                {/* Share Preview */}
+                <div className="bg-black/40 border border-purple-500/30 rounded-lg p-4 mb-6">
+                  <div className="text-xs text-gray-400 mb-3 flex items-center gap-2">
+                    <span>📤</span>
+                    <span>Share Preview:</span>
+                  </div>
+                  <div className="text-sm text-white font-mono bg-black/20 p-3 rounded border border-gray-600/30 leading-relaxed">
+                    🎮 Just crushed it in Joybit!<br/>
+                    🏆 Leaderboard Score: {globalLeaderboard.find(p => p.address.toLowerCase() === address?.toLowerCase())?.score.toLocaleString() || '0'} points<br/>
+                    🏆 Match-3: {match3Stats.gamesPlayed || (match3Data && Array.isArray(match3Data) ? Number(match3Data[1]) || 0 : 0)} games played<br/>
+                    🃏 Card Game: {cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0} games, {cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0} wins<br/>
+                    💰 Claiming {allPendingRewards ? formatTokenBalance(allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)) : '0'} JOYB in rewards!<br/>
+                    <br/>
+                    Who&apos;s next? Come play and win big! 🚀<br/>
+                    #Joybit #GameFi #MiniApp
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => setShowShareModal(false)}
+                    className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2.5 px-6 rounded-lg transition-all text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleShareLeaderboard()
+                      setShowShareModal(false)
+                    }}
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-2.5 px-6 rounded-lg transition-all text-sm"
+                  >
+                    🚀 Share Now
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
