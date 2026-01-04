@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+</head>
+<body>
+  <div id="game"></div>
+  <script>
+    const config = {
+      type: Phaser.AUTO,
+      width: 800,
+      height: 600,
+      parent: 'game',
+      backgroundColor: '#87CEEB',
+      scene: {
+        preload: function() {
+          console.log('PRELOAD called');
+        },
+        create: function() {
+          console.log('CREATE called');
+          this.add.rectangle(400, 300, 100, 100, 0xFF0000);
+          this.add.text(400, 300, 'TEST', { color: '#000' });
+        },
+        update: function() {
+        }
+      }
+    };
+    
+    const game = new Phaser.Game(config);
+    console.log('Game created:', game);
+  </script>
+</body>
+</html>
