@@ -510,123 +510,49 @@ export default function Home() {
             </motion.button>
           </div>
 
-          {/* Joybit Token Info */}
+          {/* Token Info Grid */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
             className="mt-8 md:mt-12"
           >
-            <div className="backdrop-blur-lg border rounded-xl p-5 md:p-6"
-                 style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}>
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex-1 text-center md:text-left">
-                  <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                    <div className="w-10 h-10 md:w-12 md:h-12 relative flex-shrink-0">
-                      <Image
-                        src="/branding/logo-small.png"
-                        alt="Joybit Logo"
-                        width={48}
-                        height={48}
-                        className="w-full h-full"
-                      />
-                    </div>
-                    <h3 className="text-xl md:text-2xl font-bold">Joybit Token (JOYB)</h3>
-                  </div>
-                  <p className="text-sm md:text-base text-gray-300 mb-2">
-                    Earn JOYB tokens by playing games and claim daily rewards!
-                  </p>
-                  <div className="bg-black/30 rounded-lg p-2 inline-block">
-                    <p className="text-xs text-gray-400 mb-1">Contract Address:</p>
-                    <a 
-                      href="https://basescan.org/token/0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-mono text-cyan-300 hover:text-cyan-200 transition-colors"
-                    >
-                      0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07
-                    </a>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 w-full md:w-auto">
-                  <a
-                    href="https://app.uniswap.org/#/swap?outputCurrency=0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07&chain=base"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-center text-sm md:text-base whitespace-nowrap"
-                  >
-                    🦄 Buy on Uniswap
-                  </a>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const { sdk } = await import('@farcaster/miniapp-sdk')
-                        await sdk.actions.swapToken({
-                          buyToken: 'eip155:8453/erc20:0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07', // JOYB on Base
-                          sellToken: 'eip155:8453/native', // ETH on Base
-                        })
-                      } catch (error) {
-                        console.error('Failed to open swap:', error)
-                      }
-                    }}
-                    className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm whitespace-nowrap"
-                  >
-                    💰 Buy on Farcaster
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Additional Reward Tokens */}
-          {rewardTokens.length > 0 && rewardTokens.map((token, index) => (
-            <motion.div
-              key={token.address}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.75 + (index * 0.1) }}
-              className="mt-4"
-            >
-              <div className="bg-purple-500/20 backdrop-blur-lg border border-purple-400/50 rounded-xl p-5 md:p-6">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex-1 text-center md:text-left">
-                    <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Joybit Token Info */}
+              <div className="backdrop-blur-lg border rounded-xl p-5 md:p-6"
+                   style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}>
+                <div className="flex flex-col items-center justify-between gap-4 h-full">
+                  <div className="flex-1 text-center w-full">
+                    <div className="flex items-center justify-center gap-3 mb-2">
                       <div className="w-10 h-10 md:w-12 md:h-12 relative flex-shrink-0">
-                        {token.image ? (
-                          <img
-                            src={token.image}
-                            alt={token.symbol}
-                            className="w-full h-full rounded-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><circle cx="24" cy="24" r="24" fill="%23a855f7"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-size="24">🪙</text></svg>'
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl">
-                            🪙
-                          </div>
-                        )}
+                        <Image
+                          src="/branding/logo-small.png"
+                          alt="Joybit Logo"
+                          width={48}
+                          height={48}
+                          className="w-full h-full"
+                        />
                       </div>
-                      <h3 className="text-xl md:text-2xl font-bold">{token.symbol} Token</h3>
+                      <h3 className="text-xl md:text-2xl font-bold">Joybit Token (JOYB)</h3>
                     </div>
                     <p className="text-sm md:text-base text-gray-300 mb-2">
-                      Earn {token.symbol} tokens as rewards!
+                      Earn JOYB tokens by playing games and claim daily rewards!
                     </p>
                     <div className="bg-black/30 rounded-lg p-2 inline-block">
                       <p className="text-xs text-gray-400 mb-1">Contract Address:</p>
                       <a 
-                        href={`https://basescan.org/token/${token.address}`}
+                        href="https://basescan.org/token/0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs font-mono text-purple-300 hover:text-purple-200 transition-colors break-all"
+                        className="text-xs font-mono text-cyan-300 hover:text-cyan-200 transition-colors break-all"
                       >
-                        {token.address}
+                        0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07
                       </a>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2 w-full md:w-auto">
+                  <div className="flex flex-col gap-2 w-full">
                     <a
-                      href={`https://app.uniswap.org/#/swap?outputCurrency=${token.address}&chain=base`}
+                      href="https://app.uniswap.org/#/swap?outputCurrency=0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07&chain=base"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-center text-sm md:text-base whitespace-nowrap"
@@ -638,22 +564,94 @@ export default function Home() {
                         try {
                           const { sdk } = await import('@farcaster/miniapp-sdk')
                           await sdk.actions.swapToken({
-                            buyToken: `eip155:8453/erc20:${token.address}`,
+                            buyToken: 'eip155:8453/erc20:0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07', // JOYB on Base
                             sellToken: 'eip155:8453/native', // ETH on Base
                           })
                         } catch (error) {
                           console.error('Failed to open swap:', error)
                         }
                       }}
-                      className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm whitespace-nowrap"
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm whitespace-nowrap"
                     >
                       💰 Buy on Farcaster
                     </button>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          ))}
+
+              {/* Additional Reward Tokens */}
+              {rewardTokens.length > 0 && rewardTokens.map((token, index) => (
+                <div
+                  key={token.address}
+                  className="bg-purple-500/20 backdrop-blur-lg border border-purple-400/50 rounded-xl p-5 md:p-6"
+                >
+                  <div className="flex flex-col items-center justify-between gap-4 h-full">
+                    <div className="flex-1 text-center w-full">
+                      <div className="flex items-center justify-center gap-3 mb-2">
+                        <div className="w-10 h-10 md:w-12 md:h-12 relative flex-shrink-0">
+                          {token.image ? (
+                            <img
+                              src={token.image}
+                              alt={token.symbol}
+                              className="w-full h-full rounded-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><circle cx="24" cy="24" r="24" fill="%23a855f7"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-size="24">🪙</text></svg>'
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl">
+                              🪙
+                            </div>
+                          )}
+                        </div>
+                        <h3 className="text-xl md:text-2xl font-bold">{token.symbol} Token</h3>
+                      </div>
+                      <p className="text-sm md:text-base text-gray-300 mb-2">
+                        Earn {token.symbol} tokens as rewards!
+                      </p>
+                      <div className="bg-black/30 rounded-lg p-2 inline-block">
+                        <p className="text-xs text-gray-400 mb-1">Contract Address:</p>
+                        <a 
+                          href={`https://basescan.org/token/${token.address}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-mono text-purple-300 hover:text-purple-200 transition-colors break-all"
+                        >
+                          {token.address}
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 w-full">
+                      <a
+                        href={`https://app.uniswap.org/#/swap?outputCurrency=${token.address}&chain=base`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-center text-sm md:text-base whitespace-nowrap"
+                      >
+                        🦄 Buy on Uniswap
+                      </a>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const { sdk } = await import('@farcaster/miniapp-sdk')
+                            await sdk.actions.swapToken({
+                              buyToken: `eip155:8453/erc20:${token.address}`,
+                              sellToken: 'eip155:8453/native', // ETH on Base
+                            })
+                          } catch (error) {
+                            console.error('Failed to open swap:', error)
+                          }
+                        }}
+                        className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm whitespace-nowrap"
+                      >
+                        💰 Buy on Farcaster
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
 
           {/* Treasury Balances */}
           <motion.div
