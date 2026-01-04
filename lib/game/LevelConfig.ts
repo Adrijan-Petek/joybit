@@ -24,8 +24,8 @@ export const LEVELS: LevelConfig[] = [
     name: 'Countryside',
     terrain: {
       baseY: 450,
-      amplitude: 200,
-      frequency: 0.008,
+      amplitude: 140,
+      frequency: 0.007,
       groundColor: 0x228B22,      // Forest green
       groundTopColor: 0x32CD32,   // Lime green
       skyColor: '#87CEEB',        // Sky blue

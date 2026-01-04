@@ -56,18 +56,18 @@ export class Vehicle {
       bodyA: this.chassis,
       pointA: { x: -30, y: 20 },
       bodyB: this.wheelBack,
-      stiffness: 0.8,  // Much stiffer suspension
-      damping: 0.3,    // Higher damping to reduce bouncing
-      length: 0
+      stiffness: 0.55,
+      damping: 0.7,
+      length: 12
     })
     
     this.suspensionFront = Matter.Constraint.create({
       bodyA: this.chassis,
       pointA: { x: 30, y: 20 },
       bodyB: this.wheelFront,
-      stiffness: 0.8,  // Much stiffer suspension
-      damping: 0.3,    // Higher damping to reduce bouncing
-      length: 0
+      stiffness: 0.55,
+      damping: 0.7,
+      length: 12
     })
   }
   
@@ -79,31 +79,30 @@ export class Vehicle {
     return [this.suspensionBack, this.suspensionFront]
   }
   
-  public accelerate(): void {
-    // Apply torque to back wheel (RIGHT = forward)
-    Matter.Body.setAngularVelocity(
-      this.wheelBack,
-      this.wheelBack.angularVelocity + this.stats.torque * 0.002
-    )
-  }
-  
-  public brake(): void {
-    // LEFT = brake / reverse
-    Matter.Body.setAngularVelocity(
-      this.wheelBack,
-      this.wheelBack.angularVelocity - this.stats.torque * 0.001
-    )
-    Matter.Body.setAngularVelocity(
-      this.wheelFront,
-      this.wheelFront.angularVelocity - this.stats.torque * 0.001
-    )
+  public drive(throttle: number, dtSeconds: number): void {
+    // throttle: -1..1 (negative = reverse)
+    const t = Math.max(-1, Math.min(1, throttle))
+
+    // Convert vehicle maxSpeed into a wheel angular velocity target.
+    // Kept conservative to avoid jitter/explosions.
+    const maxWheelAngVel = Math.max(6, Math.min(18, this.stats.maxSpeed * 0.25))
+    const target = t * maxWheelAngVel
+
+    const lerp = (a: number, b: number, k: number) => a + (b - a) * k
+    const response = Math.max(0.06, Math.min(0.25, dtSeconds * 6))
+
+    const back = lerp(this.wheelBack.angularVelocity, target, response)
+    const front = lerp(this.wheelFront.angularVelocity, target, response * 0.7)
+
+    Matter.Body.setAngularVelocity(this.wheelBack, back)
+    Matter.Body.setAngularVelocity(this.wheelFront, front)
   }
 
   public idleStabilize(): void {
     // When no input, bleed wheel spin + reduce jitter
-    Matter.Body.setAngularVelocity(this.wheelBack, this.wheelBack.angularVelocity * 0.92)
-    Matter.Body.setAngularVelocity(this.wheelFront, this.wheelFront.angularVelocity * 0.92)
-    Matter.Body.setAngularVelocity(this.chassis, this.chassis.angularVelocity * 0.92)
+    Matter.Body.setAngularVelocity(this.wheelBack, this.wheelBack.angularVelocity * 0.85)
+    Matter.Body.setAngularVelocity(this.wheelFront, this.wheelFront.angularVelocity * 0.85)
+    Matter.Body.setAngularVelocity(this.chassis, this.chassis.angularVelocity * 0.88)
   }
   
   public getPosition(): { x: number; y: number } {

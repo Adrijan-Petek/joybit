@@ -199,28 +199,35 @@ export class BaseboundScene extends Phaser.Scene {
     // Smaller spacing for smoother hills
     const points = this.terrain.generateChunk(startX, endX, 20)
 
-    // Physics terrain (robust): vertical columns under the surface points.
-    // This matches the rendered terrain exactly and avoids concave polygon edge-cases.
-    const bottomY = 2000
-    const spacing = points.length > 1 ? Math.max(10, points[1].x - points[0].x) : 20
-    const columnWidth = spacing + 4
+      // Physics terrain: overlapped sloped segments between points.
+      // This avoids the "stair-step" effect from vertical columns (which makes the car jump).
+      const thickness = 90
+      const bodies: Matter.Body[] = []
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = points[i]
+        const b = points[i + 1]
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const len = Math.max(1, Math.sqrt(dx * dx + dy * dy))
+        const angle = Math.atan2(dy, dx)
+        const midX = (a.x + b.x) / 2
+        const midY = (a.y + b.y) / 2
 
-    const bodies: Matter.Body[] = []
-    for (const p of points) {
-      const height = Math.max(20, bottomY - p.y)
-      const centerY = p.y + height / 2
-      bodies.push(
-        Matter.Bodies.rectangle(p.x, centerY, columnWidth, height, {
+        // Overlap segments slightly to avoid tiny seams.
+        const seg = Matter.Bodies.rectangle(midX, midY, len + 18, thickness, {
           isStatic: true,
+          angle,
           friction: 2.0,
           restitution: 0,
           slop: 0.01
         })
-      )
-    }
+        bodies.push(seg)
+      }
 
-    this.terrainBodies.push(...bodies)
-    Matter.Composite.add(this.engine.world, bodies)
+      this.terrainBodies.push(...bodies)
+      Matter.Composite.add(this.engine.world, bodies)
+
+    const bottomY = 2000
 
     // Render terrain as one filled shape
     const g = this.add.graphics()
@@ -294,40 +301,17 @@ export class BaseboundScene extends Phaser.Scene {
     const pressingRight = this.cursors.right.isDown
     const pressingLeft = this.cursors.left.isDown
 
-    if (pressingRight) {
-      this.vehicle.accelerate()
-      this.gameState.fuel -= 0.5 * (delta / 1000)
-    }
+    const dtSeconds = fixedDelta / 1000
 
-    if (pressingLeft) {
-      this.vehicle.brake()
-    }
+    let throttle = 0
+    if (pressingRight) throttle += 1
+    if (pressingLeft) throttle -= 1
 
-    // No input: stabilize so it doesn't keep hopping/jittering
-    if (!pressingRight && !pressingLeft) {
-      this.vehicle.idleStabilize()
-
-      // If basically stopped, allow Matter sleeping to kick in
-      const v = this.vehicle.chassis.velocity
-      const speedSq = v.x * v.x + v.y * v.y
-      if (speedSq < 0.02) {
-        // Hard stop then sleep to remove tiny jitter forever
-        Matter.Body.setVelocity(this.vehicle.chassis, { x: 0, y: 0 })
-        Matter.Body.setVelocity(this.vehicle.wheelBack, { x: 0, y: 0 })
-        Matter.Body.setVelocity(this.vehicle.wheelFront, { x: 0, y: 0 })
-        Matter.Body.setAngularVelocity(this.vehicle.chassis, 0)
-        Matter.Body.setAngularVelocity(this.vehicle.wheelBack, 0)
-        Matter.Body.setAngularVelocity(this.vehicle.wheelFront, 0)
-
-        Matter.Sleeping.set(this.vehicle.chassis, true)
-        Matter.Sleeping.set(this.vehicle.wheelBack, true)
-        Matter.Sleeping.set(this.vehicle.wheelFront, true)
-      }
+    if (throttle !== 0) {
+      this.vehicle.drive(throttle, dtSeconds)
+      if (throttle > 0) this.gameState.fuel -= 0.5 * dtSeconds
     } else {
-      // Wake if player is interacting
-      Matter.Sleeping.set(this.vehicle.chassis, false)
-      Matter.Sleeping.set(this.vehicle.wheelBack, false)
-      Matter.Sleeping.set(this.vehicle.wheelFront, false)
+      this.vehicle.idleStabilize()
     }
     
     // Update distance

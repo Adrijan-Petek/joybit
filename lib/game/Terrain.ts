@@ -35,11 +35,12 @@ export class Terrain {
   private heightAt(x: number): number {
     // Hill Climb-style rolling hills: layered sine waves + a bit of seeded noise
     const t = x * this.frequency
+    const ramp = Math.max(0, Math.min(1, x / 500))
     const hills =
       Math.sin(t) * (this.amplitude * 0.65) +
       Math.sin(t * 0.5) * (this.amplitude * 0.25)
     const roughness = this.noise(t * 0.7, 0) * (this.amplitude * 0.18)
-    return this.baseY + hills + roughness
+    return this.baseY + (hills + roughness) * ramp
   }
   
   public generateChunk(startX: number, endX: number, pointSpacing: number = 50): TerrainPoint[] {
