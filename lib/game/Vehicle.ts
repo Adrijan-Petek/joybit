@@ -1,169 +1,276 @@
 // @ts-nocheck
-import * as Matter from 'matter-js'
+import planck from 'planck-js'
 import { VehicleStats } from './types'
 
+type WheelRig = {
+  body: any
+  rimBody: any
+  joint: any
+  prisJoint: any
+  distJoint: any
+  onGround: boolean
+}
+
 export class Vehicle {
-  public chassis: Matter.Body
-  public wheelBack: Matter.Body
-  public wheelFront: Matter.Body
-  private suspensionBack: Matter.Constraint
-  private suspensionFront: Matter.Constraint
-  private stats: VehicleStats
-  
-  constructor(
-    scene: Phaser.Scene,
-    x: number,
-    y: number,
-    stats: VehicleStats
-  ) {
-    this.stats = stats
-    
-    // Create chassis (main body)
-    this.chassis = Matter.Bodies.rectangle(x, y, 80, 40, {
-      density: 0.0025,
-      friction: 0.35,
-      frictionAir: 0.03,
-      restitution: 0,
-      render: {
-        fillStyle: '#4169E1'
-      }
+  public readonly SCALE = 30
+
+  // Collision categories/masks (from Code-Bullet sketch.js)
+  private readonly WHEEL_CATEGORY = 0x0001
+  private readonly CHASSIS_CATEGORY = 0x0002
+  private readonly GRASS_CATEGORY = 0x0004
+  private readonly DIRT_CATEGORY = 0x0008
+
+  private readonly WHEEL_MASK = this.GRASS_CATEGORY
+  private readonly CHASSIS_MASK = this.DIRT_CATEGORY
+
+  // Expose these for the scene to render; they are Planck bodies.
+  public chassisBody: any
+  public wheels: WheelRig[] = []
+
+  private wheelBackRig!: WheelRig
+  private wheelFrontRig!: WheelRig
+
+  private readonly chassisWidth = 125
+  private readonly chassisHeight = 40
+  private readonly wheelSize = 17
+  private readonly rotationTorque = 2
+
+  private motorState = 0 // -1 backward, 0 off, 1 forward
+
+  private groundedBack = false
+  private groundedFront = false
+
+  constructor(world: any, xPx: number, yPx: number, _stats: VehicleStats) {
+    const Vec2 = planck.Vec2
+
+    const x = xPx / this.SCALE
+    const y = yPx / this.SCALE
+
+    this.chassisBody = world.createBody({
+      type: 'dynamic',
+      position: Vec2(x, y),
+      angle: 0
     })
-    
-    // Create wheels
-    const wheelRadius = 15
-    this.wheelBack = Matter.Bodies.circle(x - 30, y + 25, wheelRadius, {
-      density: 0.02,
-      friction: Math.min(1.2, stats.grip + 0.2),
-      frictionAir: 0.02,
+
+    // === Chassis fixtures (ported from Code-Bullet Car.js) ===
+    // fixDef1
+    const verts1 = [
+      Vec2(-this.chassisWidth / 2, -this.chassisHeight / 2),
+      Vec2(this.chassisWidth / 4 + 5, -this.chassisHeight / 2),
+      Vec2(this.chassisWidth / 2, -this.chassisHeight / 2 + 5),
+      Vec2(this.chassisWidth / 2, this.chassisHeight / 2),
+      Vec2(-this.chassisWidth / 2, this.chassisHeight / 2)
+    ].map(v => Vec2(v.x / this.SCALE, v.y / this.SCALE))
+
+    this.chassisBody.createFixture(planck.Polygon(verts1), {
+      density: 1,
+      friction: 0.5,
       restitution: 0.01,
-      label: 'wheel',
-      render: {
-        fillStyle: '#000000'
-      }
+      filterCategoryBits: this.CHASSIS_CATEGORY,
+      filterMaskBits: this.CHASSIS_MASK
     })
-    
-    this.wheelFront = Matter.Bodies.circle(x + 30, y + 25, wheelRadius, {
-      density: 0.02,
-      friction: Math.min(1.2, stats.grip + 0.2),
-      frictionAir: 0.02,
+
+    // fixDef2
+    const verts2 = [
+      Vec2(this.chassisWidth / 4, -this.chassisHeight / 2),
+      Vec2(this.chassisWidth / 4 - 15, -this.chassisHeight / 2 - 20),
+      Vec2(this.chassisWidth / 4 - 5, -this.chassisHeight / 2 - 20),
+      Vec2(this.chassisWidth / 4 + 10, -this.chassisHeight / 2)
+    ].map(v => Vec2(v.x / this.SCALE, v.y / this.SCALE))
+
+    this.chassisBody.createFixture(planck.Polygon(verts2), {
+      density: 1,
+      friction: 0.5,
       restitution: 0.01,
-      label: 'wheel',
-      render: {
-        fillStyle: '#000000'
-      }
+      filterCategoryBits: this.CHASSIS_CATEGORY,
+      filterMaskBits: this.CHASSIS_MASK
     })
-    
-    // Create suspension constraints
-    this.suspensionBack = Matter.Constraint.create({
-      bodyA: this.chassis,
-      pointA: { x: -30, y: 20 },
-      bodyB: this.wheelBack,
-      stiffness: 0.62,
-      damping: 0.85,
-      length: 10
+
+    // fixDef3
+    const verts3 = [
+      Vec2(this.chassisWidth / 2, -this.chassisHeight / 2 + 5),
+      Vec2(this.chassisWidth / 2 + 5, -this.chassisHeight / 2 + 8),
+      Vec2(this.chassisWidth / 2 + 5, this.chassisHeight / 2 - 5),
+      Vec2(this.chassisWidth / 2, this.chassisHeight / 2)
+    ].map(v => Vec2(v.x / this.SCALE, v.y / this.SCALE))
+
+    this.chassisBody.createFixture(planck.Polygon(verts3), {
+      density: 1,
+      friction: 0.1,
+      restitution: 0.1,
+      filterCategoryBits: this.CHASSIS_CATEGORY,
+      filterMaskBits: this.CHASSIS_MASK
     })
-    
-    this.suspensionFront = Matter.Constraint.create({
-      bodyA: this.chassis,
-      pointA: { x: 30, y: 20 },
-      bodyB: this.wheelFront,
-      stiffness: 0.62,
-      damping: 0.85,
-      length: 10
+
+    this.chassisBody.setAngularDamping(0.1)
+
+    // === Wheels (ported from Code-Bullet Wheel.js) ===
+    const wheelBackX = xPx - this.chassisWidth / 2 + this.wheelSize * 1.2
+    const wheelFrontX = xPx + this.chassisWidth / 2 - this.wheelSize * 1.2
+    const wheelY = yPx + this.chassisHeight / 2 + this.wheelSize / 4
+
+    this.wheelBackRig = this.createWheel(world, wheelBackX, wheelY, this.wheelSize, this.chassisBody)
+    this.wheelFrontRig = this.createWheel(world, wheelFrontX, wheelY, this.wheelSize, this.chassisBody)
+    this.wheels.push(this.wheelBackRig, this.wheelFrontRig)
+
+    // Helpful userData for contact debugging (optional)
+    this.chassisBody.setUserData({ id: 'car' })
+  }
+
+  private createWheel(world: any, xPx: number, yPx: number, rPx: number, chassisBody: any): WheelRig {
+    const Vec2 = planck.Vec2
+    const x = xPx / this.SCALE
+    const y = yPx / this.SCALE
+    const r = rPx / this.SCALE
+
+    const wheelBody = world.createBody({ type: 'dynamic', position: Vec2(x, y), angle: 0 })
+    wheelBody.createFixture(planck.Circle(r), {
+      density: 1,
+      friction: 1.5,
+      restitution: 0.1,
+      filterCategoryBits: this.WHEEL_CATEGORY,
+      filterMaskBits: this.WHEEL_MASK
     })
-  }
-  
-  public getBodies(): Matter.Body[] {
-    return [this.chassis, this.wheelBack, this.wheelFront]
-  }
-  
-  public getConstraints(): Matter.Constraint[] {
-    return [this.suspensionBack, this.suspensionFront]
-  }
-  
-  private clamp(v: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, v))
-  }
+    wheelBody.setAngularDamping(1.8)
+    wheelBody.setUserData({ id: 'wheel' })
 
-  private wakeAll(): void {
-    try {
-      ;(Matter as any).Sleeping?.set?.(this.chassis, false)
-      ;(Matter as any).Sleeping?.set?.(this.wheelBack, false)
-      ;(Matter as any).Sleeping?.set?.(this.wheelFront, false)
-    } catch {
-      // ignore
-    }
-  }
+    const rimBody = world.createBody({ type: 'dynamic', position: Vec2(x, y), angle: 0 })
+    rimBody.createFixture(planck.Circle(r), {
+      density: 0.05,
+      friction: 0.99,
+      restitution: 0.2,
+      // Rim is just a suspension carrier; prevent it colliding with ground/chassis.
+      filterGroupIndex: -1,
+      filterCategoryBits: this.WHEEL_CATEGORY,
+      filterMaskBits: 0
+    })
+    rimBody.setUserData({ id: 'wheel' })
 
-  private motorToTarget(wheel: Matter.Body, targetAngVel: number, dtSeconds: number, accel: number): void {
-    // Robust motor for Matter: directly control angular velocity with an acceleration limit.
-    // (Torque-based motors often feel too weak at small timesteps / can be swallowed by sleeping.)
-    const dt = Math.max(0.001, dtSeconds)
-    const current = wheel.angularVelocity
-    const maxDelta = accel * dt
-    const next = current + this.clamp(targetAngVel - current, -maxDelta, maxDelta)
-    Matter.Body.setAngularVelocity(wheel, next)
-  }
+    // Revolute joint between wheel and rim (motor lives here)
+    const joint = world.createJoint(planck.RevoluteJoint({
+      enableMotor: false,
+      maxMotorTorque: 0,
+      motorSpeed: 0
+    }, wheelBody, rimBody, wheelBody.getPosition()))
 
-  public drive(gas: number, dtSeconds: number): void {
-    // gas: 0..1
-    const g = this.clamp(gas, 0, 1)
-    if (g <= 0) return
+    // Prismatic joint between rim and chassis
+    const prisJoint = world.createJoint(planck.PrismaticJoint({
+      enableLimit: false,
+      localAxisA: Vec2(0, -1)
+    }, rimBody, chassisBody, wheelBody.getPosition()))
 
-    this.wakeAll()
+    // Distance joint for suspension spring
+    const anchorWheel = Vec2(x, y)
+    const anchorCar = Vec2(x, (yPx - rPx * 3) / this.SCALE)
+    const distJoint = world.createJoint(planck.DistanceJoint({
+      frequencyHz: 70,
+      dampingRatio: 25
+    }, rimBody, chassisBody, anchorWheel, anchorCar))
 
-    // Convert vehicle maxSpeed into a wheel angular velocity target.
-    // In Matter units, ~8-16 rad/s is a good controllable range.
-    const maxWheelAngVel = this.clamp(this.stats.maxSpeed * 0.32, 8, 18)
-    const target = g * maxWheelAngVel
-
-    // Acceleration control (how fast wheels spin up)
-    const accel = 55 * (this.stats.torque / 22)
-
-    // Drive mostly rear wheel, lightly front wheel (Hill Climb vibe)
-    this.motorToTarget(this.wheelBack, target, dtSeconds, accel)
-    this.motorToTarget(this.wheelFront, target * 0.35, dtSeconds, accel * 0.75)
-  }
-
-  public brake(brake: number, dtSeconds: number): void {
-    // brake: 0..1
-    const b = this.clamp(brake, 0, 1)
-    if (b <= 0) return
-
-    this.wakeAll()
-
-    // Strongly pull wheel angular velocity toward 0
-    const brakeAccel = 140 * b
-    this.motorToTarget(this.wheelBack, 0, dtSeconds, brakeAccel)
-    this.motorToTarget(this.wheelFront, 0, dtSeconds, brakeAccel)
-  }
-
-  public idleStabilize(): void {
-    // When no input, bleed wheel spin + reduce jitter
-    Matter.Body.setAngularVelocity(this.wheelBack, this.wheelBack.angularVelocity * 0.85)
-    Matter.Body.setAngularVelocity(this.wheelFront, this.wheelFront.angularVelocity * 0.85)
-    Matter.Body.setAngularVelocity(this.chassis, this.chassis.angularVelocity * 0.88)
-  }
-  
-  public getPosition(): { x: number; y: number } {
     return {
-      x: this.chassis.position.x,
-      y: this.chassis.position.y
+      body: wheelBody,
+      rimBody,
+      joint,
+      prisJoint,
+      distJoint,
+      onGround: false
     }
   }
-  
-  public getAngle(): number {
-    return this.chassis.angle * (180 / Math.PI)
+
+  public setGrounded(back: boolean, front: boolean): void {
+    this.groundedBack = back
+    this.groundedFront = front
   }
-  
+
+  public motorOn(forward: boolean): void {
+    const motorSpeed = 13
+
+    this.wheelBackRig.joint.enableMotor(true)
+    this.wheelFrontRig.joint.enableMotor(true)
+
+    const oldState = this.motorState
+    if (forward) {
+      this.motorState = 1
+      this.wheelBackRig.joint.setMotorSpeed(-motorSpeed * Math.PI)
+      this.wheelFrontRig.joint.setMotorSpeed(-motorSpeed * Math.PI)
+      if (this.groundedBack || this.groundedFront) {
+        this.chassisBody.applyTorque(-this.rotationTorque, true)
+      }
+    } else {
+      this.motorState = -1
+      this.wheelBackRig.joint.setMotorSpeed(motorSpeed * Math.PI)
+      this.wheelFrontRig.joint.setMotorSpeed(motorSpeed * Math.PI)
+    }
+
+    if (oldState + this.motorState === 0) {
+      if (oldState === 1) {
+        this.applyTorque(this.motorState * -1)
+      }
+    }
+
+    this.wheelBackRig.joint.setMaxMotorTorque(700)
+    this.wheelFrontRig.joint.setMaxMotorTorque(350)
+
+    // Only apply chassis torque when grounded; otherwise it can flip the car.
+    if (this.groundedBack || this.groundedFront) {
+      const torque = (forward ? -1 : 1) * 6
+      this.chassisBody.applyTorque(torque, true)
+    }
+  }
+
+  private applyTorque(direction: number): void {
+    this.chassisBody.applyTorque(direction * this.rotationTorque)
+  }
+
+  public motorOff(): void {
+    switch (this.motorState) {
+      case 1:
+        this.chassisBody.applyTorque(this.motorState * this.rotationTorque)
+        break
+    }
+    this.motorState = 0
+    this.wheelBackRig.joint.enableMotor(false)
+    this.wheelFrontRig.joint.enableMotor(false)
+  }
+
+  // With real joint motors, nothing is needed per-frame.
+  public updateMotor(_dtSeconds: number): void {
+    // no-op
+  }
+
+  public getPosition(): { x: number; y: number } {
+    const p = this.chassisBody.getPosition()
+    return { x: p.x * this.SCALE, y: p.y * this.SCALE }
+  }
+
+  public getChassisRender(): { x: number; y: number; angle: number } {
+    const p = this.chassisBody.getPosition()
+    return { x: p.x * this.SCALE, y: p.y * this.SCALE, angle: this.chassisBody.getAngle() }
+  }
+
+  public getWheelBackRender(): { x: number; y: number; angle: number } {
+    const p = this.wheelBackRig.body.getPosition()
+    return { x: p.x * this.SCALE, y: p.y * this.SCALE, angle: this.wheelBackRig.body.getAngle() }
+  }
+
+  public getWheelFrontRender(): { x: number; y: number; angle: number } {
+    const p = this.wheelFrontRig.body.getPosition()
+    return { x: p.x * this.SCALE, y: p.y * this.SCALE, angle: this.wheelFrontRig.body.getAngle() }
+  }
+
+  public getAngle(): number {
+    return this.chassisBody.getAngle() * (180 / Math.PI)
+  }
+
   public isFlipped(): boolean {
     const angle = Math.abs(this.getAngle())
     return angle > 90 && angle < 270
   }
-  
+
   public getVelocity(): number {
-    return Math.sqrt(
-      this.chassis.velocity.x ** 2 + this.chassis.velocity.y ** 2
-    )
+    // Code-Bullet uses Box2D units; expose km/h-ish for HUD.
+    const v = this.chassisBody.getLinearVelocity()
+    const mps = Math.sqrt(v.x * v.x + v.y * v.y)
+    return mps * 3.6
   }
 }

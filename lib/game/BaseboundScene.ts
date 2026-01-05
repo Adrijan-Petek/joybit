@@ -1,43 +1,71 @@
 // @ts-nocheck
 import * as Phaser from 'phaser'
-import * as Matter from 'matter-js'
-import * as decomp from 'poly-decomp'
+import planck from 'planck-js'
 import { Vehicle } from './Vehicle'
 import { Terrain } from './Terrain'
 import { GameState, VehicleStats } from './types'
 import { getLevelConfig, LevelConfig } from './LevelConfig'
 
 export class BaseboundScene extends Phaser.Scene {
-  private engine!: Matter.Engine
+  private world!: any
+  private groundBody!: any
+  private readonly SCALE: number = 30
+
+  // Collision categories/masks (from Code-Bullet sketch.js)
+  private readonly WHEEL_CATEGORY = 0x0001
+  private readonly CHASSIS_CATEGORY = 0x0002
+  private readonly GRASS_CATEGORY = 0x0004
+  private readonly DIRT_CATEGORY = 0x0008
+
+  private readonly GRASS_MASK = this.WHEEL_CATEGORY
+  private readonly DIRT_MASK = this.CHASSIS_CATEGORY
+
+  private readonly grassThicknessPx: number = 5
+  private physicsAccumulatorS: number = 0
+  private readonly physicsTimeStepS: number = 1 / 30
+  private readonly velocityIterations: number = 10
+  private readonly positionIterations: number = 10
+
   private vehicle!: Vehicle
   private terrain!: Terrain
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private gameState: GameState
-  private terrainBodies: Matter.Body[] = []
   private terrainGraphics: Phaser.GameObjects.Graphics[] = []
   private chassisGraphic!: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle
   private wheelBackGraphic!: Phaser.GameObjects.Image | Phaser.GameObjects.Arc
   private wheelFrontGraphic!: Phaser.GameObjects.Image | Phaser.GameObjects.Arc
-  private fuelPickups: Phaser.GameObjects.Rectangle[] = []
-  private coinPickups: Phaser.GameObjects.Rectangle[] = []
+  private fuelPickups: Phaser.GameObjects.Image[] = []
+  private coinPickups: Phaser.GameObjects.Image[] = []
   private nextPickupX: number = 300
   private cameraOffsetX: number = 0
   private hudText!: Phaser.GameObjects.Text
+  private fuelIcon!: Phaser.GameObjects.Image
+  private fuelText!: Phaser.GameObjects.Text
+  private fuelBar!: Phaser.GameObjects.Graphics
+  private coinIcon!: Phaser.GameObjects.Image
+  private coinText!: Phaser.GameObjects.Text
+  private distanceText!: Phaser.GameObjects.Text
+  private speedText!: Phaser.GameObjects.Text
   private onGameOver?: (state: GameState) => void
   private currentLevel: LevelConfig
   private stars: Phaser.GameObjects.Rectangle[] = []
   private startedAtMs: number = 0
   private flippedSinceMs: number | null = null
-  private isGrounded: boolean = false
 
-  // Unity-like smoothed pedal inputs
-  private brakeDamped: number = 0
-  private gasDamped: number = 0
-  private readonly brakeSmoothTimeSec: number = 0.1
-  private readonly gasSmoothTimeSec: number = 0.1
+  // Wheel grounding counters (can be >1 due to multiple contact points)
+  private wheelBackGroundContacts: number = 0
+  private wheelFrontGroundContacts: number = 0
 
-  // Ground contacts tracked from *our* Matter engine
-  private wheelContactCount: Record<number, number> = {}
+  // Code-Bullet: motor state tracking
+  private leftDown: boolean = false
+  private rightDown: boolean = false
+  
+  // Code-Bullet camera panning system
+  private panX: number = 0
+  private nextPanX: number = 0
+  private readonly maxPanSpeed: number = 100 // pixels per second
+  private readonly panSpeed: number = 50
+  private readonly panAcc: number = 10
   
   constructor() {
     super({ key: 'BaseboundScene' })
@@ -60,6 +88,10 @@ export class BaseboundScene extends Phaser.Scene {
     this.load.image('tire-back', '/vehicles/wheel-back.png')
     this.load.image('tire-front', '/vehicles/wheel-front.png')
     
+    // Load HUD icons
+    this.load.image('fuel-icon', '/icons/fuel.png')
+    this.load.image('coin-icon', '/icons/coin.png')
+    
     // Optional: Load terrain texture
     // this.load.image('ground', '/terrain/ground.png')
   }
@@ -70,13 +102,11 @@ export class BaseboundScene extends Phaser.Scene {
     // Set background color based on level
     this.cameras.main.setBackgroundColor(this.currentLevel.terrain.skyColor)
 
-    // Allow Matter to decompose concave polygons (terrain)
-    try {
-      const decompLib = ((decomp as any).default ?? decomp) as any
-      ;(Matter as any).Common.setDecomp(decompLib)
-    } catch {
-      // If this fails, Matter will warn and terrain physics may be wrong.
-    }
+    // Create Planck (Box2D-style) physics world.
+    // Code-Bullet: gravity = Vec2(0, 10), step = 1/30.
+    this.world = planck.World(planck.Vec2(0, 10))
+    this.groundBody = this.world.createBody({ type: 'static', position: planck.Vec2(0, 0) })
+    this.groundBody.setUserData({ id: 'ground' })
     
     // Add stars for moon level
     if (this.currentLevel.environment.hasStars) {
@@ -90,12 +120,6 @@ export class BaseboundScene extends Phaser.Scene {
         this.stars.push(star)
       }
     }
-    
-    // Initialize Matter.js physics
-    this.engine = Matter.Engine.create({
-      enableSleeping: true,
-      gravity: { x: 0, y: 1.2 }
-    })
     
     // Create terrain with level-specific settings
     this.terrain = new Terrain(
@@ -119,9 +143,11 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Spawn vehicle ON the terrain (align wheels to surface)
     const spawnX = 200
-    const wheelOffsetX = 30
-    const wheelOffsetY = 25
-    const wheelRadius = 15
+    const chassisWidth = 125
+    const chassisHeight = 40
+    const wheelRadius = 17 // Code-Bullet
+    const wheelOffsetX = chassisWidth / 2 - wheelRadius * 1.2
+    const wheelOffsetY = chassisHeight / 2 + wheelRadius / 4
 
     const groundBack = this.terrain.getHeightAt(spawnX - wheelOffsetX)
     const groundFront = this.terrain.getHeightAt(spawnX + wheelOffsetX)
@@ -132,97 +158,139 @@ export class BaseboundScene extends Phaser.Scene {
 
     // Chassis center sits above the lower of the two wheel contact points
     const spawnY = Math.min(wheelBackY, wheelFrontY) - wheelOffsetY
-    
-    this.vehicle = new Vehicle(this, spawnX, spawnY, vehicleStats)
+    this.vehicle = new Vehicle(this.world, spawnX, spawnY, vehicleStats)
 
-    // Ensure bodies start exactly at the computed positions
-    Matter.Body.setPosition(this.vehicle.chassis, { x: spawnX, y: spawnY })
-    Matter.Body.setPosition(this.vehicle.wheelBack, { x: spawnX - wheelOffsetX, y: wheelBackY })
-    Matter.Body.setPosition(this.vehicle.wheelFront, { x: spawnX + wheelOffsetX, y: wheelFrontY })
-    Matter.Body.setVelocity(this.vehicle.chassis, { x: 0, y: 0 })
-    Matter.Body.setVelocity(this.vehicle.wheelBack, { x: 0, y: 0 })
-    Matter.Body.setVelocity(this.vehicle.wheelFront, { x: 0, y: 0 })
-    Matter.Body.setAngularVelocity(this.vehicle.chassis, 0)
-    Matter.Body.setAngularVelocity(this.vehicle.wheelBack, 0)
-    Matter.Body.setAngularVelocity(this.vehicle.wheelFront, 0)
-    
-    // Add vehicle to physics world
-    Matter.Composite.add(this.engine.world, [
-      ...this.vehicle.getBodies(),
-      ...this.vehicle.getConstraints()
-    ])
+    // Track wheel-ground contact so we can avoid applying flip-inducing torque when airborne.
+    const backWheelBody = this.vehicle.wheels?.[0]?.body
+    const frontWheelBody = this.vehicle.wheels?.[1]?.body
 
-    // Ground detection via wheel collisions (IMPORTANT: use the standalone Matter engine events,
-    // not Phaser's Matter plugin world)
-    const isWheelGroundPair = (a: Matter.Body, b: Matter.Body): { wheel?: Matter.Body; ground?: Matter.Body } => {
-      const aw = a.label === 'wheel'
-      const bw = b.label === 'wheel'
-      const ag = a.label === 'ground'
-      const bg = b.label === 'ground'
-      if (aw && bg) return { wheel: a, ground: b }
-      if (bw && ag) return { wheel: b, ground: a }
-      return {}
+    const isGrassFixture = (fixture: any): boolean => {
+      const fd = fixture?.getFilterData?.()
+      return (fd?.categoryBits ?? 0) === this.GRASS_CATEGORY
     }
 
-    const incWheelContact = (wheel: Matter.Body) => {
-      const id = wheel.id
-      this.wheelContactCount[id] = (this.wheelContactCount[id] ?? 0) + 1
+    const updateGrounded = () => {
+      this.vehicle.setGrounded(this.wheelBackGroundContacts > 0, this.wheelFrontGroundContacts > 0)
     }
 
-    const decWheelContact = (wheel: Matter.Body) => {
-      const id = wheel.id
-      const next = (this.wheelContactCount[id] ?? 0) - 1
-      this.wheelContactCount[id] = Math.max(0, next)
-    }
+    this.world.on('begin-contact', (contact: any) => {
+      const fa = contact.getFixtureA()
+      const fb = contact.getFixtureB()
+      const ba = fa.getBody()
+      const bb = fb.getBody()
 
-    Matter.Events.on(this.engine, 'collisionStart', (evt: any) => {
-      for (const pair of evt.pairs ?? []) {
-        const { wheel } = isWheelGroundPair(pair.bodyA, pair.bodyB)
-        if (wheel) incWheelContact(wheel)
+      if (ba === backWheelBody && isGrassFixture(fb)) {
+        this.wheelBackGroundContacts++
+        updateGrounded()
+      } else if (bb === backWheelBody && isGrassFixture(fa)) {
+        this.wheelBackGroundContacts++
+        updateGrounded()
+      } else if (ba === frontWheelBody && isGrassFixture(fb)) {
+        this.wheelFrontGroundContacts++
+        updateGrounded()
+      } else if (bb === frontWheelBody && isGrassFixture(fa)) {
+        this.wheelFrontGroundContacts++
+        updateGrounded()
       }
     })
 
-    Matter.Events.on(this.engine, 'collisionEnd', (evt: any) => {
-      for (const pair of evt.pairs ?? []) {
-        const { wheel } = isWheelGroundPair(pair.bodyA, pair.bodyB)
-        if (wheel) decWheelContact(wheel)
+    this.world.on('end-contact', (contact: any) => {
+      const fa = contact.getFixtureA()
+      const fb = contact.getFixtureB()
+      const ba = fa.getBody()
+      const bb = fb.getBody()
+
+      if (ba === backWheelBody && isGrassFixture(fb)) {
+        this.wheelBackGroundContacts = Math.max(0, this.wheelBackGroundContacts - 1)
+        updateGrounded()
+      } else if (bb === backWheelBody && isGrassFixture(fa)) {
+        this.wheelBackGroundContacts = Math.max(0, this.wheelBackGroundContacts - 1)
+        updateGrounded()
+      } else if (ba === frontWheelBody && isGrassFixture(fb)) {
+        this.wheelFrontGroundContacts = Math.max(0, this.wheelFrontGroundContacts - 1)
+        updateGrounded()
+      } else if (bb === frontWheelBody && isGrassFixture(fa)) {
+        this.wheelFrontGroundContacts = Math.max(0, this.wheelFrontGroundContacts - 1)
+        updateGrounded()
       }
     })
     
+    const chassisR = this.vehicle.getChassisRender()
+    const wheelBackR = this.vehicle.getWheelBackRender()
+    const wheelFrontR = this.vehicle.getWheelFrontRender()
+
     // Create graphics for vehicle - use images if available, else shapes
     if (this.textures.exists('car-body')) {
-      this.chassisGraphic = this.add.image(spawnX, spawnY, 'car-body')
-      this.chassisGraphic.setDisplaySize(80, 40)
+      this.chassisGraphic = this.add.image(chassisR.x, chassisR.y, 'car-body')
+      this.chassisGraphic.setDisplaySize(120, 60)
     } else {
-      this.chassisGraphic = this.add.rectangle(spawnX, spawnY, 80, 40, 0x4169E1)
+      this.chassisGraphic = this.add.rectangle(chassisR.x, chassisR.y, 120, 60, 0x4169E1)
       this.chassisGraphic.setStrokeStyle(2, 0x000000)
     }
     this.chassisGraphic.setDepth(10)
     
     if (this.textures.exists('tire-back')) {
-      this.wheelBackGraphic = this.add.image(spawnX - 30, spawnY + 25, 'tire-back')
-      this.wheelBackGraphic.setDisplaySize(30, 30)
+      this.wheelBackGraphic = this.add.image(wheelBackR.x, wheelBackR.y, 'tire-back')
+      this.wheelBackGraphic.setDisplaySize(45, 45)
     } else {
-      this.wheelBackGraphic = this.add.circle(spawnX - 30, spawnY + 25, 15, 0x333333)
+      this.wheelBackGraphic = this.add.circle(wheelBackR.x, wheelBackR.y, 22, 0x333333)
       this.wheelBackGraphic.setStrokeStyle(2, 0x000000)
     }
     this.wheelBackGraphic.setDepth(10)
     
     if (this.textures.exists('tire-front')) {
-      this.wheelFrontGraphic = this.add.image(spawnX + 30, spawnY + 25, 'tire-front')
-      this.wheelFrontGraphic.setDisplaySize(30, 30)
+      this.wheelFrontGraphic = this.add.image(wheelFrontR.x, wheelFrontR.y, 'tire-front')
+      this.wheelFrontGraphic.setDisplaySize(45, 45)
     } else {
-      this.wheelFrontGraphic = this.add.circle(spawnX + 30, spawnY + 25, 15, 0x333333)
+      this.wheelFrontGraphic = this.add.circle(wheelFrontR.x, wheelFrontR.y, 22, 0x333333)
       this.wheelFrontGraphic.setStrokeStyle(2, 0x000000)
     }
     this.wheelFrontGraphic.setDepth(10)
     
-    // Setup input
+    // Setup input - Code-Bullet toggle controls
     this.cursors = this.input.keyboard!.createCursorKeys()
     
-    // Setup camera
+    // Code-Bullet: RIGHT arrow = forward, LEFT arrow = backward
+    this.input.keyboard!.on('keydown-RIGHT', (event: KeyboardEvent) => {
+      if (event?.repeat) return
+      if (this.rightDown) return
+      if (!this.gameState.isGameOver && this.gameState.fuel > 0) {
+        this.rightDown = true
+        this.vehicle.motorOn(true)
+      }
+    })
+    
+    this.input.keyboard!.on('keydown-LEFT', (event: KeyboardEvent) => {
+      if (event?.repeat) return
+      if (this.leftDown) return
+      if (!this.gameState.isGameOver && this.gameState.fuel > 0) {
+        this.leftDown = true
+        this.vehicle.motorOn(false)
+      }
+    })
+    
+    this.input.keyboard!.on('keyup-RIGHT', () => {
+      this.rightDown = false
+      if (this.leftDown) {
+        this.vehicle.motorOn(false)
+      } else {
+        this.vehicle.motorOff()
+      }
+    })
+    
+    this.input.keyboard!.on('keyup-LEFT', () => {
+      this.leftDown = false
+      if (this.rightDown) {
+        this.vehicle.motorOn(true)
+      } else {
+        this.vehicle.motorOff()
+      }
+    })
+    
+    // Camera follows the car (requested)
     this.cameras.main.setBounds(-1000, 0, 999999, 2000)
-    this.cameras.main.startFollow(this.chassisGraphic as any, true, 0.15, 0.15, -250, 0)
+    this.cameras.main.startFollow(this.chassisGraphic as any, true, 0.12, 0.12)
+    ;(this.cameras.main as any).followOffset?.set?.(200, 0)
     this.cameras.main.setZoom(1.0)
     
     // Create HUD
@@ -233,48 +301,125 @@ export class BaseboundScene extends Phaser.Scene {
   }
   
   private createHUD(): void {
-    this.hudText = this.add.text(16, 16, '', {
+    const hudY = 16
+    const iconSize = 40
+    const leftOffset = 120 // Large offset to avoid back button
+    
+    // === FUEL SECTION (after back button) ===
+    // Fuel canister icon (image)
+    this.fuelIcon = this.add.image(leftOffset + iconSize / 2, hudY + iconSize / 2, 'fuel-icon')
+    this.fuelIcon.setDisplaySize(iconSize, iconSize)
+    this.fuelIcon.setScrollFactor(0)
+    this.fuelIcon.setDepth(100)
+    
+    // Fuel bar background
+    this.fuelBar = this.add.graphics()
+    this.fuelBar.setScrollFactor(0)
+    this.fuelBar.setDepth(100)
+    
+    // Fuel percentage text
+    this.fuelText = this.add.text(leftOffset + iconSize + 8, hudY + 10, '100%', {
       fontSize: '20px',
-      color: '#ffffff',
-      backgroundColor: '#000000',
-      padding: { x: 10, y: 5 }
+      fontFamily: 'Arial, sans-serif',
+      color: '#FFD700',
+      fontStyle: 'bold'
     })
-    this.hudText.setScrollFactor(0)
-    this.hudText.setDepth(100)
+    this.fuelText.setScrollFactor(0)
+    this.fuelText.setDepth(100)
+    
+    // === COIN SECTION (next to fuel) ===
+    // Coin icon (image)
+    this.coinIcon = this.add.image(leftOffset + 140 + iconSize / 2, hudY + iconSize / 2, 'coin-icon')
+    this.coinIcon.setDisplaySize(iconSize, iconSize)
+    this.coinIcon.setScrollFactor(0)
+    this.coinIcon.setDepth(100)
+    
+    // Coin count text
+    this.coinText = this.add.text(leftOffset + 140 + iconSize + 8, hudY + 10, '0', {
+      fontSize: '18px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#FFD700',
+      fontStyle: 'bold'
+    })
+    this.coinText.setScrollFactor(0)
+    this.coinText.setDepth(100)
+    
+    // === DISTANCE (top right) ===
+    this.distanceText = this.add.text(this.scale.width - 16, hudY + 2, '0m', {
+      fontSize: '18px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#FFFFFF',
+      fontStyle: 'bold'
+    })
+    this.distanceText.setOrigin(1, 0) // Right-aligned
+    this.distanceText.setScrollFactor(0)
+    this.distanceText.setDepth(100)
+    
+    // === SPEED (below distance) ===
+    this.speedText = this.add.text(this.scale.width - 16, hudY + 26, '0 km/h', {
+      fontSize: '14px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#AAAAAA'
+    })
+    this.speedText.setOrigin(1, 0)
+    this.speedText.setScrollFactor(0)
+    this.speedText.setDepth(100)
+    
+    // Legacy hudText (hidden, kept for compatibility)
+    this.hudText = this.add.text(-1000, -1000, '', { fontSize: '1px' })
+  }
+  
+  private drawFuelBar(fuelPercent: number): void {
+    const g = this.fuelBar
+    g.clear()
+    
+    const barX = 50
+    const barY = 44
+    const barWidth = 80
+    const barHeight = 8
+    
+    // Background
+    g.fillStyle(0x333333, 0.8)
+    g.fillRoundedRect(barX, barY, barWidth, barHeight, 2)
+    
+    // Fuel level
+    const fillWidth = Math.max(0, (fuelPercent / 100) * barWidth)
+    const fuelColor = fuelPercent > 30 ? 0x00FF00 : fuelPercent > 15 ? 0xFFAA00 : 0xFF0000
+    g.fillStyle(fuelColor, 1)
+    g.fillRoundedRect(barX, barY, fillWidth, barHeight, 2)
+    
+    // Border
+    g.lineStyle(1, 0xFFFFFF, 0.5)
+    g.strokeRoundedRect(barX, barY, barWidth, barHeight, 2)
   }
   
   private generateTerrainChunk(startX: number, endX: number): void {
     // Smaller spacing for smoother hills
-    const points = this.terrain.generateChunk(startX, endX, 20)
+    const points = this.terrain.generateChunk(startX, endX, 10)
 
-      // Physics terrain: overlapped sloped segments between points.
-      // This avoids the "stair-step" effect from vertical columns (which makes the car jump).
-      const thickness = 90
-      const bodies: Matter.Body[] = []
-      for (let i = 0; i < points.length - 1; i++) {
-        const a = points[i]
-        const b = points[i + 1]
-        const dx = b.x - a.x
-        const dy = b.y - a.y
-        const len = Math.max(1, Math.sqrt(dx * dx + dy * dy))
-        const angle = Math.atan2(dy, dx)
-        const midX = (a.x + b.x) / 2
-        const midY = (a.y + b.y) / 2
+    // Physics terrain: Use Chain shapes for smoother rolling than many independent edges.
+    const Vec2 = planck.Vec2
+    const dirtVerts: any[] = []
+    const grassVerts: any[] = []
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i]
+      dirtVerts.push(Vec2(p.x / this.SCALE, p.y / this.SCALE))
+      grassVerts.push(Vec2(p.x / this.SCALE, (p.y - this.grassThicknessPx) / this.SCALE))
+    }
 
-        // Overlap segments slightly to avoid tiny seams.
-        const seg = Matter.Bodies.rectangle(midX, midY, len + 18, thickness, {
-          isStatic: true,
-          label: 'ground',
-          angle,
-          friction: 2.0,
-          restitution: 0,
-          slop: 0.01
-        })
-        bodies.push(seg)
-      }
+    this.groundBody.createFixture(planck.Chain(dirtVerts, false), {
+      friction: 0.99,
+      restitution: 0.1,
+      filterCategoryBits: this.DIRT_CATEGORY,
+      filterMaskBits: this.DIRT_MASK
+    })
 
-      this.terrainBodies.push(...bodies)
-      Matter.Composite.add(this.engine.world, bodies)
+    this.groundBody.createFixture(planck.Chain(grassVerts, false), {
+      friction: 0.99,
+      restitution: 0.1,
+      filterCategoryBits: this.GRASS_CATEGORY,
+      filterMaskBits: this.GRASS_MASK
+    })
 
     const bottomY = 2000
 
@@ -303,94 +448,90 @@ export class BaseboundScene extends Phaser.Scene {
   private spawnPickups(): void {
     const vehicleX = this.vehicle.getPosition().x
     
-    // Spawn fuel can
+    // Code-Bullet: Spawn fuel can every 300-500 units
     if (this.nextPickupX < vehicleX + 800) {
       const x = this.nextPickupX
-      const y = this.terrain.getHeightAt(x) - 50
+      const y = this.terrain.getHeightAt(x) - 60
       
-      const fuelCan = this.add.rectangle(x, y, 20, 30, 0xFFFF00)
+      // Code-Bullet: Fuel can radius = 15 (so 30px diameter, we use 50px for visibility)
+      const fuelCan = this.add.image(x, y, 'fuel-icon') as any
+      fuelCan.setDisplaySize(50, 50)
       fuelCan.setData('type', 'fuel')
+      fuelCan.setDepth(10)
+      
       this.fuelPickups.push(fuelCan)
       
-      this.nextPickupX += Phaser.Math.Between(200, 400)
+      this.nextPickupX += Phaser.Math.Between(300, 500)
     }
     
-    // Spawn coins randomly
-    if (Math.random() < 0.3) {
-      const x = vehicleX + Phaser.Math.Between(300, 600)
-      const y = this.terrain.getHeightAt(x) - 40
+    // Code-Bullet: Spawn coins in arcs/groups every 200-400 units
+    if (Math.random() < 0.2 && this.coinPickups.length < 50) {
+      const groupSize = Phaser.Math.Between(3, 8)
+      const startX = vehicleX + Phaser.Math.Between(300, 600)
+      const coinSpacing = 35
       
-      const coin = this.add.rectangle(x, y, 15, 15, 0xFFD700)
-      coin.setData('type', 'coin')
-      this.coinPickups.push(coin)
+      // Code-Bullet: coins in arc pattern (radius=10, so 20px, we use 45px)
+      for (let i = 0; i < groupSize; i++) {
+        const coinX = startX + i * coinSpacing
+        // Arc height: parabolic curve for visual appeal
+        const arcProgress = i / (groupSize - 1) // 0 to 1
+        const arcHeight = Math.sin(arcProgress * Math.PI) * 80 // 80px max arc height
+        const coinY = this.terrain.getHeightAt(coinX) - 50 - arcHeight
+        
+        const coin = this.add.image(coinX, coinY, 'coin-icon') as any
+        coin.setDisplaySize(45, 45)
+        coin.setData('type', 'coin')
+        coin.setDepth(10)
+        
+        this.coinPickups.push(coin)
+      }
     }
   }
   
   update(time: number, delta: number): void {
     if (this.gameState.isGameOver) return
-    
-    // Cap delta to prevent physics instability (Matter.js recommends <= 16.667ms)
-    const fixedDelta = Math.min(delta, 1000 / 60)
 
-    // Update grounded state from wheel contacts
-    const backContacts = this.wheelContactCount[this.vehicle.wheelBack.id] ?? 0
-    const frontContacts = this.wheelContactCount[this.vehicle.wheelFront.id] ?? 0
-    this.isGrounded = backContacts > 0 || frontContacts > 0
-    
-    // Update physics
-    Matter.Engine.update(this.engine, fixedDelta)
-    
+    // Cap delta to avoid spiral-of-death.
+    const clampedDeltaMs = Math.min(delta, 1000 / 15)
+    const dtSeconds = clampedDeltaMs / 1000
+
+    // Step physics at fixed 1/30 like Code-Bullet.
+    this.physicsAccumulatorS += dtSeconds
+    let steps = 0
+    while (this.physicsAccumulatorS >= this.physicsTimeStepS && steps < 5) {
+      this.world.step(this.physicsTimeStepS, this.velocityIterations, this.positionIterations)
+      this.physicsAccumulatorS -= this.physicsTimeStepS
+      steps++
+    }
+
     // Sync graphics with physics bodies
-    this.chassisGraphic.setPosition(this.vehicle.chassis.position.x, this.vehicle.chassis.position.y)
-    this.chassisGraphic.setRotation(this.vehicle.chassis.angle)
+    const chassisR = this.vehicle.getChassisRender()
+    const wheelBackR = this.vehicle.getWheelBackRender()
+    const wheelFrontR = this.vehicle.getWheelFrontRender()
+
+    this.chassisGraphic.setPosition(chassisR.x, chassisR.y)
+    this.chassisGraphic.setRotation(chassisR.angle)
+
+    this.wheelBackGraphic.setPosition(wheelBackR.x, wheelBackR.y)
+    this.wheelBackGraphic.setRotation(wheelBackR.angle)
+
+    this.wheelFrontGraphic.setPosition(wheelFrontR.x, wheelFrontR.y)
+    this.wheelFrontGraphic.setRotation(wheelFrontR.angle)
     
-    // Tires follow physics and spin
-    this.wheelBackGraphic.setPosition(this.vehicle.wheelBack.position.x, this.vehicle.wheelBack.position.y)
-    this.wheelBackGraphic.setRotation(this.vehicle.wheelBack.angle) // Spin based on physics
-    
-    this.wheelFrontGraphic.setPosition(this.vehicle.wheelFront.position.x, this.vehicle.wheelFront.position.y)
-    this.wheelFrontGraphic.setRotation(this.vehicle.wheelFront.angle) // Spin based on physics
-    
-    // Handle input
-    const pressingRight = this.cursors.right.isDown
-    const pressingLeft = this.cursors.left.isDown
-
-    const dtSeconds = fixedDelta / 1000
-
-    // Unity-style: separate gas + brake pedals with smoothing
-    const rawBrake = pressingLeft ? 1 : 0
-    const rawGas = pressingRight ? 1 : 0
-
-    // Exponential smoothing ~ SmoothDamp feel
-    const damp = (current: number, target: number, smoothTime: number) => {
-      if (smoothTime <= 0) return target
-      const k = 1 - Math.exp(-dtSeconds / smoothTime)
-      return current + (target - current) * k
-    }
-
-    this.brakeDamped = damp(this.brakeDamped, rawBrake, this.brakeSmoothTimeSec)
-    this.gasDamped = damp(this.gasDamped, rawGas, this.gasSmoothTimeSec)
-
-    // Constant fuel drain (Unity repo drains fuel continuously)
+    // Code-Bullet: constant fuel drain
     this.gameState.fuel -= 0.5 * dtSeconds
-
     const hasFuel = this.gameState.fuel > 0
-    if (!hasFuel) {
-      this.vehicle.idleStabilize()
-    } else if (rawBrake > 0) {
-      this.vehicle.brake(this.brakeDamped, dtSeconds)
-    } else if (rawGas > 0) {
-      this.vehicle.drive(this.gasDamped, dtSeconds)
-    } else {
-      this.vehicle.idleStabilize()
+    
+    if (hasFuel) {
+      // Code-Bullet: update motor continuously if enabled
+      this.vehicle.updateMotor(dtSeconds)
     }
-
-    // Air control (only when airborne)
-    this.handleAirControl()
     
     // Update distance
     const vehiclePos = this.vehicle.getPosition()
     this.gameState.distance = Math.max(this.gameState.distance, Math.floor(vehiclePos.x / 10))
+    
+    // Camera follow handles scrolling
     
     // Check for pickups
     this.checkPickups(vehiclePos)
@@ -448,12 +589,20 @@ export class BaseboundScene extends Phaser.Scene {
   
   private updateHUD(): void {
     const speed = Math.floor(this.vehicle.getVelocity())
-    this.hudText.setText([
-      `Distance: ${this.gameState.distance}m`,
-      `Fuel: ${Math.max(0, Math.floor(this.gameState.fuel))}`,
-      `Coins: ${this.gameState.coins}`,
-      `Speed: ${speed}`,
-    ])
+    const fuelPercent = Math.max(0, Math.floor(this.gameState.fuel))
+    
+    // Update fuel display
+    this.fuelText.setText(`${fuelPercent}%`)
+    this.drawFuelBar(fuelPercent)
+    
+    // Update coin display
+    this.coinText.setText(`${this.gameState.coins}`)
+    
+    // Update distance
+    this.distanceText.setText(`${this.gameState.distance}m`)
+    
+    // Update speed
+    this.speedText.setText(`${speed} km/h`)
   }
   
   private checkGameOver(time: number): void {
@@ -490,28 +639,5 @@ export class BaseboundScene extends Phaser.Scene {
     }
   }
 
-  private handleAirControl(): void {
-    const pressingRight = this.cursors.right.isDown
-    const pressingLeft = this.cursors.left.isDown
-
-    const rawBrake = pressingLeft ? 1 : 0
-    const rawGas = pressingRight ? 1 : 0
-    const finalRawInput = rawBrake > 0 ? 1 : rawGas > 0 ? -1 : 0
-
-    // Unity repo rotates more in air, less on ground
-    const onAirRotation = 0.00045
-    const onGroundRotation = 0.00012
-    const torqueForce = this.isGrounded ? onGroundRotation : onAirRotation
-
-    if (finalRawInput !== 0) {
-      this.vehicle.chassis.torque += -finalRawInput * torqueForce
-    }
-
-    // Clamp chassis spin so it feels controllable
-    this.vehicle.chassis.angularVelocity = Phaser.Math.Clamp(
-      this.vehicle.chassis.angularVelocity,
-      -0.18,
-      0.18
-    )
-  }
+  // Air-control was a Unity-feel experiment; Code-Bullet doesn't use it.
 }
