@@ -28,6 +28,16 @@ export class BaseboundScene extends Phaser.Scene {
   private stars: Phaser.GameObjects.Rectangle[] = []
   private startedAtMs: number = 0
   private flippedSinceMs: number | null = null
+  private isGrounded: boolean = false
+
+  // Unity-like smoothed pedal inputs
+  private brakeDamped: number = 0
+  private gasDamped: number = 0
+  private readonly brakeSmoothTimeSec: number = 0.1
+  private readonly gasSmoothTimeSec: number = 0.1
+
+  // Ground contacts tracked from *our* Matter engine
+  private wheelContactCount: Record<number, number> = {}
   
   constructor() {
     super({ key: 'BaseboundScene' })
@@ -98,9 +108,9 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Create vehicle at spawn position
     const vehicleStats: VehicleStats = {
-      maxSpeed: 50,
-      torque: 40,    // Increased torque for better control
-      suspension: 0.8, // Higher suspension value
+      maxSpeed: 35,
+      torque: 22,
+      suspension: 0.8,
       fuelCapacity: 100,
       fuelEfficiency: 1.0,
       mass: 100,
@@ -115,19 +125,20 @@ export class BaseboundScene extends Phaser.Scene {
 
     const groundBack = this.terrain.getHeightAt(spawnX - wheelOffsetX)
     const groundFront = this.terrain.getHeightAt(spawnX + wheelOffsetX)
-    const ground = Math.min(groundBack, groundFront)
 
-    // Vehicle constructor expects chassis center at (spawnX, spawnY) and wheels at (x±30, y+25)
-    // Put wheel centers just above ground so it settles onto the surface.
-    const wheelCenterY = ground - wheelRadius - 6
-    const spawnY = wheelCenterY - wheelOffsetY
+    // Place each wheel directly on the surface at its x-position
+    const wheelBackY = groundBack - wheelRadius
+    const wheelFrontY = groundFront - wheelRadius
+
+    // Chassis center sits above the lower of the two wheel contact points
+    const spawnY = Math.min(wheelBackY, wheelFrontY) - wheelOffsetY
     
     this.vehicle = new Vehicle(this, spawnX, spawnY, vehicleStats)
 
     // Ensure bodies start exactly at the computed positions
     Matter.Body.setPosition(this.vehicle.chassis, { x: spawnX, y: spawnY })
-    Matter.Body.setPosition(this.vehicle.wheelBack, { x: spawnX - wheelOffsetX, y: spawnY + wheelOffsetY })
-    Matter.Body.setPosition(this.vehicle.wheelFront, { x: spawnX + wheelOffsetX, y: spawnY + wheelOffsetY })
+    Matter.Body.setPosition(this.vehicle.wheelBack, { x: spawnX - wheelOffsetX, y: wheelBackY })
+    Matter.Body.setPosition(this.vehicle.wheelFront, { x: spawnX + wheelOffsetX, y: wheelFrontY })
     Matter.Body.setVelocity(this.vehicle.chassis, { x: 0, y: 0 })
     Matter.Body.setVelocity(this.vehicle.wheelBack, { x: 0, y: 0 })
     Matter.Body.setVelocity(this.vehicle.wheelFront, { x: 0, y: 0 })
@@ -140,6 +151,43 @@ export class BaseboundScene extends Phaser.Scene {
       ...this.vehicle.getBodies(),
       ...this.vehicle.getConstraints()
     ])
+
+    // Ground detection via wheel collisions (IMPORTANT: use the standalone Matter engine events,
+    // not Phaser's Matter plugin world)
+    const isWheelGroundPair = (a: Matter.Body, b: Matter.Body): { wheel?: Matter.Body; ground?: Matter.Body } => {
+      const aw = a.label === 'wheel'
+      const bw = b.label === 'wheel'
+      const ag = a.label === 'ground'
+      const bg = b.label === 'ground'
+      if (aw && bg) return { wheel: a, ground: b }
+      if (bw && ag) return { wheel: b, ground: a }
+      return {}
+    }
+
+    const incWheelContact = (wheel: Matter.Body) => {
+      const id = wheel.id
+      this.wheelContactCount[id] = (this.wheelContactCount[id] ?? 0) + 1
+    }
+
+    const decWheelContact = (wheel: Matter.Body) => {
+      const id = wheel.id
+      const next = (this.wheelContactCount[id] ?? 0) - 1
+      this.wheelContactCount[id] = Math.max(0, next)
+    }
+
+    Matter.Events.on(this.engine, 'collisionStart', (evt: any) => {
+      for (const pair of evt.pairs ?? []) {
+        const { wheel } = isWheelGroundPair(pair.bodyA, pair.bodyB)
+        if (wheel) incWheelContact(wheel)
+      }
+    })
+
+    Matter.Events.on(this.engine, 'collisionEnd', (evt: any) => {
+      for (const pair of evt.pairs ?? []) {
+        const { wheel } = isWheelGroundPair(pair.bodyA, pair.bodyB)
+        if (wheel) decWheelContact(wheel)
+      }
+    })
     
     // Create graphics for vehicle - use images if available, else shapes
     if (this.textures.exists('car-body')) {
@@ -216,6 +264,7 @@ export class BaseboundScene extends Phaser.Scene {
         // Overlap segments slightly to avoid tiny seams.
         const seg = Matter.Bodies.rectangle(midX, midY, len + 18, thickness, {
           isStatic: true,
+          label: 'ground',
           angle,
           friction: 2.0,
           restitution: 0,
@@ -282,6 +331,11 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Cap delta to prevent physics instability (Matter.js recommends <= 16.667ms)
     const fixedDelta = Math.min(delta, 1000 / 60)
+
+    // Update grounded state from wheel contacts
+    const backContacts = this.wheelContactCount[this.vehicle.wheelBack.id] ?? 0
+    const frontContacts = this.wheelContactCount[this.vehicle.wheelFront.id] ?? 0
+    this.isGrounded = backContacts > 0 || frontContacts > 0
     
     // Update physics
     Matter.Engine.update(this.engine, fixedDelta)
@@ -303,16 +357,36 @@ export class BaseboundScene extends Phaser.Scene {
 
     const dtSeconds = fixedDelta / 1000
 
-    let throttle = 0
-    if (pressingRight) throttle += 1
-    if (pressingLeft) throttle -= 1
+    // Unity-style: separate gas + brake pedals with smoothing
+    const rawBrake = pressingLeft ? 1 : 0
+    const rawGas = pressingRight ? 1 : 0
 
-    if (throttle !== 0) {
-      this.vehicle.drive(throttle, dtSeconds)
-      if (throttle > 0) this.gameState.fuel -= 0.5 * dtSeconds
+    // Exponential smoothing ~ SmoothDamp feel
+    const damp = (current: number, target: number, smoothTime: number) => {
+      if (smoothTime <= 0) return target
+      const k = 1 - Math.exp(-dtSeconds / smoothTime)
+      return current + (target - current) * k
+    }
+
+    this.brakeDamped = damp(this.brakeDamped, rawBrake, this.brakeSmoothTimeSec)
+    this.gasDamped = damp(this.gasDamped, rawGas, this.gasSmoothTimeSec)
+
+    // Constant fuel drain (Unity repo drains fuel continuously)
+    this.gameState.fuel -= 0.5 * dtSeconds
+
+    const hasFuel = this.gameState.fuel > 0
+    if (!hasFuel) {
+      this.vehicle.idleStabilize()
+    } else if (rawBrake > 0) {
+      this.vehicle.brake(this.brakeDamped, dtSeconds)
+    } else if (rawGas > 0) {
+      this.vehicle.drive(this.gasDamped, dtSeconds)
     } else {
       this.vehicle.idleStabilize()
     }
+
+    // Air control (only when airborne)
+    this.handleAirControl()
     
     // Update distance
     const vehiclePos = this.vehicle.getPosition()
@@ -414,5 +488,30 @@ export class BaseboundScene extends Phaser.Scene {
     if (this.onGameOver) {
       this.onGameOver(this.gameState)
     }
+  }
+
+  private handleAirControl(): void {
+    const pressingRight = this.cursors.right.isDown
+    const pressingLeft = this.cursors.left.isDown
+
+    const rawBrake = pressingLeft ? 1 : 0
+    const rawGas = pressingRight ? 1 : 0
+    const finalRawInput = rawBrake > 0 ? 1 : rawGas > 0 ? -1 : 0
+
+    // Unity repo rotates more in air, less on ground
+    const onAirRotation = 0.00045
+    const onGroundRotation = 0.00012
+    const torqueForce = this.isGrounded ? onGroundRotation : onAirRotation
+
+    if (finalRawInput !== 0) {
+      this.vehicle.chassis.torque += -finalRawInput * torqueForce
+    }
+
+    // Clamp chassis spin so it feels controllable
+    this.vehicle.chassis.angularVelocity = Phaser.Math.Clamp(
+      this.vehicle.chassis.angularVelocity,
+      -0.18,
+      0.18
+    )
   }
 }
