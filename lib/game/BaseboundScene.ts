@@ -36,7 +36,8 @@ export class BaseboundScene extends Phaser.Scene {
   private wheelFrontGraphic!: Phaser.GameObjects.Image | Phaser.GameObjects.Arc
   private fuelPickups: Phaser.GameObjects.Image[] = []
   private coinPickups: Phaser.GameObjects.Image[] = []
-  private nextPickupX: number = 300
+  private nextFuelX: number = 450
+  private nextCoinGroupX: number = 650
   private cameraOffsetX: number = 0
   private terrainGeneratedToX: number = 0
   private readonly cameraLeftMarginFrac: number = 0.3
@@ -57,6 +58,9 @@ export class BaseboundScene extends Phaser.Scene {
   // Wheel grounding counters (can be >1 due to multiple contact points)
   private wheelBackGroundContacts: number = 0
   private wheelFrontGroundContacts: number = 0
+
+  // Chassis touching dirt (used to ensure flip game-over only when roof hits ground)
+  private chassisDirtContacts: number = 0
 
   // Code-Bullet: motor state tracking
   private leftDown: boolean = false
@@ -168,10 +172,16 @@ export class BaseboundScene extends Phaser.Scene {
     // Track wheel-ground contact so we can avoid applying flip-inducing torque when airborne.
     const backWheelBody = this.vehicle.wheels?.[0]?.body
     const frontWheelBody = this.vehicle.wheels?.[1]?.body
+    const chassisBody = this.vehicle.chassisBody
 
     const isGrassFixture = (fixture: any): boolean => {
       const fd = fixture?.getFilterData?.()
       return (fd?.categoryBits ?? 0) === this.GRASS_CATEGORY
+    }
+
+    const isDirtFixture = (fixture: any): boolean => {
+      const fd = fixture?.getFilterData?.()
+      return (fd?.categoryBits ?? 0) === this.DIRT_CATEGORY
     }
 
     const updateGrounded = () => {
@@ -196,6 +206,10 @@ export class BaseboundScene extends Phaser.Scene {
       } else if (bb === frontWheelBody && isGrassFixture(fa)) {
         this.wheelFrontGroundContacts++
         updateGrounded()
+      } else if (ba === chassisBody && isDirtFixture(fb)) {
+        this.chassisDirtContacts++
+      } else if (bb === chassisBody && isDirtFixture(fa)) {
+        this.chassisDirtContacts++
       }
     })
 
@@ -217,6 +231,10 @@ export class BaseboundScene extends Phaser.Scene {
       } else if (bb === frontWheelBody && isGrassFixture(fa)) {
         this.wheelFrontGroundContacts = Math.max(0, this.wheelFrontGroundContacts - 1)
         updateGrounded()
+      } else if (ba === chassisBody && isDirtFixture(fb)) {
+        this.chassisDirtContacts = Math.max(0, this.chassisDirtContacts - 1)
+      } else if (bb === chassisBody && isDirtFixture(fa)) {
+        this.chassisDirtContacts = Math.max(0, this.chassisDirtContacts - 1)
       }
     })
     
@@ -459,44 +477,52 @@ export class BaseboundScene extends Phaser.Scene {
   
   private spawnPickups(): void {
     const vehicleX = this.vehicle.getPosition().x
-    
-    // Code-Bullet: Spawn fuel can every 300-500 units
-    if (this.nextPickupX < vehicleX + 800) {
-      const x = this.nextPickupX
+
+    // Keep fuel and coin groups spaced apart.
+    const minSeparationPx = 400
+
+    // Spawn fuel can (not too close to coin groups)
+    if (this.nextFuelX < vehicleX + 900) {
+      if (Math.abs(this.nextFuelX - this.nextCoinGroupX) < minSeparationPx) {
+        this.nextFuelX = this.nextCoinGroupX + minSeparationPx
+      }
+
+      const x = this.nextFuelX
       const y = this.terrain.getHeightAt(x) - 60
-      
-      // Code-Bullet: Fuel can radius = 15 (so 30px diameter, we use 50px for visibility)
+
       const fuelCan = this.add.image(x, y, 'fuel-icon') as any
       fuelCan.setDisplaySize(50, 50)
       fuelCan.setData('type', 'fuel')
       fuelCan.setDepth(10)
-      
       this.fuelPickups.push(fuelCan)
-      
-      this.nextPickupX += Phaser.Math.Between(300, 500)
+
+      this.nextFuelX += Phaser.Math.Between(650, 950)
     }
-    
-    // Code-Bullet: Spawn coins in arcs/groups every 200-400 units
-    if (Math.random() < 0.2 && this.coinPickups.length < 50) {
-      const groupSize = Phaser.Math.Between(3, 8)
-      const startX = vehicleX + Phaser.Math.Between(300, 600)
-      const coinSpacing = 35
-      
-      // Code-Bullet: coins in arc pattern (radius=10, so 20px, we use 45px)
+
+    // Spawn coin group: 5–10 coins per group, and groups spaced out
+    if (this.coinPickups.length < 80 && this.nextCoinGroupX < vehicleX + 1100) {
+      if (Math.abs(this.nextCoinGroupX - this.nextFuelX) < minSeparationPx) {
+        this.nextCoinGroupX = this.nextFuelX + minSeparationPx
+      }
+
+      const groupSize = Phaser.Math.Between(5, 10)
+      const startX = this.nextCoinGroupX
+      const coinSpacing = 38
+
       for (let i = 0; i < groupSize; i++) {
         const coinX = startX + i * coinSpacing
-        // Arc height: parabolic curve for visual appeal
-        const arcProgress = i / (groupSize - 1) // 0 to 1
-        const arcHeight = Math.sin(arcProgress * Math.PI) * 80 // 80px max arc height
+        const arcProgress = groupSize === 1 ? 0 : i / (groupSize - 1)
+        const arcHeight = Math.sin(arcProgress * Math.PI) * 70
         const coinY = this.terrain.getHeightAt(coinX) - 50 - arcHeight
-        
+
         const coin = this.add.image(coinX, coinY, 'coin-icon') as any
         coin.setDisplaySize(45, 45)
         coin.setData('type', 'coin')
         coin.setDepth(10)
-        
         this.coinPickups.push(coin)
       }
+
+      this.nextCoinGroupX += Phaser.Math.Between(800, 1200)
     }
   }
   
@@ -628,7 +654,9 @@ export class BaseboundScene extends Phaser.Scene {
     const flippedHoldMs = 900
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
-    if (isPastGrace && this.vehicle.isFlipped()) {
+    const flippedOnGround = this.vehicle.isFlipped() && this.chassisDirtContacts > 0
+
+    if (isPastGrace && flippedOnGround) {
       if (this.flippedSinceMs === null) this.flippedSinceMs = time
       if (time - this.flippedSinceMs > flippedHoldMs) {
         this.endGame('flip')
