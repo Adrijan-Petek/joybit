@@ -289,10 +289,10 @@ export class BaseboundScene extends Phaser.Scene {
       }
     })
     
-    // Camera follows the car (keep car on left side even when speeding)
+    // Camera follows the car (lock car on left side even at high speed)
     this.cameras.main.setBounds(-1000, 0, 999999, 2000)
-    this.cameras.main.startFollow(this.chassisGraphic as any, true, 0.25, 0.25)
-    ;(this.cameras.main as any).followOffset?.set?.(250, 0)
+    this.cameras.main.startFollow(this.chassisGraphic as any, true, 1, 1)
+    ;(this.cameras.main as any).followOffset?.set?.(300, 0)
     this.cameras.main.setZoom(1.0)
     
     // Create HUD
