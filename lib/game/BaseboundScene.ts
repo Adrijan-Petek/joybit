@@ -39,6 +39,7 @@ export class BaseboundScene extends Phaser.Scene {
   private nextPickupX: number = 300
   private cameraOffsetX: number = 0
   private terrainGeneratedToX: number = 0
+  private readonly cameraLeftMarginFrac: number = 0.3
   private hudText!: Phaser.GameObjects.Text
   private fuelIcon!: Phaser.GameObjects.Image
   private fuelText!: Phaser.GameObjects.Text
@@ -289,11 +290,10 @@ export class BaseboundScene extends Phaser.Scene {
       }
     })
     
-    // Camera follows the car (lock car on left side even at high speed)
-    this.cameras.main.setBounds(-1000, 0, 999999, 2000)
-    this.cameras.main.startFollow(this.chassisGraphic as any, true, 1, 1)
-    ;(this.cameras.main as any).followOffset?.set?.(300, 0)
+    // Camera: keep car on the left, but don't scroll past x=0 (terrain starts from left)
+    this.cameras.main.setBounds(0, 0, 999999, 2000)
     this.cameras.main.setZoom(1.0)
+    this.cameras.main.setScroll(0, 0)
     
     // Create HUD
     this.createHUD()
@@ -541,7 +541,10 @@ export class BaseboundScene extends Phaser.Scene {
     const vehiclePos = this.vehicle.getPosition()
     this.gameState.distance = Math.max(this.gameState.distance, Math.floor(vehiclePos.x / 10))
     
-    // Camera follow handles scrolling
+    // Manual camera scroll keeps car on left and ensures terrain starts at x=0.
+    const marginPx = Math.floor(this.cameras.main.width * this.cameraLeftMarginFrac)
+    const desiredScrollX = Math.max(0, chassisR.x - marginPx)
+    this.cameras.main.scrollX = desiredScrollX
     
     // Check for pickups
     this.checkPickups(vehiclePos)
