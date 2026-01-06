@@ -43,13 +43,14 @@ export class Terrain {
 
   private heightAt(x: number): number {
     // Code-Bullet terrain: noise-based with progressive difficulty
-    const flatLength = 80 // short settle area; hills start almost immediately
-    
+    const flatLength = 0 // hills start immediately
+
     if (x < flatLength) return this.baseY
     
     // Noise-based terrain after flat start
     const adjustedX = x - flatLength
-    const noiseValue = this.smoothNoise(adjustedX / (700 / this.frequency))
+    // Scale by frequency directly; previous formula made noise almost constant.
+    const noiseValue = this.smoothNoise(adjustedX * this.frequency)
     
     // Progressive difficulty: steeper hills further you go
     const progressiveSteepness = 1 + Math.min(1.5, adjustedX / 5000)

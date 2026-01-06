@@ -183,7 +183,7 @@ export class Vehicle {
   }
 
   public motorOn(forward: boolean): void {
-    const motorSpeed = 13
+    const motorSpeed = 10
 
     this.wheelBackRig.joint.enableMotor(true)
     this.wheelFrontRig.joint.enableMotor(true)
@@ -208,8 +208,8 @@ export class Vehicle {
       }
     }
 
-    this.wheelBackRig.joint.setMaxMotorTorque(700)
-    this.wheelFrontRig.joint.setMaxMotorTorque(350)
+    this.wheelBackRig.joint.setMaxMotorTorque(600)
+    this.wheelFrontRig.joint.setMaxMotorTorque(300)
 
     // Only apply chassis torque when grounded; otherwise it can flip the car.
     if (this.groundedBack || this.groundedFront) {

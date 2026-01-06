@@ -124,9 +124,11 @@ export class BaseboundScene extends Phaser.Scene {
     }
     
     // Create terrain with level-specific settings
+    // Push terrain down a bit so it isn't too high on screen.
+    const terrainBaseY = this.currentLevel.terrain.baseY + 120
     this.terrain = new Terrain(
       Date.now(),
-      this.currentLevel.terrain.baseY,
+      terrainBaseY,
       this.currentLevel.terrain.amplitude,
       this.currentLevel.terrain.frequency
     )
@@ -539,7 +541,8 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Update distance
     const vehiclePos = this.vehicle.getPosition()
-    this.gameState.distance = Math.max(this.gameState.distance, Math.floor(vehiclePos.x / 10))
+    // Use ~30px per meter (matches SCALE) so distance doesn't count too fast.
+    this.gameState.distance = Math.max(this.gameState.distance, Math.floor(vehiclePos.x / 30))
     
     // Manual camera scroll keeps car on left and ensures terrain starts at x=0.
     const marginPx = Math.floor(this.cameras.main.width * this.cameraLeftMarginFrac)
