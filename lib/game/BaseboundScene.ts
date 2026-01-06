@@ -38,6 +38,7 @@ export class BaseboundScene extends Phaser.Scene {
   private coinPickups: Phaser.GameObjects.Image[] = []
   private nextPickupX: number = 300
   private cameraOffsetX: number = 0
+  private terrainGeneratedToX: number = 0
   private hudText!: Phaser.GameObjects.Text
   private fuelIcon!: Phaser.GameObjects.Image
   private fuelText!: Phaser.GameObjects.Text
@@ -129,6 +130,7 @@ export class BaseboundScene extends Phaser.Scene {
       this.currentLevel.terrain.frequency
     )
     this.generateTerrainChunk(0, 2000)
+    this.terrainGeneratedToX = 2000
     
     // Create vehicle at spawn position
     const vehicleStats: VehicleStats = {
@@ -397,6 +399,14 @@ export class BaseboundScene extends Phaser.Scene {
     // Smaller spacing for smoother hills
     const points = this.terrain.generateChunk(startX, endX, 10)
 
+    // Smooth render points (visual only): spline through terrain points.
+    // Phaser Graphics doesn't support CanvasContext's quadraticCurveTo directly.
+    const spline = new Phaser.Curves.Spline(
+      points.map(p => new Phaser.Math.Vector2(p.x, p.y))
+    )
+    const segmentCount = Math.max(32, Math.ceil((endX - startX) / 12))
+    const renderPoints = spline.getSpacedPoints(segmentCount)
+
     // Physics terrain: Use Chain shapes for smoother rolling than many independent edges.
     const Vec2 = planck.Vec2
     const dirtVerts: any[] = []
@@ -428,8 +438,8 @@ export class BaseboundScene extends Phaser.Scene {
     g.setDepth(0)
     g.fillStyle(this.currentLevel.terrain.groundColor, 1)
     g.beginPath()
-    g.moveTo(points[0].x, points[0].y)
-    for (let i = 1; i < points.length; i++) g.lineTo(points[i].x, points[i].y)
+    g.moveTo(renderPoints[0].x, renderPoints[0].y)
+    for (let i = 1; i < renderPoints.length; i++) g.lineTo(renderPoints[i].x, renderPoints[i].y)
     g.lineTo(endX, bottomY)
     g.lineTo(startX, bottomY)
     g.closePath()
@@ -438,8 +448,8 @@ export class BaseboundScene extends Phaser.Scene {
     // Grass top stroke
     g.lineStyle(6, this.currentLevel.terrain.groundTopColor, 1)
     g.beginPath()
-    g.moveTo(points[0].x, points[0].y)
-    for (let i = 1; i < points.length; i++) g.lineTo(points[i].x, points[i].y)
+    g.moveTo(renderPoints[0].x, renderPoints[0].y)
+    for (let i = 1; i < renderPoints.length; i++) g.lineTo(renderPoints[i].x, renderPoints[i].y)
     g.strokePath()
 
     this.terrainGraphics.push(g)
@@ -536,13 +546,12 @@ export class BaseboundScene extends Phaser.Scene {
     // Check for pickups
     this.checkPickups(vehiclePos)
     
-    // Generate new terrain ahead
-    if (vehiclePos.x > this.cameraOffsetX + 1000) {
-      this.generateTerrainChunk(
-        this.cameraOffsetX + 1500,
-        this.cameraOffsetX + 2500
-      )
-      this.cameraOffsetX += 1000
+    // Generate new terrain ahead (contiguous chunks; avoids overlaps/seams)
+    if (vehiclePos.x + 1200 > this.terrainGeneratedToX) {
+      const startX = this.terrainGeneratedToX
+      const endX = this.terrainGeneratedToX + 1200
+      this.generateTerrainChunk(startX, endX)
+      this.terrainGeneratedToX = endX
     }
     
     // Spawn new pickups

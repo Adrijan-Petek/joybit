@@ -43,13 +43,9 @@ export class Terrain {
 
   private heightAt(x: number): number {
     // Code-Bullet terrain: noise-based with progressive difficulty
-    const flatLength = 500 // flat start area
+    const flatLength = 80 // short settle area; hills start almost immediately
     
-    if (x < flatLength) {
-      // Flat starting area with slight ramp
-      const ramp = Math.max(0, Math.min(1, x / flatLength))
-      return this.baseY - (1 - ramp) * 50
-    }
+    if (x < flatLength) return this.baseY
     
     // Noise-based terrain after flat start
     const adjustedX = x - flatLength
