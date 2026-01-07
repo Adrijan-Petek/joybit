@@ -458,7 +458,8 @@ export class BaseboundScene extends Phaser.Scene {
     const g = this.fuelBar
     g.clear()
     
-    const barX = 50
+    const centerX = this.scale.width / 2
+    const barX = centerX - 120
     const barY = 44
     const barWidth = 80
     const barHeight = 8

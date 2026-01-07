@@ -266,8 +266,14 @@ export class Vehicle {
   }
 
   public isFlipped(): boolean {
-    const angle = Math.abs(this.getAngle())
-    return angle > 90 && angle < 270
+    const angle = this.getAngle()
+    // Normalize angle to -180 to 180
+    let normalizedAngle = angle % 360
+    if (normalizedAngle > 180) normalizedAngle -= 360
+    if (normalizedAngle < -180) normalizedAngle += 360
+    
+    // Only flipped if truly upside down (roof pointing down)
+    return Math.abs(normalizedAngle) > 135
   }
 
   public getVelocity(): number {
