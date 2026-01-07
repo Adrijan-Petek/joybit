@@ -64,10 +64,12 @@ export class BaseboundScene extends Phaser.Scene {
 
   // Audio
   private miniIdleSound?: Phaser.Sound.BaseSound
-  private miniRevSound?: Phaser.Sound.BaseSound
   private miniAccelerateSound?: Phaser.Sound.BaseSound
-  private miniDecelerateSound?: Phaser.Sound.BaseSound
-  private currentAudioState: 'idle' | 'rev' | 'accelerate' | 'decelerate' | 'none' = 'none'
+  private miniStartSound?: Phaser.Sound.BaseSound
+  private currentAudioState: 'idle' | 'accelerate' | 'none' = 'none'
+  private audioUnlocked: boolean = false
+  private startSoundPlayed: boolean = false
+  private startSoundPlaying: boolean = false
   
   // Code-Bullet camera panning system
   private panX: number = 0
@@ -104,13 +106,61 @@ export class BaseboundScene extends Phaser.Scene {
     // Load audio
     this.load.audio('mini-start', '/basebound-audio/cars/mini/start-mini.mp3')
     this.load.audio('mini-idle', '/basebound-audio/cars/mini/idle-mini.mp3')
-    this.load.audio('mini-rev', '/basebound-audio/cars/mini/rev-mini.mp3')
     this.load.audio('mini-accelerate', '/basebound-audio/cars/mini/accelerate-mini.mp3')
-    this.load.audio('mini-decelerate', '/basebound-audio/cars/mini/decelerate-mini.mp3')
   }
   
   create() {
     this.startedAtMs = this.time.now
+
+    // WebAudio is blocked until a user gesture in most browsers.
+    // Gate all sound playback behind an explicit unlock.
+    const tryUnlockAudio = () => {
+      if (this.audioUnlocked) return
+      this.audioUnlocked = true
+
+      try {
+        this.sound.unlock()
+      } catch {
+        // ignore
+      }
+
+      const ctx = (this.sound as any)?.context
+      if (ctx?.state === 'suspended' && typeof ctx.resume === 'function') {
+        try {
+          ctx.resume()
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    const playStartSoundOnce = () => {
+      if (this.startSoundPlayed) return
+      this.startSoundPlayed = true
+      try {
+        if (!this.miniStartSound) {
+          this.miniStartSound = this.sound.add('mini-start')
+        }
+        this.startSoundPlaying = true
+        this.miniStartSound.stop()
+        this.miniStartSound.once('complete', () => {
+          this.startSoundPlaying = false
+        })
+        this.miniStartSound.play()
+      } catch {
+        this.startSoundPlaying = false
+      }
+    }
+
+    const unlockAndStart = () => {
+      tryUnlockAudio()
+      // If resume happens async, this runs on the next tick.
+      this.time.delayedCall(0, playStartSoundOnce)
+    }
+
+    // Unlock audio on first pointer or keyboard interaction.
+    this.input.once('pointerdown', unlockAndStart)
+    this.input.keyboard?.once('keydown', unlockAndStart)
 
     // Set background color based on level
     this.cameras.main.setBackgroundColor(this.currentLevel.terrain.skyColor)
@@ -286,6 +336,7 @@ export class BaseboundScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown-RIGHT', (event: KeyboardEvent) => {
       if (event?.repeat) return
       if (this.rightDown) return
+      tryUnlockAudio()
       if (!this.gameState.isGameOver && this.gameState.fuel > 0) {
         this.rightDown = true
         this.vehicle.motorOn(true)
@@ -295,6 +346,7 @@ export class BaseboundScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown-LEFT', (event: KeyboardEvent) => {
       if (event?.repeat) return
       if (this.leftDown) return
+      tryUnlockAudio()
       if (!this.gameState.isGameOver && this.gameState.fuel > 0) {
         this.leftDown = true
         this.vehicle.motorOn(false)
@@ -326,11 +378,8 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Create HUD
     this.createHUD()
-    
-    // Play start sound
-    if (this.sound.get('mini-start')) {
-      this.sound.play('mini-start')
-    }
+
+    // Start sound plays after first gesture (see unlockAndStart).
     
     // Spawn initial pickups
     this.spawnPickups()
@@ -606,20 +655,40 @@ export class BaseboundScene extends Phaser.Scene {
     // Update HUD
     this.updateHUD()
     
-    // Update audio based on speed
+    // Update audio based on speed + throttle state
     const speed = this.vehicle.getVelocity()
-    if (speed > 5) {
-      if (this.currentAudioState !== 'rev') {
-        if (this.miniIdleSound) this.miniIdleSound.stop()
-        if (!this.miniRevSound) {
-          this.miniRevSound = this.sound.add('mini-rev', { loop: true })
+    const isThrottleDown = this.rightDown || this.leftDown
+
+    const stopAllEngineLoops = () => {
+      if (this.miniIdleSound) this.miniIdleSound.stop()
+      if (this.miniAccelerateSound) this.miniAccelerateSound.stop()
+    }
+
+    if (!this.audioUnlocked || this.gameState.isGameOver) {
+      if (this.currentAudioState !== 'none') {
+        stopAllEngineLoops()
+        this.currentAudioState = 'none'
+      }
+    } else if (this.startSoundPlaying) {
+      // Let engine start one-shot play without being overlapped.
+      if (this.currentAudioState !== 'none') {
+        stopAllEngineLoops()
+        this.currentAudioState = 'none'
+      }
+    } else if (isThrottleDown && speed > 1) {
+      // Throttle held => accelerate loop
+      if (this.currentAudioState !== 'accelerate') {
+        stopAllEngineLoops()
+        if (!this.miniAccelerateSound) {
+          this.miniAccelerateSound = this.sound.add('mini-accelerate', { loop: true })
         }
-        this.miniRevSound.play()
-        this.currentAudioState = 'rev'
+        this.miniAccelerateSound.play()
+        this.currentAudioState = 'accelerate'
       }
     } else if (speed > 0.1) {
+      // Rolling slowly / idling
       if (this.currentAudioState !== 'idle') {
-        if (this.miniRevSound) this.miniRevSound.stop()
+        stopAllEngineLoops()
         if (!this.miniIdleSound) {
           this.miniIdleSound = this.sound.add('mini-idle', { loop: true })
         }
@@ -628,8 +697,7 @@ export class BaseboundScene extends Phaser.Scene {
       }
     } else {
       if (this.currentAudioState !== 'none') {
-        if (this.miniIdleSound) this.miniIdleSound.stop()
-        if (this.miniRevSound) this.miniRevSound.stop()
+        stopAllEngineLoops()
         this.currentAudioState = 'none'
       }
     }
