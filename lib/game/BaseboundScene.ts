@@ -388,11 +388,11 @@ export class BaseboundScene extends Phaser.Scene {
   private createHUD(): void {
     const hudY = 16
     const iconSize = 40
-    const leftOffset = 120 // Large offset to avoid back button
+    const centerX = this.scale.width / 2
     
-    // === FUEL SECTION (after back button) ===
+    // === FUEL SECTION (center top) ===
     // Fuel canister icon (image)
-    this.fuelIcon = this.add.image(leftOffset + iconSize / 2, hudY + iconSize / 2, 'fuel-icon')
+    this.fuelIcon = this.add.image(centerX - 80, hudY + iconSize / 2, 'fuel-icon')
     this.fuelIcon.setDisplaySize(iconSize, iconSize)
     this.fuelIcon.setScrollFactor(0)
     this.fuelIcon.setDepth(100)
@@ -403,7 +403,7 @@ export class BaseboundScene extends Phaser.Scene {
     this.fuelBar.setDepth(100)
     
     // Fuel percentage text
-    this.fuelText = this.add.text(leftOffset + iconSize + 8, hudY + 10, '100%', {
+    this.fuelText = this.add.text(centerX - 40, hudY + 10, '100%', {
       fontSize: '20px',
       fontFamily: 'Arial, sans-serif',
       color: '#FFD700',
@@ -412,15 +412,15 @@ export class BaseboundScene extends Phaser.Scene {
     this.fuelText.setScrollFactor(0)
     this.fuelText.setDepth(100)
     
-    // === COIN SECTION (next to fuel) ===
+    // === COIN SECTION (center top, next to fuel) ===
     // Coin icon (image)
-    this.coinIcon = this.add.image(leftOffset + 140 + iconSize / 2, hudY + iconSize / 2, 'coin-icon')
+    this.coinIcon = this.add.image(centerX + 40, hudY + iconSize / 2, 'coin-icon')
     this.coinIcon.setDisplaySize(iconSize, iconSize)
     this.coinIcon.setScrollFactor(0)
     this.coinIcon.setDepth(100)
     
     // Coin count text
-    this.coinText = this.add.text(leftOffset + 140 + iconSize + 8, hudY + 10, '0', {
+    this.coinText = this.add.text(centerX + 80, hudY + 10, '0', {
       fontSize: '18px',
       fontFamily: 'Arial, sans-serif',
       color: '#FFD700',
