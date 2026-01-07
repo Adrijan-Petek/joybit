@@ -62,9 +62,12 @@ export class BaseboundScene extends Phaser.Scene {
   // Chassis touching dirt (used to ensure flip game-over only when roof hits ground)
   private chassisDirtContacts: number = 0
 
-  // Code-Bullet: motor state tracking
-  private leftDown: boolean = false
-  private rightDown: boolean = false
+  // Audio
+  private miniIdleSound?: Phaser.Sound.BaseSound
+  private miniRevSound?: Phaser.Sound.BaseSound
+  private miniAccelerateSound?: Phaser.Sound.BaseSound
+  private miniDecelerateSound?: Phaser.Sound.BaseSound
+  private currentAudioState: 'idle' | 'rev' | 'accelerate' | 'decelerate' | 'none' = 'none'
   
   // Code-Bullet camera panning system
   private panX: number = 0
@@ -98,8 +101,12 @@ export class BaseboundScene extends Phaser.Scene {
     this.load.image('fuel-icon', '/icons/fuel.png')
     this.load.image('coin-icon', '/icons/coin.png')
     
-    // Optional: Load terrain texture
-    // this.load.image('ground', '/terrain/ground.png')
+    // Load audio
+    this.load.audio('mini-start', '/basebound-audio/cars/mini/start-mini.mp3')
+    this.load.audio('mini-idle', '/basebound-audio/cars/mini/idle-mini.mp3')
+    this.load.audio('mini-rev', '/basebound-audio/cars/mini/rev-mini.mp3')
+    this.load.audio('mini-accelerate', '/basebound-audio/cars/mini/accelerate-mini.mp3')
+    this.load.audio('mini-decelerate', '/basebound-audio/cars/mini/decelerate-mini.mp3')
   }
   
   create() {
@@ -319,6 +326,11 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Create HUD
     this.createHUD()
+    
+    // Play start sound
+    if (this.sound.get('mini-start')) {
+      this.sound.play('mini-start')
+    }
     
     // Spawn initial pickups
     this.spawnPickups()
@@ -593,6 +605,34 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Update HUD
     this.updateHUD()
+    
+    // Update audio based on speed
+    const speed = this.vehicle.getVelocity()
+    if (speed > 5) {
+      if (this.currentAudioState !== 'rev') {
+        if (this.miniIdleSound) this.miniIdleSound.stop()
+        if (!this.miniRevSound) {
+          this.miniRevSound = this.sound.add('mini-rev', { loop: true })
+        }
+        this.miniRevSound.play()
+        this.currentAudioState = 'rev'
+      }
+    } else if (speed > 0.1) {
+      if (this.currentAudioState !== 'idle') {
+        if (this.miniRevSound) this.miniRevSound.stop()
+        if (!this.miniIdleSound) {
+          this.miniIdleSound = this.sound.add('mini-idle', { loop: true })
+        }
+        this.miniIdleSound.play()
+        this.currentAudioState = 'idle'
+      }
+    } else {
+      if (this.currentAudioState !== 'none') {
+        if (this.miniIdleSound) this.miniIdleSound.stop()
+        if (this.miniRevSound) this.miniRevSound.stop()
+        this.currentAudioState = 'none'
+      }
+    }
     
     // Check game over conditions
     this.checkGameOver(time)
