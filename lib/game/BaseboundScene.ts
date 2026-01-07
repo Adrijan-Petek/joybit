@@ -111,6 +111,8 @@ export class BaseboundScene extends Phaser.Scene {
     // Create Planck (Box2D-style) physics world.
     // Code-Bullet: gravity = Vec2(0, 10), step = 1/30.
     this.world = planck.World(planck.Vec2(0, 10))
+    // Let bodies sleep when they settle (prevents perpetual micro-bounce).
+    this.world.setAllowSleep?.(true)
     this.groundBody = this.world.createBody({ type: 'static', position: planck.Vec2(0, 0) })
     this.groundBody.setUserData({ id: 'ground' })
     
@@ -651,7 +653,7 @@ export class BaseboundScene extends Phaser.Scene {
     const spawnGraceMs = 900
 
     // Flip is only a loss if you stay flipped for a bit (prevents instant game over)
-    const flippedHoldMs = 900
+    const flippedHoldMs = 250
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
     const flippedOnGround = this.vehicle.isFlipped() && this.chassisDirtContacts > 0

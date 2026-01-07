@@ -102,7 +102,8 @@ export class Vehicle {
       filterMaskBits: this.CHASSIS_MASK
     })
 
-    this.chassisBody.setAngularDamping(0.1)
+    this.chassisBody.setLinearDamping(0.25)
+    this.chassisBody.setAngularDamping(0.35)
 
     // === Wheels (ported from Code-Bullet Wheel.js) ===
     const wheelBackX = xPx - this.chassisWidth / 2 + this.wheelSize * 1.2
@@ -127,11 +128,12 @@ export class Vehicle {
     wheelBody.createFixture(planck.Circle(r), {
       density: 1,
       friction: 1.5,
-      restitution: 0.1,
+      restitution: 0,
       filterCategoryBits: this.WHEEL_CATEGORY,
       filterMaskBits: this.WHEEL_MASK
     })
-    wheelBody.setAngularDamping(1.8)
+    wheelBody.setLinearDamping(0.15)
+    wheelBody.setAngularDamping(2.2)
     wheelBody.setUserData({ id: 'wheel' })
 
     const rimBody = world.createBody({ type: 'dynamic', position: Vec2(x, y), angle: 0 })
@@ -163,8 +165,9 @@ export class Vehicle {
     const anchorWheel = Vec2(x, y)
     const anchorCar = Vec2(x, (yPx - rPx * 3) / this.SCALE)
     const distJoint = world.createJoint(planck.DistanceJoint({
-      frequencyHz: 70,
-      dampingRatio: 25
+      // Planck uses Box2D-style spring tuning; dampingRatio should be ~0..1.
+      frequencyHz: 9,
+      dampingRatio: 0.9
     }, rimBody, chassisBody, anchorWheel, anchorCar))
 
     return {
