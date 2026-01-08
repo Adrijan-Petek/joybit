@@ -443,66 +443,91 @@ export class BaseboundScene extends Phaser.Scene {
   }
   
   private createHUD(): void {
-    const hudY = 16
-    const iconSize = 40
+    const hudY = 20
+    const iconSize = 32
     const centerX = this.scale.width / 2
-    
-    // === FUEL SECTION (center top) ===
-    // Fuel canister icon (image)
-    this.fuelIcon = this.add.image(centerX - 80, hudY + iconSize / 2, 'fuel-icon')
+
+    // === FUEL SECTION (top left) ===
+    // Fuel canister icon
+    this.fuelIcon = this.add.image(20, hudY + iconSize / 2, 'fuel-icon')
     this.fuelIcon.setDisplaySize(iconSize, iconSize)
     this.fuelIcon.setScrollFactor(0)
     this.fuelIcon.setDepth(100)
-    
+
     // Fuel bar background
     this.fuelBar = this.add.graphics()
     this.fuelBar.setScrollFactor(0)
     this.fuelBar.setDepth(100)
-    
-    // Fuel percentage text
-    this.fuelText = this.add.text(centerX - 40, hudY + 10, '100%', {
-      fontSize: '20px',
+
+    // Fuel percentage text (below icon)
+    this.fuelText = this.add.text(20, hudY + iconSize + 8, '100%', {
+      fontSize: '16px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#FFFFFF',
+      fontStyle: 'bold',
+      align: 'center'
+    })
+    this.fuelText.setOrigin(0.5, 0)
+    this.fuelText.setScrollFactor(0)
+    this.fuelText.setDepth(100)
+
+    // === METERS COUNTER (center top - prominent) ===
+    // Meters background box
+    const metersBg = this.add.graphics()
+    metersBg.fillStyle(0x000000, 0.7)
+    metersBg.fillRoundedRect(centerX - 60, hudY - 8, 120, 50, 8)
+    metersBg.lineStyle(2, 0xFFFFFF, 0.8)
+    metersBg.strokeRoundedRect(centerX - 60, hudY - 8, 120, 50, 8)
+    metersBg.setScrollFactor(0)
+    metersBg.setDepth(99)
+
+    // Meters label
+    const metersLabel = this.add.text(centerX, hudY + 2, 'METERS', {
+      fontSize: '12px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#AAAAAA',
+      fontStyle: 'bold'
+    })
+    metersLabel.setOrigin(0.5, 0)
+    metersLabel.setScrollFactor(0)
+    metersLabel.setDepth(100)
+
+    // Meters value
+    this.distanceText = this.add.text(centerX, hudY + 16, '0', {
+      fontSize: '24px',
       fontFamily: 'Arial, sans-serif',
       color: '#FFD700',
       fontStyle: 'bold'
     })
-    this.fuelText.setScrollFactor(0)
-    this.fuelText.setDepth(100)
-    
-    // === COIN SECTION (center top, next to fuel) ===
-    // Coin icon (image)
-    this.coinIcon = this.add.image(centerX + 40, hudY + iconSize / 2, 'coin-icon')
+    this.distanceText.setOrigin(0.5, 0)
+    this.distanceText.setScrollFactor(0)
+    this.distanceText.setDepth(100)
+
+    // === COIN SECTION (top right) ===
+    // Coin icon
+    this.coinIcon = this.add.image(this.scale.width - 20, hudY + iconSize / 2, 'coin-icon')
     this.coinIcon.setDisplaySize(iconSize, iconSize)
     this.coinIcon.setScrollFactor(0)
     this.coinIcon.setDepth(100)
-    
-    // Coin count text
-    this.coinText = this.add.text(centerX + 80, hudY + 10, '0', {
-      fontSize: '18px',
+
+    // Coin count text (below icon)
+    this.coinText = this.add.text(this.scale.width - 20, hudY + iconSize + 8, '0', {
+      fontSize: '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#FFD700',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      align: 'center'
     })
+    this.coinText.setOrigin(0.5, 0)
     this.coinText.setScrollFactor(0)
     this.coinText.setDepth(100)
-    
-    
-    // === DISTANCE (top right) ===
-    this.distanceText = this.add.text(this.scale.width - 16, hudY + 2, '0m', {
-      fontSize: '18px',
+
+    // === SPEED (bottom right, smaller) ===
+    this.speedText = this.add.text(this.scale.width - 16, hudY + 70, '0 km/h', {
+      fontSize: '14px',
       fontFamily: 'Arial, sans-serif',
       color: '#FFFFFF',
       fontStyle: 'bold'
-    })
-    this.distanceText.setOrigin(1, 0) // Right-aligned
-    this.distanceText.setScrollFactor(0)
-    this.distanceText.setDepth(100)
-    
-    // === SPEED (below distance) ===
-    this.speedText = this.add.text(this.scale.width - 16, hudY + 26, '0 km/h', {
-      fontSize: '14px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#AAAAAA'
     })
     this.speedText.setOrigin(1, 0)
     this.speedText.setScrollFactor(0)
@@ -515,26 +540,26 @@ export class BaseboundScene extends Phaser.Scene {
   private drawFuelBar(fuelPercent: number): void {
     const g = this.fuelBar
     g.clear()
-    
-    const centerX = this.scale.width / 2
-    const barX = centerX - 120
-    const barY = 44
-    const barWidth = 80
-    const barHeight = 8
-    
+
+    // Position fuel bar next to fuel icon (top left)
+    const barX = 60  // Right of the 20px icon + 20px margin + 20px icon width
+    const barY = 24  // Aligned with icon center
+    const barWidth = 60
+    const barHeight = 10
+
     // Background
     g.fillStyle(0x333333, 0.8)
-    g.fillRoundedRect(barX, barY, barWidth, barHeight, 2)
-    
+    g.fillRoundedRect(barX, barY, barWidth, barHeight, 3)
+
     // Fuel level
     const fillWidth = Math.max(0, (fuelPercent / 100) * barWidth)
     const fuelColor = fuelPercent > 30 ? 0x00FF00 : fuelPercent > 15 ? 0xFFAA00 : 0xFF0000
     g.fillStyle(fuelColor, 1)
-    g.fillRoundedRect(barX, barY, fillWidth, barHeight, 2)
-    
+    g.fillRoundedRect(barX, barY, fillWidth, barHeight, 3)
+
     // Border
-    g.lineStyle(1, 0xFFFFFF, 0.5)
-    g.strokeRoundedRect(barX, barY, barWidth, barHeight, 2)
+    g.lineStyle(1, 0xFFFFFF, 0.8)
+    g.strokeRoundedRect(barX, barY, barWidth, barHeight, 3)
   }
   
   private generateTerrainChunk(startX: number, endX: number): void {
@@ -835,8 +860,8 @@ export class BaseboundScene extends Phaser.Scene {
     // Update coin display
     this.coinText.setText(`${this.gameState.coins}`)
     
-    // Update distance
-    this.distanceText.setText(`${this.gameState.distance}m`)
+    // Update distance (meters counter - no "m" suffix since we have METERS label)
+    this.distanceText.setText(`${this.gameState.distance}`)
     
     // Update speed
     this.speedText.setText(`${speed} km/h`)
