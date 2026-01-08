@@ -847,22 +847,27 @@ export class BaseboundScene extends Phaser.Scene {
     const spawnGraceMs = 900
 
     // Flip is only a loss if you stay flipped for a bit (prevents instant game over)
-    const flippedHoldMs = 50
+    const flippedHoldMs = 25 // Reduced from 50ms for faster response
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
     // Check if flipped AND touching ground using multiple methods:
     // 1. Contact-based: wheels, chassis, or roof sensor touching terrain
-    // 2. Position-based: chassis center is near or below terrain surface (roof touching ground)
+    // 2. Position-based: chassis center is near terrain surface (roof touching ground when flipped)
     const contactBasedGround = this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0 || this.roofTerrainContacts > 0 || this.chassisDirtContacts > 0
     
-    // Position-based ground check: when flipped, the roof (top of chassis) should be near terrain
+    // Position-based ground check: when flipped, chassis center should be close to terrain surface
     const vehiclePos = this.vehicle.getPosition()
     const terrainY = this.terrain.getHeightAt(vehiclePos.x)
-    // Chassis is about 40px tall, so when flipped the roof is ~20px below center
-    // If chassis center is within ~30px of terrain surface, roof is touching
-    const positionBasedGround = vehiclePos.y >= terrainY - 35
+    // When flipped and roof touches ground, chassis center is ~20px above terrain
+    // Allow some tolerance for slight variations
+    const positionBasedGround = vehiclePos.y >= terrainY - 50
+    // More aggressive check: if chassis is very close to terrain, definitely touching
+    const definitelyOnGround = vehiclePos.y >= terrainY - 25
+    // Additional check: if flipped and moving very slowly, likely resting on roof
+    const velocity = this.vehicle.getVelocity()
+    const atRestOnRoof = Math.abs(velocity) < 2 // Very low speed threshold
     
-    const isOnGround = contactBasedGround || positionBasedGround
+    const isOnGround = contactBasedGround || positionBasedGround || definitelyOnGround || (this.vehicle.isFlipped() && atRestOnRoof)
     const flippedOnGround = this.vehicle.isFlipped() && isOnGround
 
     if (isPastGrace && flippedOnGround) {
