@@ -105,6 +105,26 @@ export class Vehicle {
     this.chassisBody.setLinearDamping(0.25)
     this.chassisBody.setAngularDamping(0.35)
 
+    // Roof sensor: used for game-over detection when upside down.
+    // It does NOT affect physics (sensor only), but it must be able to contact
+    // both grass (wheel-collidable) and dirt (chassis-collidable) terrain.
+    const roofHx = (this.chassisWidth * 0.45) / this.SCALE
+    const roofHy = 2 / this.SCALE
+    const roofYOffset = (-this.chassisHeight / 2 - 3) / this.SCALE
+    const roofShape = planck.Box(roofHx, roofHy, Vec2(0, roofYOffset), 0)
+    const roofFixture = this.chassisBody.createFixture(roofShape, {
+      isSensor: true,
+      filterCategoryBits: this.WHEEL_CATEGORY | this.CHASSIS_CATEGORY,
+      filterMaskBits: this.GRASS_CATEGORY | this.DIRT_CATEGORY
+    })
+    // Important: set fixture userData explicitly so contact callbacks can detect it.
+    if (roofFixture?.setUserData) {
+      roofFixture.setUserData({ id: 'roofSensor' })
+    } else {
+      // Fallback: try attaching on the shape (older Planck versions)
+      try { roofShape.setUserData?.({ id: 'roofSensor' }) } catch {}
+    }
+
     // === Wheels (ported from Code-Bullet Wheel.js) ===
     const wheelBackX = xPx - this.chassisWidth / 2 + this.wheelSize * 1.2
     const wheelFrontX = xPx + this.chassisWidth / 2 - this.wheelSize * 1.2

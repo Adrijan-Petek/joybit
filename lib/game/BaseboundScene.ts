@@ -62,6 +62,9 @@ export class BaseboundScene extends Phaser.Scene {
   // Chassis touching dirt (used to ensure flip game-over only when roof hits ground)
   private chassisDirtContacts: number = 0
 
+  // Roof sensor touching terrain (reliable flip-on-roof detection)
+  private roofTerrainContacts: number = 0
+
   // Audio
   private miniIdleSound?: Phaser.Sound.BaseSound
   private miniAccelerateSound?: Phaser.Sound.BaseSound
@@ -70,6 +73,10 @@ export class BaseboundScene extends Phaser.Scene {
   private audioUnlocked: boolean = false
   private startSoundPlayed: boolean = false
   private startSoundPlaying: boolean = false
+  private lastRotation: number = 0
+  private airRotationAccumulator: number = 0
+  private wasGrounded: boolean = false
+  private lastRoofContactMs: number = 0
   
   // Code-Bullet camera panning system
   private panX: number = 0
@@ -200,8 +207,8 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Create vehicle at spawn position
     const vehicleStats: VehicleStats = {
-      maxSpeed: 35,
-      torque: 22,
+      maxSpeed: 28,
+      torque: 16,
       suspension: 0.8,
       fuelCapacity: 100,
       fuelEfficiency: 1.0,
@@ -228,6 +235,10 @@ export class BaseboundScene extends Phaser.Scene {
     const spawnY = Math.min(wheelBackY, wheelFrontY) - wheelOffsetY
     this.vehicle = new Vehicle(this.world, spawnX, spawnY, vehicleStats)
 
+    // Initialize rotation tracking for aerial flip points
+    this.lastRotation = this.vehicle.getAngle()
+    this.wasGrounded = true
+
     // Track wheel-ground contact so we can avoid applying flip-inducing torque when airborne.
     const backWheelBody = this.vehicle.wheels?.[0]?.body
     const frontWheelBody = this.vehicle.wheels?.[1]?.body
@@ -252,6 +263,27 @@ export class BaseboundScene extends Phaser.Scene {
       const fb = contact.getFixtureB()
       const ba = fa.getBody()
       const bb = fb.getBody()
+
+      const faUd = fa.getUserData?.()
+      const fbUd = fb.getUserData?.()
+      const faIsRoof = faUd?.id === 'roofSensor'
+      const fbIsRoof = fbUd?.id === 'roofSensor'
+      const roofHitsTerrain = (roofFixture: any, otherFixture: any) => {
+        if (!roofFixture) return false
+        // Terrain is either grass or dirt chain.
+        return isGrassFixture(otherFixture) || isDirtFixture(otherFixture)
+      }
+
+      if (faIsRoof && roofHitsTerrain(fa, fb)) {
+        this.roofTerrainContacts++
+        this.lastRoofContactMs = this.time.now
+        return
+      }
+      if (fbIsRoof && roofHitsTerrain(fb, fa)) {
+        this.roofTerrainContacts++
+        this.lastRoofContactMs = this.time.now
+        return
+      }
 
       if (ba === backWheelBody && isGrassFixture(fb)) {
         this.wheelBackGroundContacts++
@@ -281,6 +313,26 @@ export class BaseboundScene extends Phaser.Scene {
       const fb = contact.getFixtureB()
       const ba = fa.getBody()
       const bb = fb.getBody()
+
+      const faUd = fa.getUserData?.()
+      const fbUd = fb.getUserData?.()
+      const faIsRoof = faUd?.id === 'roofSensor'
+      const fbIsRoof = fbUd?.id === 'roofSensor'
+      const roofHitsTerrain = (roofFixture: any, otherFixture: any) => {
+        if (!roofFixture) return false
+        return isGrassFixture(otherFixture) || isDirtFixture(otherFixture)
+      }
+
+      if (faIsRoof && roofHitsTerrain(fa, fb)) {
+        this.roofTerrainContacts = Math.max(0, this.roofTerrainContacts - 1)
+        this.lastRoofContactMs = this.time.now
+        return
+      }
+      if (fbIsRoof && roofHitsTerrain(fb, fa)) {
+        this.roofTerrainContacts = Math.max(0, this.roofTerrainContacts - 1)
+        this.lastRoofContactMs = this.time.now
+        return
+      }
 
       if (ba === backWheelBody && isGrassFixture(fb)) {
         this.wheelBackGroundContacts = Math.max(0, this.wheelBackGroundContacts - 1)
@@ -436,6 +488,7 @@ export class BaseboundScene extends Phaser.Scene {
     })
     this.coinText.setScrollFactor(0)
     this.coinText.setDepth(100)
+    
     
     // === DISTANCE (top right) ===
     this.distanceText = this.add.text(this.scale.width - 16, hudY + 2, '0m', {
@@ -664,6 +717,29 @@ export class BaseboundScene extends Phaser.Scene {
     // Update HUD
     this.updateHUD()
     
+    // Track aerial flips (rotation in air gives points)
+    const currentRotation = this.vehicle.getAngle()
+    const isGrounded = this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0
+    
+    if (!isGrounded) {
+      // In air - accumulate rotation
+      let deltaRotation = currentRotation - this.lastRotation
+      // wrap to [-180, 180] so crossing the +/-180 boundary doesn't create huge deltas
+      deltaRotation = ((deltaRotation + 180) % 360) - 180
+      this.airRotationAccumulator += Math.abs(deltaRotation)
+    } else if (!this.wasGrounded && isGrounded) {
+      // Just landed - check for completed flips
+      const fullFlips = Math.floor(this.airRotationAccumulator / 360)
+      if (fullFlips > 0) {
+        // Add points to score (coins) for flips in the air.
+        this.gameState.coins += fullFlips * 10
+      }
+      this.airRotationAccumulator = 0
+    }
+    
+    this.lastRotation = currentRotation
+    this.wasGrounded = isGrounded
+    
     // Update audio based on speed + throttle state
     const speed = this.vehicle.getVelocity()
     const isThrottleDown = this.rightDown || this.leftDown
@@ -770,10 +846,11 @@ export class BaseboundScene extends Phaser.Scene {
     const spawnGraceMs = 900
 
     // Flip is only a loss if you stay flipped for a bit (prevents instant game over)
-    const flippedHoldMs = 100
+    const flippedHoldMs = 50
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
-    const flippedOnGround = this.vehicle.isFlipped() && this.chassisDirtContacts > 0
+    const recentRoofTouch = this.time.now - this.lastRoofContactMs < 200
+    const flippedOnGround = this.vehicle.isFlipped() && (this.roofTerrainContacts > 0 || recentRoofTouch)
 
     if (isPastGrace && flippedOnGround) {
       if (this.flippedSinceMs === null) this.flippedSinceMs = time
