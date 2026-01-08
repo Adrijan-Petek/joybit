@@ -2,6 +2,7 @@
 import * as Phaser from 'phaser'
 import planck from 'planck-js'
 import { Vehicle } from './Vehicle'
+import { MINI_VEHICLE } from './vehicleCatalog'
 import { Terrain } from './Terrain'
 import { GameState, VehicleStats } from './types'
 import { getLevelConfig, LevelConfig } from './LevelConfig'
@@ -49,6 +50,13 @@ export class BaseboundScene extends Phaser.Scene {
   private coinText!: Phaser.GameObjects.Text
   private distanceText!: Phaser.GameObjects.Text
   private speedText!: Phaser.GameObjects.Text
+
+  // Mobile controls
+  private gasPedal?: Phaser.GameObjects.Image
+  private brakePedal?: Phaser.GameObjects.Image
+  private pedalSafeArea?: Phaser.GameObjects.Graphics
+  private pedalSafeAreaHeightPx: number = 0
+  private pedalSafeArea?: Phaser.GameObjects.Graphics
   private onGameOver?: (state: GameState) => void
   private currentLevel: LevelConfig
   private stars: Phaser.GameObjects.Rectangle[] = []
@@ -100,19 +108,25 @@ export class BaseboundScene extends Phaser.Scene {
   }
   
   preload() {
-    // Load vehicle assets
-    this.load.image('car-body', '/vehicles/mini-topless.png')
-    this.load.image('tire-back', '/vehicles/wheel-back.png')
-    this.load.image('tire-front', '/vehicles/wheel-front.png')
+    // Load vehicle assets (starter vehicle only for now)
+    this.load.image(MINI_VEHICLE.parts.body.key, MINI_VEHICLE.parts.body.path)
+    this.load.image(MINI_VEHICLE.parts.wheelBack.key, MINI_VEHICLE.parts.wheelBack.path)
+    this.load.image(MINI_VEHICLE.parts.wheelFront.key, MINI_VEHICLE.parts.wheelFront.path)
     
     // Load HUD icons
-    this.load.image('fuel-icon', '/icons/fuel.png')
-    this.load.image('coin-icon', '/icons/coin.png')
+    this.load.image('fuel-icon', '/basebound-game/icons/fuel.png')
+    this.load.image('coin-icon', '/basebound-game/icons/coin.png')
+
+    // Mobile pedal controls
+    this.load.image('pedal-gas-normal', '/basebound-game/icons/pedal-gas-normal.png')
+    this.load.image('pedal-gas-pressed', '/basebound-game/icons/pedal-gas-pressed.png')
+    this.load.image('pedal-brake-normal', '/basebound-game/icons/pedal-brake-normal.png')
+    this.load.image('pedal-brake-pressed', '/basebound-game/icons/pedal-brake-pressed.png')
     
     // Load audio
-    this.load.audio('mini-start', '/basebound-audio/cars/mini/start-mini.mp3')
-    this.load.audio('mini-idle', '/basebound-audio/cars/mini/idle-mini.mp3')
-    this.load.audio('mini-accelerate', '/basebound-audio/cars/mini/accelerate-mini.mp3')
+    this.load.audio(MINI_VEHICLE.audio.start.key, MINI_VEHICLE.audio.start.path)
+    this.load.audio(MINI_VEHICLE.audio.idle.key, MINI_VEHICLE.audio.idle.path)
+    this.load.audio(MINI_VEHICLE.audio.accelerate.key, MINI_VEHICLE.audio.accelerate.path)
   }
   
   create() {
@@ -206,16 +220,8 @@ export class BaseboundScene extends Phaser.Scene {
     this.generateTerrainChunk(0, 2000)
     this.terrainGeneratedToX = 2000
     
-    // Create vehicle at spawn position
-    const vehicleStats: VehicleStats = {
-      maxSpeed: 20,  // Much slower starting speed so upgrades matter
-      torque: 12,    // Much lower torque for sluggish acceleration
-      suspension: 0.8,
-      fuelCapacity: 100,
-      fuelEfficiency: 1.0,
-      mass: 100,
-      grip: 1.0     // Maximum grip
-    }
+    // Create vehicle at spawn position (starter vehicle only for now)
+    const vehicleStats: VehicleStats = { ...MINI_VEHICLE.baseStats }
     
     // Spawn vehicle ON the terrain (align wheels to surface)
     const spawnX = 200
@@ -429,12 +435,16 @@ export class BaseboundScene extends Phaser.Scene {
     })
     
     // Camera: keep car on the left, but don't scroll past x=0 (terrain starts from left)
-    this.cameras.main.setBounds(0, 0, 999999, 2000)
+    // Allow vertical scrolling in deep valleys (and keep UI/pedals clear).
+    this.cameras.main.setBounds(0, 0, 999999, 6000)
     this.cameras.main.setZoom(1.0)
     this.cameras.main.setScroll(0, 0)
     
     // Create HUD
     this.createHUD()
+
+    // Mobile pedals (bottom-left brake, bottom-right gas)
+    this.createMobilePedals(tryUnlockAudio)
 
     // Start sound plays after first gesture (see unlockAndStart).
     
@@ -447,20 +457,35 @@ export class BaseboundScene extends Phaser.Scene {
     const iconSize = 32
     const centerX = this.scale.width / 2
 
-    // === FUEL SECTION (top left) ===
-    // Fuel canister icon
-    this.fuelIcon = this.add.image(20, hudY + iconSize / 2, 'fuel-icon')
+    // === COINS (top left) ===
+    this.coinIcon = this.add.image(20, hudY + iconSize / 2, 'coin-icon')
+    this.coinIcon.setDisplaySize(iconSize, iconSize)
+    this.coinIcon.setScrollFactor(0)
+    this.coinIcon.setDepth(100)
+
+    this.coinText = this.add.text(20, hudY + iconSize + 8, '0', {
+      fontSize: '16px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#FFD700',
+      fontStyle: 'bold',
+      align: 'center'
+    })
+    this.coinText.setOrigin(0.5, 0)
+    this.coinText.setScrollFactor(0)
+    this.coinText.setDepth(100)
+
+    // === FUEL (to the right of coins) ===
+    const fuelX = 100
+    this.fuelIcon = this.add.image(fuelX, hudY + iconSize / 2, 'fuel-icon')
     this.fuelIcon.setDisplaySize(iconSize, iconSize)
     this.fuelIcon.setScrollFactor(0)
     this.fuelIcon.setDepth(100)
 
-    // Fuel bar background
     this.fuelBar = this.add.graphics()
     this.fuelBar.setScrollFactor(0)
     this.fuelBar.setDepth(100)
 
-    // Fuel percentage text (below icon)
-    this.fuelText = this.add.text(20, hudY + iconSize + 8, '100%', {
+    this.fuelText = this.add.text(fuelX, hudY + iconSize + 8, '100%', {
       fontSize: '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#FFFFFF',
@@ -503,25 +528,6 @@ export class BaseboundScene extends Phaser.Scene {
     this.distanceText.setScrollFactor(0)
     this.distanceText.setDepth(100)
 
-    // === COIN SECTION (top right) ===
-    // Coin icon
-    this.coinIcon = this.add.image(this.scale.width - 20, hudY + iconSize / 2, 'coin-icon')
-    this.coinIcon.setDisplaySize(iconSize, iconSize)
-    this.coinIcon.setScrollFactor(0)
-    this.coinIcon.setDepth(100)
-
-    // Coin count text (below icon)
-    this.coinText = this.add.text(this.scale.width - 20, hudY + iconSize + 8, '0', {
-      fontSize: '16px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#FFD700',
-      fontStyle: 'bold',
-      align: 'center'
-    })
-    this.coinText.setOrigin(0.5, 0)
-    this.coinText.setScrollFactor(0)
-    this.coinText.setDepth(100)
-
     // === SPEED (bottom right, smaller) ===
     this.speedText = this.add.text(this.scale.width - 16, hudY + 70, '0 km/h', {
       fontSize: '14px',
@@ -536,13 +542,113 @@ export class BaseboundScene extends Phaser.Scene {
     // Legacy hudText (hidden, kept for compatibility)
     this.hudText = this.add.text(-1000, -1000, '', { fontSize: '1px' })
   }
+
+  private createMobilePedals(tryUnlockAudio: () => void): void {
+    // Show pedals (desktop + mobile). Keyboard still works; pedals are for touch/mobile UX.
+
+    const placePedals = () => {
+      const w = this.scale.gameSize.width
+      const h = this.scale.gameSize.height
+      const margin = 22
+      // Smaller pedals + extra inset from screen edges
+      const sideInset = 30
+      const size = Math.min(110, Math.max(80, Math.floor(w * 0.13)))
+
+      // Rotate in portrait so pedals feel natural when phone is rotated.
+      const isPortrait = h > w
+      const angle = isPortrait ? -90 : 0
+
+      // Bottom safe area so terrain never shows under the pedals.
+      if (this.pedalSafeArea) {
+        this.pedalSafeArea.clear()
+        const safeH = size + margin * 2
+        this.pedalSafeAreaHeightPx = safeH
+        this.pedalSafeArea.fillStyle(0x000000, 0.35)
+        this.pedalSafeArea.fillRect(0, h - safeH, w, safeH)
+      }
+
+      if (this.brakePedal) {
+        this.brakePedal.setPosition(margin + sideInset + size / 2, h - margin - size / 2)
+        this.brakePedal.setDisplaySize(size, size)
+        this.brakePedal.setAngle(angle)
+        this.brakePedal.setInteractive(new Phaser.Geom.Circle(0, 0, size * 0.48), Phaser.Geom.Circle.Contains)
+      }
+
+      if (this.gasPedal) {
+        this.gasPedal.setPosition(w - margin - sideInset - size / 2, h - margin - size / 2)
+        this.gasPedal.setDisplaySize(size, size)
+        this.gasPedal.setAngle(angle)
+        this.gasPedal.setInteractive(new Phaser.Geom.Circle(0, 0, size * 0.48), Phaser.Geom.Circle.Contains)
+      }
+    }
+
+    this.pedalSafeArea = this.add.graphics()
+      .setScrollFactor(0)
+      .setDepth(900)
+
+    this.brakePedal = this.add.image(0, 0, 'pedal-brake-normal')
+      .setScrollFactor(0)
+      .setDepth(1000)
+      .setAlpha(1)
+      .setInteractive({ useHandCursor: false })
+
+    this.gasPedal = this.add.image(0, 0, 'pedal-gas-normal')
+      .setScrollFactor(0)
+      .setDepth(1000)
+      .setAlpha(1)
+      .setInteractive({ useHandCursor: false })
+
+    const pressBrake = () => {
+      tryUnlockAudio()
+      if (this.gameState.isGameOver || this.gameState.fuel <= 0) return
+      this.leftDown = true
+      this.brakePedal?.setTexture('pedal-brake-pressed')
+      this.vehicle.motorOn(false)
+    }
+
+    const releaseBrake = () => {
+      this.leftDown = false
+      this.brakePedal?.setTexture('pedal-brake-normal')
+      if (this.rightDown) this.vehicle.motorOn(true)
+      else this.vehicle.motorOff()
+    }
+
+    const pressGas = () => {
+      tryUnlockAudio()
+      if (this.gameState.isGameOver || this.gameState.fuel <= 0) return
+      this.rightDown = true
+      this.gasPedal?.setTexture('pedal-gas-pressed')
+      this.vehicle.motorOn(true)
+    }
+
+    const releaseGas = () => {
+      this.rightDown = false
+      this.gasPedal?.setTexture('pedal-gas-normal')
+      if (this.leftDown) this.vehicle.motorOn(false)
+      else this.vehicle.motorOff()
+    }
+
+    this.brakePedal.on('pointerdown', pressBrake)
+    this.brakePedal.on('pointerup', releaseBrake)
+    this.brakePedal.on('pointerout', releaseBrake)
+    this.brakePedal.on('pointerupoutside', releaseBrake)
+
+    this.gasPedal.on('pointerdown', pressGas)
+    this.gasPedal.on('pointerup', releaseGas)
+    this.gasPedal.on('pointerout', releaseGas)
+    this.gasPedal.on('pointerupoutside', releaseGas)
+
+    // Initial layout + on resize
+    placePedals()
+    this.scale.on('resize', placePedals)
+  }
   
   private drawFuelBar(fuelPercent: number): void {
     const g = this.fuelBar
     g.clear()
 
-    // Position fuel bar next to fuel icon (top left)
-    const barX = 60  // Right of the 20px icon + 20px margin + 20px icon width
+    // Position fuel bar next to fuel icon (top left, after coins)
+    const barX = 140
     const barY = 24  // Aligned with icon center
     const barWidth = 60
     const barHeight = 10
@@ -598,7 +704,7 @@ export class BaseboundScene extends Phaser.Scene {
       filterMaskBits: this.GRASS_MASK
     })
 
-    const bottomY = 2000
+    const bottomY = 6000
 
     // Render terrain as one filled shape
     const g = this.add.graphics()
@@ -725,6 +831,18 @@ export class BaseboundScene extends Phaser.Scene {
     const marginPx = Math.floor(this.cameras.main.width * this.cameraLeftMarginFrac)
     const desiredScrollX = Math.max(0, chassisR.x - marginPx)
     this.cameras.main.scrollX = desiredScrollX
+
+    // Vertical camera: follow the car down into valleys, but keep it above the pedal safe area.
+    // This prevents terrain/car from going under the on-screen pedals.
+    const camH = this.cameras.main.height
+    const safeH = this.pedalSafeAreaHeightPx || 0
+    // Keep chassis at least this far above the pedal area.
+    const keepAbovePedalsPx = 80
+    const maxChassisScreenY = camH - safeH - keepAbovePedalsPx
+    const desiredScrollY = Math.max(0, chassisR.y - maxChassisScreenY)
+    // Smooth the scroll a bit to avoid jitter.
+    const lerp = desiredScrollY > this.cameras.main.scrollY ? 0.18 : 0.06
+    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, desiredScrollY, lerp)
     
     // Check for pickups
     this.checkPickups(vehiclePos)

@@ -35,6 +35,8 @@ export class Vehicle {
   private readonly wheelSize = 17
   private readonly rotationTorque = 2
 
+  private readonly stats: VehicleStats
+
   private motorState = 0 // -1 backward, 0 off, 1 forward
 
   private groundedBack = false
@@ -42,6 +44,8 @@ export class Vehicle {
 
   constructor(world: any, xPx: number, yPx: number, _stats: VehicleStats) {
     const Vec2 = planck.Vec2
+
+    this.stats = _stats
 
     const x = xPx / this.SCALE
     const y = yPx / this.SCALE
@@ -206,7 +210,20 @@ export class Vehicle {
   }
 
   public motorOn(forward: boolean): void {
-    const motorSpeed = 10
+    // Convert configured top speed (km/h) into wheel angular speed (rad/s).
+    // v = ωr  =>  ω = v / r
+    const wheelRadiusM = this.wheelSize / this.SCALE
+    const targetMps = Math.max(1, (this.stats?.maxSpeed ?? 14) / 3.6)
+    const targetOmega = targetMps / wheelRadiusM
+
+    // Reverse should be slower than forward.
+    const omega = forward ? targetOmega : targetOmega * 0.6
+
+    // Use stats.torque to tune how strongly the motor can push.
+    // (These values are intentionally conservative for level 1.)
+    const baseTorque = Math.max(20, (this.stats?.torque ?? 8) * 18)
+    const backTorque = baseTorque
+    const frontTorque = Math.floor(baseTorque * 0.65)
 
     this.wheelBackRig.joint.enableMotor(true)
     this.wheelFrontRig.joint.enableMotor(true)
@@ -214,15 +231,15 @@ export class Vehicle {
     const oldState = this.motorState
     if (forward) {
       this.motorState = 1
-      this.wheelBackRig.joint.setMotorSpeed(-motorSpeed * Math.PI)
-      this.wheelFrontRig.joint.setMotorSpeed(-motorSpeed * Math.PI)
+      this.wheelBackRig.joint.setMotorSpeed(-omega)
+      this.wheelFrontRig.joint.setMotorSpeed(-omega)
       if (this.groundedBack || this.groundedFront) {
         this.chassisBody.applyTorque(-this.rotationTorque, true)
       }
     } else {
       this.motorState = -1
-      this.wheelBackRig.joint.setMotorSpeed(motorSpeed * Math.PI)
-      this.wheelFrontRig.joint.setMotorSpeed(motorSpeed * Math.PI)
+      this.wheelBackRig.joint.setMotorSpeed(omega)
+      this.wheelFrontRig.joint.setMotorSpeed(omega)
     }
 
     if (oldState + this.motorState === 0) {
@@ -231,12 +248,13 @@ export class Vehicle {
       }
     }
 
-    this.wheelBackRig.joint.setMaxMotorTorque(600)
-    this.wheelFrontRig.joint.setMaxMotorTorque(300)
+    this.wheelBackRig.joint.setMaxMotorTorque(backTorque)
+    this.wheelFrontRig.joint.setMaxMotorTorque(frontTorque)
 
     // Only apply chassis torque when grounded; otherwise it can flip the car.
     if (this.groundedBack || this.groundedFront) {
-      const torque = (forward ? -1 : 1) * 6
+      // Keep this low; wheel motors should do most of the work.
+      const torque = (forward ? -1 : 1) * 2
       this.chassisBody.applyTorque(torque, true)
     }
   }

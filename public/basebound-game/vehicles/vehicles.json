@@ -1,0 +1,9 @@
+{
+  "vehicles": [
+    {
+      "id": 1,
+      "slug": "mini",
+      "metadataPath": "/basebound-game/vehicles/mini/metadata.json"
+    }
+  ]
+}

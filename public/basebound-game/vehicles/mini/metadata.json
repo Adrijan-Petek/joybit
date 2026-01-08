@@ -1,0 +1,45 @@
+{
+  "id": 1,
+  "slug": "mini",
+  "name": "Mini",
+  "isStarter": true,
+  "unlockDistance": 0,
+  "price": 0,
+  "baseStats": {
+    "maxSpeed": 24,
+    "torque": 15,
+    "suspension": 0.8,
+    "fuelCapacity": 100,
+    "fuelEfficiency": 1.0,
+    "mass": 100,
+    "grip": 1.0
+  },
+  "parts": {
+    "body": {
+      "key": "car-body",
+      "path": "/basebound-game/vehicles/mini/mini-topless.png"
+    },
+    "wheelBack": {
+      "key": "tire-back",
+      "path": "/basebound-game/vehicles/mini/wheel-back.png"
+    },
+    "wheelFront": {
+      "key": "tire-front",
+      "path": "/basebound-game/vehicles/mini/wheel-front.png"
+    }
+  },
+  "audio": {
+    "start": {
+      "key": "mini-start",
+      "path": "/basebound-game/basebound-audio/cars/mini/start-mini.mp3"
+    },
+    "idle": {
+      "key": "mini-idle",
+      "path": "/basebound-game/basebound-audio/cars/mini/idle-mini.mp3"
+    },
+    "accelerate": {
+      "key": "mini-accelerate",
+      "path": "/basebound-game/basebound-audio/cars/mini/accelerate-mini.mp3"
+    }
+  }
+}
