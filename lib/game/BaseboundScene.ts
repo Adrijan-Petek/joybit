@@ -194,9 +194,11 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Create terrain with level-specific settings
     // Push terrain down a bit so it isn't too high on screen.
+    // Use a fixed seed so terrain is identical for all players (fair leaderboard)
     const terrainBaseY = this.currentLevel.terrain.baseY + 120
+    const FIXED_TERRAIN_SEED = 20260108 // Fixed seed for consistent terrain
     this.terrain = new Terrain(
-      Date.now(),
+      FIXED_TERRAIN_SEED,
       terrainBaseY,
       this.currentLevel.terrain.amplitude,
       this.currentLevel.terrain.frequency
@@ -616,7 +618,11 @@ export class BaseboundScene extends Phaser.Scene {
       fuelCan.setDepth(10)
       this.fuelPickups.push(fuelCan)
 
-      this.nextFuelX += Phaser.Math.Between(650, 950)
+      // Base spacing 500-750px, plus extra distance every 1000m to increase difficulty
+      const baseSpacing = Phaser.Math.Between(500, 750)
+      const distanceKm = Math.floor(this.gameState.distance / 1000)
+      const extraSpacing = distanceKm * 100 // +100px per 1000m traveled
+      this.nextFuelX += baseSpacing + extraSpacing
     }
 
     // Spawn coin group: 5–10 coins per group, and groups spaced out
@@ -676,8 +682,8 @@ export class BaseboundScene extends Phaser.Scene {
     this.wheelFrontGraphic.setPosition(wheelFrontR.x, wheelFrontR.y)
     this.wheelFrontGraphic.setRotation(wheelFrontR.angle)
     
-    // Code-Bullet: constant fuel drain
-    this.gameState.fuel -= 0.5 * dtSeconds
+    // Fuel drains faster to make the game more challenging
+    this.gameState.fuel -= 2.0 * dtSeconds
     const hasFuel = this.gameState.fuel > 0
     
     if (hasFuel) {
@@ -844,9 +850,19 @@ export class BaseboundScene extends Phaser.Scene {
     const flippedHoldMs = 50
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
-    // Check if flipped: use isFlipped() AND (roof sensor contact OR wheels on ground OR chassis contact)
-    // This ensures game over triggers when upside down and touching ANY part of terrain
-    const isOnGround = this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0 || this.roofTerrainContacts > 0 || this.chassisDirtContacts > 0
+    // Check if flipped AND touching ground using multiple methods:
+    // 1. Contact-based: wheels, chassis, or roof sensor touching terrain
+    // 2. Position-based: chassis center is near or below terrain surface (roof touching ground)
+    const contactBasedGround = this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0 || this.roofTerrainContacts > 0 || this.chassisDirtContacts > 0
+    
+    // Position-based ground check: when flipped, the roof (top of chassis) should be near terrain
+    const vehiclePos = this.vehicle.getPosition()
+    const terrainY = this.terrain.getHeightAt(vehiclePos.x)
+    // Chassis is about 40px tall, so when flipped the roof is ~20px below center
+    // If chassis center is within ~30px of terrain surface, roof is touching
+    const positionBasedGround = vehiclePos.y >= terrainY - 35
+    
+    const isOnGround = contactBasedGround || positionBasedGround
     const flippedOnGround = this.vehicle.isFlipped() && isOnGround
 
     if (isPastGrace && flippedOnGround) {
