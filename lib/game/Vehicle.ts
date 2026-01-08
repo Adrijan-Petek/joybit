@@ -272,8 +272,8 @@ export class Vehicle {
     if (normalizedAngle > 180) normalizedAngle -= 360
     if (normalizedAngle < -180) normalizedAngle += 360
     
-    // Only flipped if truly upside down (roof pointing down)
-    return Math.abs(normalizedAngle) > 135
+    // Flipped if past 90 degrees (roof pointing down)
+    return Math.abs(normalizedAngle) > 90
   }
 
   public getVelocity(): number {

@@ -269,6 +269,10 @@ export class BaseboundScene extends Phaser.Scene {
         this.chassisDirtContacts++
       } else if (bb === chassisBody && isDirtFixture(fa)) {
         this.chassisDirtContacts++
+      } else if (ba === chassisBody && isGrassFixture(fb)) {
+        this.chassisDirtContacts++
+      } else if (bb === chassisBody && isGrassFixture(fa)) {
+        this.chassisDirtContacts++
       }
     })
 
@@ -293,6 +297,10 @@ export class BaseboundScene extends Phaser.Scene {
       } else if (ba === chassisBody && isDirtFixture(fb)) {
         this.chassisDirtContacts = Math.max(0, this.chassisDirtContacts - 1)
       } else if (bb === chassisBody && isDirtFixture(fa)) {
+        this.chassisDirtContacts = Math.max(0, this.chassisDirtContacts - 1)
+      } else if (ba === chassisBody && isGrassFixture(fb)) {
+        this.chassisDirtContacts = Math.max(0, this.chassisDirtContacts - 1)
+      } else if (bb === chassisBody && isGrassFixture(fa)) {
         this.chassisDirtContacts = Math.max(0, this.chassisDirtContacts - 1)
       }
     })
@@ -762,7 +770,7 @@ export class BaseboundScene extends Phaser.Scene {
     const spawnGraceMs = 900
 
     // Flip is only a loss if you stay flipped for a bit (prevents instant game over)
-    const flippedHoldMs = 250
+    const flippedHoldMs = 100
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
     const flippedOnGround = this.vehicle.isFlipped() && this.chassisDirtContacts > 0
