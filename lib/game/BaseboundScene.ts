@@ -76,7 +76,6 @@ export class BaseboundScene extends Phaser.Scene {
   private lastRotation: number = 0
   private airRotationAccumulator: number = 0
   private wasGrounded: boolean = false
-  private lastRoofContactMs: number = 0
   
   // Code-Bullet camera panning system
   private panX: number = 0
@@ -276,12 +275,10 @@ export class BaseboundScene extends Phaser.Scene {
 
       if (faIsRoof && roofHitsTerrain(fa, fb)) {
         this.roofTerrainContacts++
-        this.lastRoofContactMs = this.time.now
         return
       }
       if (fbIsRoof && roofHitsTerrain(fb, fa)) {
         this.roofTerrainContacts++
-        this.lastRoofContactMs = this.time.now
         return
       }
 
@@ -325,12 +322,10 @@ export class BaseboundScene extends Phaser.Scene {
 
       if (faIsRoof && roofHitsTerrain(fa, fb)) {
         this.roofTerrainContacts = Math.max(0, this.roofTerrainContacts - 1)
-        this.lastRoofContactMs = this.time.now
         return
       }
       if (fbIsRoof && roofHitsTerrain(fb, fa)) {
         this.roofTerrainContacts = Math.max(0, this.roofTerrainContacts - 1)
-        this.lastRoofContactMs = this.time.now
         return
       }
 
@@ -849,8 +844,10 @@ export class BaseboundScene extends Phaser.Scene {
     const flippedHoldMs = 50
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
-    const recentRoofTouch = this.time.now - this.lastRoofContactMs < 200
-    const flippedOnGround = this.vehicle.isFlipped() && (this.roofTerrainContacts > 0 || recentRoofTouch)
+    // Check if flipped: use isFlipped() AND (roof sensor contact OR wheels on ground OR chassis contact)
+    // This ensures game over triggers when upside down and touching ANY part of terrain
+    const isOnGround = this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0 || this.roofTerrainContacts > 0 || this.chassisDirtContacts > 0
+    const flippedOnGround = this.vehicle.isFlipped() && isOnGround
 
     if (isPastGrace && flippedOnGround) {
       if (this.flippedSinceMs === null) this.flippedSinceMs = time
