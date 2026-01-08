@@ -208,8 +208,8 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Create vehicle at spawn position
     const vehicleStats: VehicleStats = {
-      maxSpeed: 28,
-      torque: 16,
+      maxSpeed: 20,  // Much slower starting speed so upgrades matter
+      torque: 12,    // Much lower torque for sluggish acceleration
       suspension: 0.8,
       fuelCapacity: 100,
       fuelEfficiency: 1.0,
