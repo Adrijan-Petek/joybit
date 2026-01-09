@@ -61,3 +61,5 @@ export const MINI_VEHICLE: VehicleMetadata = {
     accelerate: { key: 'mini-accelerate', path: '/basebound-game/basebound-audio/cars/mini/accelerate-mini.mp3' }
   }
 }
+
+export const VEHICLE_CATALOG: VehicleMetadata[] = [MINI_VEHICLE]

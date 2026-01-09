@@ -2,10 +2,11 @@
 import * as Phaser from 'phaser'
 import planck from 'planck-js'
 import { Vehicle } from './Vehicle'
-import { MINI_VEHICLE } from './vehicleCatalog'
+import { MINI_VEHICLE, VEHICLE_CATALOG } from './vehicleCatalog'
 import { Terrain } from './Terrain'
 import { GameState, VehicleStats } from './types'
 import { getLevelConfig, LevelConfig } from './LevelConfig'
+import { applyUpgradesToStats, loadBaseboundProfile } from './baseboundProfile'
 
 export class BaseboundScene extends Phaser.Scene {
   private world!: any
@@ -28,6 +29,7 @@ export class BaseboundScene extends Phaser.Scene {
   private readonly positionIterations: number = 10
 
   private vehicle!: Vehicle
+  private selectedVehicle = MINI_VEHICLE
   private terrain!: Terrain
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private gameState: GameState
@@ -49,7 +51,12 @@ export class BaseboundScene extends Phaser.Scene {
   private coinIcon!: Phaser.GameObjects.Image
   private coinText!: Phaser.GameObjects.Text
   private distanceText!: Phaser.GameObjects.Text
-  private speedText!: Phaser.GameObjects.Text
+  private fuelMeter!: Phaser.GameObjects.Image
+  private fuelNeedle!: Phaser.GameObjects.Graphics
+  private speedMeter!: Phaser.GameObjects.Image
+  private speedNeedle!: Phaser.GameObjects.Graphics
+  private hudIconSizePx: number = 32
+  private topHudBg?: Phaser.GameObjects.Graphics
 
   // Mobile controls
   private gasPedal?: Phaser.GameObjects.Image
@@ -108,12 +115,19 @@ export class BaseboundScene extends Phaser.Scene {
   }
   
   preload() {
-    // Load vehicle assets (starter vehicle only for now)
-    this.load.image(MINI_VEHICLE.parts.body.key, MINI_VEHICLE.parts.body.path)
-    this.load.image(MINI_VEHICLE.parts.wheelBack.key, MINI_VEHICLE.parts.wheelBack.path)
-    this.load.image(MINI_VEHICLE.parts.wheelFront.key, MINI_VEHICLE.parts.wheelFront.path)
+    // Load vehicle assets (load all catalog entries so selection works without async fetch)
+    for (const v of VEHICLE_CATALOG) {
+      this.load.image(v.parts.body.key, v.parts.body.path)
+      this.load.image(v.parts.wheelBack.key, v.parts.wheelBack.path)
+      this.load.image(v.parts.wheelFront.key, v.parts.wheelFront.path)
+
+      this.load.audio(v.audio.start.key, v.audio.start.path)
+      this.load.audio(v.audio.idle.key, v.audio.idle.path)
+      this.load.audio(v.audio.accelerate.key, v.audio.accelerate.path)
+    }
     
     // Load HUD icons
+    // (These exist in public/basebound-game/icons)
     this.load.image('fuel-icon', '/basebound-game/icons/fuel.png')
     this.load.image('coin-icon', '/basebound-game/icons/coin.png')
 
@@ -122,11 +136,13 @@ export class BaseboundScene extends Phaser.Scene {
     this.load.image('pedal-gas-pressed', '/basebound-game/icons/pedal-gas-pressed.png')
     this.load.image('pedal-brake-normal', '/basebound-game/icons/pedal-brake-normal.png')
     this.load.image('pedal-brake-pressed', '/basebound-game/icons/pedal-brake-pressed.png')
+
+    // Bottom meters
+    this.load.image('meter-rpm', '/basebound-game/icons/meter-rpm.png')
+    this.load.image('meter-boost', '/basebound-game/icons/meter-boost.png')
+    this.load.image('meter-needle', '/basebound-game/icons/meter-needle.png')
     
-    // Load audio
-    this.load.audio(MINI_VEHICLE.audio.start.key, MINI_VEHICLE.audio.start.path)
-    this.load.audio(MINI_VEHICLE.audio.idle.key, MINI_VEHICLE.audio.idle.path)
-    this.load.audio(MINI_VEHICLE.audio.accelerate.key, MINI_VEHICLE.audio.accelerate.path)
+    // Vehicle audio is loaded above via the catalog
   }
   
   create() {
@@ -220,8 +236,10 @@ export class BaseboundScene extends Phaser.Scene {
     this.generateTerrainChunk(0, 2000)
     this.terrainGeneratedToX = 2000
     
-    // Create vehicle at spawn position (starter vehicle only for now)
-    const vehicleStats: VehicleStats = { ...MINI_VEHICLE.baseStats }
+    // Create vehicle at spawn position (selected car + upgrades)
+    const profile = loadBaseboundProfile()
+    this.selectedVehicle = VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? MINI_VEHICLE
+    const vehicleStats: VehicleStats = applyUpgradesToStats(this.selectedVehicle.baseStats, profile.upgrades)
     
     // Spawn vehicle ON the terrain (align wheels to surface)
     const spawnX = 200
@@ -365,8 +383,8 @@ export class BaseboundScene extends Phaser.Scene {
     const wheelFrontR = this.vehicle.getWheelFrontRender()
 
     // Create graphics for vehicle - use images if available, else shapes
-    if (this.textures.exists('car-body')) {
-      this.chassisGraphic = this.add.image(chassisR.x, chassisR.y, 'car-body')
+    if (this.textures.exists(this.selectedVehicle.parts.body.key)) {
+      this.chassisGraphic = this.add.image(chassisR.x, chassisR.y, this.selectedVehicle.parts.body.key)
       this.chassisGraphic.setDisplaySize(120, 60)
     } else {
       this.chassisGraphic = this.add.rectangle(chassisR.x, chassisR.y, 120, 60, 0x4169E1)
@@ -374,8 +392,8 @@ export class BaseboundScene extends Phaser.Scene {
     }
     this.chassisGraphic.setDepth(10)
     
-    if (this.textures.exists('tire-back')) {
-      this.wheelBackGraphic = this.add.image(wheelBackR.x, wheelBackR.y, 'tire-back')
+    if (this.textures.exists(this.selectedVehicle.parts.wheelBack.key)) {
+      this.wheelBackGraphic = this.add.image(wheelBackR.x, wheelBackR.y, this.selectedVehicle.parts.wheelBack.key)
       this.wheelBackGraphic.setDisplaySize(45, 45)
     } else {
       this.wheelBackGraphic = this.add.circle(wheelBackR.x, wheelBackR.y, 22, 0x333333)
@@ -383,8 +401,8 @@ export class BaseboundScene extends Phaser.Scene {
     }
     this.wheelBackGraphic.setDepth(10)
     
-    if (this.textures.exists('tire-front')) {
-      this.wheelFrontGraphic = this.add.image(wheelFrontR.x, wheelFrontR.y, 'tire-front')
+    if (this.textures.exists(this.selectedVehicle.parts.wheelFront.key)) {
+      this.wheelFrontGraphic = this.add.image(wheelFrontR.x, wheelFrontR.y, this.selectedVehicle.parts.wheelFront.key)
       this.wheelFrontGraphic.setDisplaySize(45, 45)
     } else {
       this.wheelFrontGraphic = this.add.circle(wheelFrontR.x, wheelFrontR.y, 22, 0x333333)
@@ -446,6 +464,9 @@ export class BaseboundScene extends Phaser.Scene {
     // Mobile pedals (bottom-left brake, bottom-right gas)
     this.createMobilePedals(tryUnlockAudio)
 
+    // Bottom meters (same line/size as pedals)
+    this.createBottomMeters()
+
     // Start sound plays after first gesture (see unlockAndStart).
     
     // Spawn initial pickups
@@ -454,30 +475,46 @@ export class BaseboundScene extends Phaser.Scene {
   
   private createHUD(): void {
     const hudY = 20
-    const iconSize = 32
+    const iconSizeCoin = 52
+    const iconSizeFuel = 60
     const centerX = this.scale.width / 2
+    this.hudIconSizePx = iconSizeFuel
 
-    // === COINS (top left) ===
-    this.coinIcon = this.add.image(20, hudY + iconSize / 2, 'coin-icon')
-    this.coinIcon.setDisplaySize(iconSize, iconSize)
+    // === TOP LEFT HUD BAR (coins + fuel) ===
+    if (!this.topHudBg) {
+      this.topHudBg = this.add.graphics()
+      this.topHudBg.setScrollFactor(0)
+      this.topHudBg.setDepth(99)
+    }
+
+    this.topHudBg.clear()
+    this.topHudBg.fillStyle(0x000000, 0.55)
+    this.topHudBg.fillRoundedRect(12, hudY - 10, 340, 78, 12)
+    this.topHudBg.lineStyle(2, 0xFFFFFF, 0.18)
+    this.topHudBg.strokeRoundedRect(12, hudY - 10, 340, 78, 12)
+
+    const rowY = hudY + 28
+    const leftX = 26
+
+    // Coins
+    this.coinIcon = this.add.image(leftX + iconSizeCoin / 2, rowY, 'coin-icon')
+    this.coinIcon.setDisplaySize(iconSizeCoin, iconSizeCoin)
     this.coinIcon.setScrollFactor(0)
     this.coinIcon.setDepth(100)
 
-    this.coinText = this.add.text(20, hudY + iconSize + 8, '0', {
-      fontSize: '16px',
+    this.coinText = this.add.text(leftX + iconSizeCoin + 10, rowY - 14, '0', {
+      fontSize: '24px',
       fontFamily: 'Arial, sans-serif',
       color: '#FFD700',
-      fontStyle: 'bold',
-      align: 'center'
+      fontStyle: 'bold'
     })
-    this.coinText.setOrigin(0.5, 0)
     this.coinText.setScrollFactor(0)
     this.coinText.setDepth(100)
 
-    // === FUEL (to the right of coins) ===
-    const fuelX = 100
-    this.fuelIcon = this.add.image(fuelX, hudY + iconSize / 2, 'fuel-icon')
-    this.fuelIcon.setDisplaySize(iconSize, iconSize)
+    // Fuel
+    const fuelX = leftX + 170
+    this.fuelIcon = this.add.image(fuelX + iconSizeFuel / 2, rowY, 'fuel-icon')
+    this.fuelIcon.setDisplaySize(iconSizeFuel, iconSizeFuel)
     this.fuelIcon.setScrollFactor(0)
     this.fuelIcon.setDepth(100)
 
@@ -485,14 +522,12 @@ export class BaseboundScene extends Phaser.Scene {
     this.fuelBar.setScrollFactor(0)
     this.fuelBar.setDepth(100)
 
-    this.fuelText = this.add.text(fuelX, hudY + iconSize + 8, '100%', {
-      fontSize: '16px',
+    this.fuelText = this.add.text(fuelX + iconSizeFuel + 10, rowY - 12, '100%', {
+      fontSize: '20px',
       fontFamily: 'Arial, sans-serif',
       color: '#FFFFFF',
-      fontStyle: 'bold',
-      align: 'center'
+      fontStyle: 'bold'
     })
-    this.fuelText.setOrigin(0.5, 0)
     this.fuelText.setScrollFactor(0)
     this.fuelText.setDepth(100)
 
@@ -528,19 +563,72 @@ export class BaseboundScene extends Phaser.Scene {
     this.distanceText.setScrollFactor(0)
     this.distanceText.setDepth(100)
 
-    // === SPEED (bottom right, smaller) ===
-    this.speedText = this.add.text(this.scale.width - 16, hudY + 70, '0 km/h', {
-      fontSize: '14px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#FFFFFF',
-      fontStyle: 'bold'
-    })
-    this.speedText.setOrigin(1, 0)
-    this.speedText.setScrollFactor(0)
-    this.speedText.setDepth(100)
-    
     // Legacy hudText (hidden, kept for compatibility)
     this.hudText = this.add.text(-1000, -1000, '', { fontSize: '1px' })
+  }
+
+  private createBottomMeters(): void {
+    const placeMeters = () => {
+      const w = this.scale.gameSize.width
+      const h = this.scale.gameSize.height
+      const margin = 22
+      const size = Math.min(110, Math.max(80, Math.floor(w * 0.13)))
+      const needleLen = Math.round(size * 0.38)
+      const needleThickness = Math.max(2, Math.round(size * 0.018))
+
+      const centerX = w / 2
+      const y = h - margin - size / 2
+      const gap = Math.round(size * 0.18)
+      const total = size * 2 + gap
+      const leftX = centerX - total / 2 + size / 2
+      const rightX = leftX + size + gap
+
+      // Fuel (left), Speed (right)
+      this.fuelMeter.setPosition(leftX, y)
+      this.fuelMeter.setDisplaySize(size, size)
+      this.fuelNeedle.setPosition(leftX, y)
+      this.fuelNeedle.clear()
+      this.fuelNeedle.lineStyle(needleThickness, 0xFFFFFF, 1)
+      this.fuelNeedle.beginPath()
+      this.fuelNeedle.moveTo(0, 0)
+      this.fuelNeedle.lineTo(0, -needleLen)
+      this.fuelNeedle.strokePath()
+      this.fuelNeedle.fillStyle(0xFFFFFF, 1)
+      this.fuelNeedle.fillCircle(0, 0, Math.max(3, Math.round(needleThickness * 1.3)))
+
+      this.speedMeter.setPosition(rightX, y)
+      this.speedMeter.setDisplaySize(size, size)
+      this.speedNeedle.setPosition(rightX, y)
+      this.speedNeedle.clear()
+      this.speedNeedle.lineStyle(needleThickness, 0xFFFFFF, 1)
+      this.speedNeedle.beginPath()
+      this.speedNeedle.moveTo(0, 0)
+      this.speedNeedle.lineTo(0, -needleLen)
+      this.speedNeedle.strokePath()
+      this.speedNeedle.fillStyle(0xFFFFFF, 1)
+      this.speedNeedle.fillCircle(0, 0, Math.max(3, Math.round(needleThickness * 1.3)))
+    }
+
+    this.fuelMeter = this.add.image(0, 0, 'meter-boost')
+      .setScrollFactor(0)
+      .setDepth(1000)
+
+    this.speedMeter = this.add.image(0, 0, 'meter-rpm')
+      .setScrollFactor(0)
+      .setDepth(1000)
+
+    // Thin needles (drawn)
+    this.fuelNeedle = this.add.graphics()
+      .setScrollFactor(0)
+      .setDepth(1001)
+
+    this.speedNeedle = this.add.graphics()
+      .setScrollFactor(0)
+      .setDepth(1001)
+
+    // Initial layout + on resize
+    placeMeters()
+    this.scale.on('resize', placeMeters)
   }
 
   private createMobilePedals(tryUnlockAudio: () => void): void {
@@ -648,8 +736,8 @@ export class BaseboundScene extends Phaser.Scene {
     g.clear()
 
     // Position fuel bar next to fuel icon (top left, after coins)
-    const barX = 140
-    const barY = 24  // Aligned with icon center
+    const barX = Math.round((this.fuelIcon?.x ?? 140) + this.hudIconSizePx / 2 + 12)
+    const barY = Math.round((this.fuelIcon?.y ?? 36) - 5)
     const barWidth = 60
     const barHeight = 10
 
@@ -980,9 +1068,19 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Update distance (meters counter - no "m" suffix since we have METERS label)
     this.distanceText.setText(`${this.gameState.distance}`)
-    
-    // Update speed
-    this.speedText.setText(`${speed} km/h`)
+
+    // Update bottom meters (needle rotation)
+    // Map values to a wide sweep arc.
+    const minDeg = -135
+    const maxDeg = 135
+
+    const fuelT = Phaser.Math.Clamp(fuelPercent / 100, 0, 1)
+    this.fuelNeedle.setRotation(Phaser.Math.DegToRad(minDeg + fuelT * (maxDeg - minDeg)))
+
+    // Speed: clamp to a reasonable range for display.
+    const maxDisplaySpeed = 60
+    const speedT = Phaser.Math.Clamp(speed / maxDisplaySpeed, 0, 1)
+    this.speedNeedle.setRotation(Phaser.Math.DegToRad(minDeg + speedT * (maxDeg - minDeg)))
   }
   
   private checkGameOver(time: number): void {
