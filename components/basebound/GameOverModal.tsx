@@ -10,8 +10,8 @@ interface GameOverModalProps {
 }
 
 export function GameOverModal({ gameState, onRetry, onExit }: GameOverModalProps) {
-  const crashMessage = gameState.crashReason === 'flip' 
-    ? '🔄 Vehicle Flipped!' 
+  const crashMessage = gameState.crashReason === 'neck'
+    ? '💀 Neck Broken!'
     : '⛽ Out of Fuel!'
 
   return (

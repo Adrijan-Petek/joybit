@@ -37,6 +37,43 @@ export class BaseboundScene extends Phaser.Scene {
   private chassisGraphic!: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle
   private wheelBackGraphic!: Phaser.GameObjects.Image | Phaser.GameObjects.Arc
   private wheelFrontGraphic!: Phaser.GameObjects.Image | Phaser.GameObjects.Arc
+  private driverBodyGraphic?: Phaser.GameObjects.Image
+  private driverHeadGraphic?: Phaser.GameObjects.Image
+
+  // Driver attachment tuning (local to chassis, in pixels)
+  // Seat anchor is where the driver's body bottom-center sits.
+  // User tuning: body lower + right
+  private readonly DRIVER_SEAT_OX_PX: number = -8
+  private readonly DRIVER_SEAT_OY_PX: number = 8
+
+  // Neck point on the body, relative to the seat anchor (body origin is bottom-center).
+  // These values control whether the head visually sits on the body.
+  private readonly DRIVER_NECK_FROM_SEAT_OX_PX: number = 14
+  private readonly DRIVER_NECK_FROM_SEAT_OY_PX: number = -46
+
+  // Head offset relative to the neck point.
+  // User tuning: head 10px down, 1px left
+  private readonly DRIVER_HEAD_FROM_NECK_OX_PX: number = -1
+  private readonly DRIVER_HEAD_FROM_NECK_OY_PX: number = 10
+
+  // Hill Climb-style head movement (simple inertia + spring back)
+  private headSwingX: number = 0
+  private headSwingY: number = 0
+  private headSwingVelX: number = 0
+  private headSwingVelY: number = 0
+  private headSwingAngleRad: number = 0
+  private headSwingAngVel: number = 0
+
+  // Kinematics tracking for head swing + neck-break detection
+  private lastChassisX: number | null = null
+  private lastChassisY: number | null = null
+  private lastChassisVx: number = 0
+  private lastChassisVy: number = 0
+  private lastChassisAngle: number | null = null
+  private lastChassisSpeedPxS: number = 0
+  private lastChassisAngularSpeedRadS: number = 0
+  private lastHeadWorldX: number = 0
+  private lastHeadWorldY: number = 0
   private fuelPickups: Phaser.GameObjects.Image[] = []
   private coinPickups: Phaser.GameObjects.Image[] = []
   private nextFuelX: number = 450
@@ -136,6 +173,11 @@ export class BaseboundScene extends Phaser.Scene {
     this.load.image('pedal-gas-pressed', '/basebound-game/icons/pedal-gas-pressed.png')
     this.load.image('pedal-brake-normal', '/basebound-game/icons/pedal-brake-normal.png')
     this.load.image('pedal-brake-pressed', '/basebound-game/icons/pedal-brake-pressed.png')
+
+    // Driver (Hill Climb style: body + head)
+    this.load.image('driver-body', '/basebound-game/icons/driver-body.png')
+    // User-provided head sprite
+    this.load.image('driver-head', '/basebound-game/icons/jesse.png')
 
     // Bottom meters
     this.load.image('meter-rpm', '/basebound-game/icons/meter-rpm.png')
@@ -409,6 +451,25 @@ export class BaseboundScene extends Phaser.Scene {
       this.wheelFrontGraphic.setStrokeStyle(2, 0x000000)
     }
     this.wheelFrontGraphic.setDepth(10)
+
+    // Driver sprites sit on top of the chassis
+    if (this.textures.exists('driver-body')) {
+      this.driverBodyGraphic = this.add.image(chassisR.x, chassisR.y, 'driver-body')
+      this.driverBodyGraphic.setDisplaySize(70, 50)
+      // Anchor the body by its bottom-center so it can sit on the seat point.
+      this.driverBodyGraphic.setOrigin(0.5, 1)
+      // Body behind chassis
+      this.driverBodyGraphic.setDepth(9)
+    }
+
+    if (this.textures.exists('driver-head')) {
+      this.driverHeadGraphic = this.add.image(chassisR.x, chassisR.y, 'driver-head')
+      this.driverHeadGraphic.setDisplaySize(40, 40)
+      // Slightly below center helps the head sit naturally on the neck.
+      this.driverHeadGraphic.setOrigin(0.5, 0.85)
+      // Head stays above chassis
+      this.driverHeadGraphic.setDepth(11)
+    }
     
     // Setup input - Code-Bullet toggle controls
     this.cursors = this.input.keyboard!.createCursorKeys()
@@ -895,6 +956,107 @@ export class BaseboundScene extends Phaser.Scene {
     this.chassisGraphic.setPosition(chassisR.x, chassisR.y)
     this.chassisGraphic.setRotation(chassisR.angle)
 
+    // Attach driver body/head to chassis.
+    // Body is anchored to a seat point; head is anchored to the body and has a bit of inertia.
+    // Offsets are in chassis local-space pixels.
+    if (this.driverBodyGraphic || this.driverHeadGraphic) {
+      const ca = chassisR.angle
+      const cos = Math.cos(ca)
+      const sin = Math.sin(ca)
+
+      const applyOffset = (ox: number, oy: number) => {
+        return {
+          x: chassisR.x + ox * cos - oy * sin,
+          y: chassisR.y + ox * sin + oy * cos
+        }
+      }
+
+      // --- Kinematics for head swing + crash detection ---
+      const dtSafe = Math.max(dtSeconds, 1 / 240)
+      if (this.lastChassisX !== null && this.lastChassisY !== null) {
+        const vx = (chassisR.x - this.lastChassisX) / dtSafe
+        const vy = (chassisR.y - this.lastChassisY) / dtSafe
+
+        const ax = (vx - this.lastChassisVx) / dtSafe
+        const ay = (vy - this.lastChassisVy) / dtSafe
+
+        this.lastChassisSpeedPxS = Math.sqrt(vx * vx + vy * vy)
+
+        if (this.lastChassisAngle !== null) {
+          const dAngle = Phaser.Math.Angle.Wrap(ca - this.lastChassisAngle)
+          this.lastChassisAngularSpeedRadS = dAngle / dtSafe
+        }
+
+        // Convert world acceleration to chassis-local acceleration.
+        const localAx = ax * cos + ay * sin
+        const localAy = -ax * sin + ay * cos
+
+        // Integrate a tiny inertia swing with a spring-back.
+        const dtScale = Phaser.Math.Clamp(dtSeconds * 60, 0, 3)
+        const accelFactor = 0.0018
+        const springK = 0.12
+        const damp = 0.68
+
+        this.headSwingVelX += (-localAx * accelFactor - this.headSwingX * springK) * dtScale
+        this.headSwingVelY += (-localAy * accelFactor - this.headSwingY * springK) * dtScale
+
+        this.headSwingVelX *= Math.pow(damp, dtScale)
+        this.headSwingVelY *= Math.pow(damp, dtScale)
+
+        this.headSwingX += this.headSwingVelX * dtScale
+        this.headSwingY += this.headSwingVelY * dtScale
+
+        // Keep the translation subtle; Hill Climb's look is mostly rotation + slight lag.
+        this.headSwingX = Phaser.Math.Clamp(this.headSwingX, -10, 10)
+        this.headSwingY = Phaser.Math.Clamp(this.headSwingY, -6, 6)
+
+        // Rotational wobble: reacts to acceleration + chassis spin, then springs back.
+        const targetAngle = Phaser.Math.Clamp((-localAx * 0.00025) + (-this.lastChassisAngularSpeedRadS * 0.06), -0.55, 0.55)
+        const angK = 0.10
+        const angDamp = 0.70
+        this.headSwingAngVel += (targetAngle - this.headSwingAngleRad) * angK * dtScale
+        this.headSwingAngVel *= Math.pow(angDamp, dtScale)
+        this.headSwingAngleRad += this.headSwingAngVel * dtScale
+
+        this.lastChassisVx = vx
+        this.lastChassisVy = vy
+      }
+      this.lastChassisX = chassisR.x
+      this.lastChassisY = chassisR.y
+      this.lastChassisAngle = ca
+
+      const seat = applyOffset(this.DRIVER_SEAT_OX_PX, this.DRIVER_SEAT_OY_PX)
+
+      if (this.driverBodyGraphic) {
+        this.driverBodyGraphic.setPosition(seat.x, seat.y)
+        this.driverBodyGraphic.setRotation(ca)
+      }
+
+      if (this.driverHeadGraphic) {
+        const neckLocalOx = this.DRIVER_NECK_FROM_SEAT_OX_PX
+        const neckLocalOy = this.DRIVER_NECK_FROM_SEAT_OY_PX
+
+        const neck = {
+          x: seat.x + neckLocalOx * cos - neckLocalOy * sin,
+          y: seat.y + neckLocalOx * sin + neckLocalOy * cos
+        }
+
+        const headLocalOx = this.DRIVER_HEAD_FROM_NECK_OX_PX + this.headSwingX
+        const headLocalOy = this.DRIVER_HEAD_FROM_NECK_OY_PX + this.headSwingY
+
+        const head = {
+          x: neck.x + headLocalOx * cos - headLocalOy * sin,
+          y: neck.y + headLocalOx * sin + headLocalOy * cos
+        }
+
+        this.driverHeadGraphic.setPosition(head.x, head.y)
+        this.driverHeadGraphic.setRotation(ca + this.headSwingAngleRad)
+
+        this.lastHeadWorldX = head.x
+        this.lastHeadWorldY = head.y
+      }
+    }
+
     this.wheelBackGraphic.setPosition(wheelBackR.x, wheelBackR.y)
     this.wheelBackGraphic.setRotation(wheelBackR.angle)
 
@@ -1087,38 +1249,27 @@ export class BaseboundScene extends Phaser.Scene {
     // Give the player a moment to settle after spawn
     const spawnGraceMs = 900
 
-    // Flip is only a loss if you stay flipped for a bit (prevents instant game over)
-    const flippedHoldMs = 25 // Reduced from 50ms for faster response
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
-    // Check if flipped AND touching ground using multiple methods:
-    // 1. Contact-based: wheels, chassis, or roof sensor touching terrain
-    // 2. Position-based: chassis center is near terrain surface (roof touching ground when flipped)
-    const contactBasedGround = this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0 || this.roofTerrainContacts > 0 || this.chassisDirtContacts > 0
-    
-    // Position-based ground check: when flipped, chassis center should be close to terrain surface
-    const vehiclePos = this.vehicle.getPosition()
-    const terrainY = this.terrain.getHeightAt(vehiclePos.x)
-    // When flipped and roof touches ground, chassis center is ~20px above terrain
-    // Allow some tolerance for slight variations
-    const positionBasedGround = vehiclePos.y >= terrainY - 50
-    // More aggressive check: if chassis is very close to terrain, definitely touching
-    const definitelyOnGround = vehiclePos.y >= terrainY - 25
-    // Additional check: if flipped and moving very slowly, likely resting on roof
-    const velocity = this.vehicle.getVelocity()
-    const atRestOnRoof = Math.abs(velocity) < 2 // Very low speed threshold
-    
-    const isOnGround = contactBasedGround || positionBasedGround || definitelyOnGround || (this.vehicle.isFlipped() && atRestOnRoof)
-    const flippedOnGround = this.vehicle.isFlipped() && isOnGround
+    // Neck-break crash: head hits terrain with enough speed/spin.
+    if (isPastGrace && (this.driverHeadGraphic || (this.lastHeadWorldX !== 0 && this.lastHeadWorldY !== 0))) {
+      const headX = this.driverHeadGraphic?.x ?? this.lastHeadWorldX
+      const headY = this.driverHeadGraphic?.y ?? this.lastHeadWorldY
+      const terrainYAtHead = this.terrain.getHeightAt(headX)
 
-    if (isPastGrace && flippedOnGround) {
-      if (this.flippedSinceMs === null) this.flippedSinceMs = time
-      if (time - this.flippedSinceMs > flippedHoldMs) {
-        this.endGame('flip')
+      // If the head is at/under the ground surface (with a tiny tolerance).
+      const headHitsGround = headY >= terrainYAtHead - 4
+
+      // Require some sort of contact state so we don't trigger in mid-air.
+      const carTouchingTerrain = this.roofTerrainContacts > 0 || this.chassisDirtContacts > 0 || this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0
+
+      // Combine speed + spin into a single severity score.
+      const severity = this.lastChassisSpeedPxS + Math.abs(this.lastChassisAngularSpeedRadS) * 40
+
+      if (headHitsGround && carTouchingTerrain && severity > 420) {
+        this.endGame('neck')
         return
       }
-    } else {
-      this.flippedSinceMs = null
     }
     
     // Check if out of fuel
@@ -1128,7 +1279,7 @@ export class BaseboundScene extends Phaser.Scene {
     }
   }
   
-  private endGame(reason: 'flip' | 'fuel'): void {
+  private endGame(reason: 'neck' | 'fuel'): void {
     this.gameState.isGameOver = true
     this.gameState.crashReason = reason
     

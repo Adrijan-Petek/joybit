@@ -20,7 +20,7 @@ export interface GameState {
   fuel: number
   coins: number
   isGameOver: boolean
-  crashReason?: 'flip' | 'fuel'
+  crashReason?: 'neck' | 'fuel'
 }
 
 export interface UpgradeLevels {
