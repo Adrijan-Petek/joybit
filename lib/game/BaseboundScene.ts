@@ -53,7 +53,7 @@ export class BaseboundScene extends Phaser.Scene {
 
   // Head offset relative to the neck point.
   // User tuning: head 10px down, 1px left
-  private readonly DRIVER_HEAD_FROM_NECK_OX_PX: number = 0
+  private readonly DRIVER_HEAD_FROM_NECK_OX_PX: number = -9
   private readonly DRIVER_HEAD_FROM_NECK_OY_PX: number = 6
 
   // Hill Climb-style head movement (simple inertia + spring back)
@@ -469,8 +469,8 @@ export class BaseboundScene extends Phaser.Scene {
       this.driverHeadGraphic.setDisplaySize(40, 40)
       // Pivot near the bottom so wobble looks like a neck hinge.
       this.driverHeadGraphic.setOrigin(0.5, 0.95)
-      // Head stays above chassis
-      this.driverHeadGraphic.setDepth(11)
+      // Head behind everything (user requested zindex -2)
+      this.driverHeadGraphic.setDepth(8)
     }
     
     // Setup input - Code-Bullet toggle controls
