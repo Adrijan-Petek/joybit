@@ -30,6 +30,7 @@ export class BaseboundScene extends Phaser.Scene {
 
   private vehicle!: Vehicle
   private selectedVehicle = MINI_VEHICLE
+  private vehicleStats!: VehicleStats
   private terrain!: Terrain
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private gameState: GameState
@@ -76,6 +77,7 @@ export class BaseboundScene extends Phaser.Scene {
   private lastChassisAngularSpeedRadS: number = 0
   private lastHeadWorldX: number = 0
   private lastHeadWorldY: number = 0
+  private headOnGroundSinceMs: number | null = null
   private fuelPickups: Phaser.GameObjects.Image[] = []
   private coinPickups: Phaser.GameObjects.Image[] = []
   private nextFuelX: number = 450
@@ -151,6 +153,36 @@ export class BaseboundScene extends Phaser.Scene {
   
   public setGameOverCallback(callback: (state: GameState) => void): void {
     this.onGameOver = callback
+  }
+
+  private kickDriverHead(kind: 'gasPress' | 'gasRelease' | 'brakePress' | 'brakeRelease'): void {
+    if (this.gameState?.isGameOver) return
+
+    // Small, snappy impulses so it reacts to inputs like Hill Climb.
+    // Negative angle = tilt back; positive = tilt forward.
+    let angKick = 0
+    let xKick = 0
+    switch (kind) {
+      case 'gasPress':
+        angKick = -0.45
+        xKick = 2.0
+        break
+      case 'gasRelease':
+        angKick = 0.22
+        xKick = -1.0
+        break
+      case 'brakePress':
+        angKick = 0.50
+        xKick = -2.2
+        break
+      case 'brakeRelease':
+        angKick = -0.18
+        xKick = 0.9
+        break
+    }
+
+    this.headSwingAngVel += angKick
+    this.headSwingVelX += xKick
   }
   
   preload() {
@@ -284,6 +316,7 @@ export class BaseboundScene extends Phaser.Scene {
     const profile = loadBaseboundProfile()
     this.selectedVehicle = VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? MINI_VEHICLE
     const vehicleStats: VehicleStats = applyUpgradesToStats(this.selectedVehicle.baseStats, profile.upgrades)
+    this.vehicleStats = vehicleStats
     
     // Spawn vehicle ON the terrain (align wheels to surface)
     const spawnX = 200
@@ -483,6 +516,7 @@ export class BaseboundScene extends Phaser.Scene {
       tryUnlockAudio()
       if (!this.gameState.isGameOver && this.gameState.fuel > 0) {
         this.rightDown = true
+        this.kickDriverHead('gasPress')
         this.vehicle.motorOn(true)
       }
     })
@@ -493,12 +527,14 @@ export class BaseboundScene extends Phaser.Scene {
       tryUnlockAudio()
       if (!this.gameState.isGameOver && this.gameState.fuel > 0) {
         this.leftDown = true
+        this.kickDriverHead('brakePress')
         this.vehicle.motorOn(false)
       }
     })
     
     this.input.keyboard!.on('keyup-RIGHT', () => {
       this.rightDown = false
+      this.kickDriverHead('gasRelease')
       if (this.leftDown) {
         this.vehicle.motorOn(false)
       } else {
@@ -508,6 +544,7 @@ export class BaseboundScene extends Phaser.Scene {
     
     this.input.keyboard!.on('keyup-LEFT', () => {
       this.leftDown = false
+      this.kickDriverHead('brakeRelease')
       if (this.rightDown) {
         this.vehicle.motorOn(true)
       } else {
@@ -754,12 +791,14 @@ export class BaseboundScene extends Phaser.Scene {
       if (this.gameState.isGameOver || this.gameState.fuel <= 0) return
       this.leftDown = true
       this.brakePedal?.setTexture('pedal-brake-pressed')
+      this.kickDriverHead('brakePress')
       this.vehicle.motorOn(false)
     }
 
     const releaseBrake = () => {
       this.leftDown = false
       this.brakePedal?.setTexture('pedal-brake-normal')
+      this.kickDriverHead('brakeRelease')
       if (this.rightDown) this.vehicle.motorOn(true)
       else this.vehicle.motorOff()
     }
@@ -769,12 +808,14 @@ export class BaseboundScene extends Phaser.Scene {
       if (this.gameState.isGameOver || this.gameState.fuel <= 0) return
       this.rightDown = true
       this.gasPedal?.setTexture('pedal-gas-pressed')
+      this.kickDriverHead('gasPress')
       this.vehicle.motorOn(true)
     }
 
     const releaseGas = () => {
       this.rightDown = false
       this.gasPedal?.setTexture('pedal-gas-normal')
+      this.kickDriverHead('gasRelease')
       if (this.leftDown) this.vehicle.motorOn(false)
       else this.vehicle.motorOff()
     }
@@ -1020,7 +1061,15 @@ export class BaseboundScene extends Phaser.Scene {
         this.headSwingY = Phaser.Math.Clamp(this.headSwingY, -3, 3)
 
         // Rotational wobble (also springy, but tighter than before).
-        const targetAngle = Phaser.Math.Clamp((-localAx * 0.00014) + (-this.lastChassisAngularSpeedRadS * 0.035), -0.25, 0.25)
+        // Add a strong control-bias so gas/brake clearly tilt the head like Hill Climb.
+        // Gas tilts back; brake tilts forward.
+        const controlBias = (this.rightDown ? -0.42 : 0) + (this.leftDown ? 0.52 : 0)
+
+        const targetAngle = Phaser.Math.Clamp(
+          controlBias + (-localAx * 0.00012) + (-this.lastChassisAngularSpeedRadS * 0.03),
+          -0.60,
+          0.60
+        )
         const omegaA = 12
         const zetaA = 0.95
         const aAng = (targetAngle - this.headSwingAngleRad) * (omegaA * omegaA) - 2 * zetaA * omegaA * this.headSwingAngVel
@@ -1260,7 +1309,7 @@ export class BaseboundScene extends Phaser.Scene {
 
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
-    // Neck-break crash: head hits terrain with enough speed/spin.
+    // Neck-break crash: when flipped (on roof/head) and the head hits terrain.
     if (isPastGrace && (this.driverHeadGraphic || (this.lastHeadWorldX !== 0 && this.lastHeadWorldY !== 0))) {
       const headX = this.driverHeadGraphic?.x ?? this.lastHeadWorldX
       const headY = this.driverHeadGraphic?.y ?? this.lastHeadWorldY
@@ -1269,15 +1318,31 @@ export class BaseboundScene extends Phaser.Scene {
       // If the head is at/under the ground surface (with a tiny tolerance).
       const headHitsGround = headY >= terrainYAtHead - 4
 
-      // Require some sort of contact state so we don't trigger in mid-air.
-      const carTouchingTerrain = this.roofTerrainContacts > 0 || this.chassisDirtContacts > 0 || this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0
+      // Require flip + roof sensor contact so this is specifically “landed on head/roof”.
+      const flipped = this.vehicle.isFlipped()
+      const roofOnTerrain = this.roofTerrainContacts > 0
+      const carTouchingTerrain = roofOnTerrain || this.chassisDirtContacts > 0 || this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0
 
       // Combine speed + spin into a single severity score.
       const severity = this.lastChassisSpeedPxS + Math.abs(this.lastChassisAngularSpeedRadS) * 40
 
-      if (headHitsGround && carTouchingTerrain && severity > 420) {
-        this.endGame('neck')
-        return
+      // Heavier cars break neck easier.
+      const mass = Math.max(40, this.vehicleStats?.mass ?? 100)
+      const massFactor = Phaser.Math.Clamp(mass / 100, 0.8, 2.5)
+      const severityMass = severity * massFactor
+
+      // If you actually land on your head, end the run quickly.
+      if (flipped && roofOnTerrain && headHitsGround && carTouchingTerrain) {
+        if (this.headOnGroundSinceMs === null) this.headOnGroundSinceMs = time
+        const heldMs = time - this.headOnGroundSinceMs
+
+        const impact = severityMass > 180 || Math.abs(this.lastChassisAngularSpeedRadS) > 1.6
+        if (impact || heldMs > 80) {
+          this.endGame('neck')
+          return
+        }
+      } else {
+        this.headOnGroundSinceMs = null
       }
     }
     
