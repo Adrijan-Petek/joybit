@@ -48,13 +48,13 @@ export class BaseboundScene extends Phaser.Scene {
 
   // Neck point on the body, relative to the seat anchor (body origin is bottom-center).
   // These values control whether the head visually sits on the body.
-  private readonly DRIVER_NECK_FROM_SEAT_OX_PX: number = 14
-  private readonly DRIVER_NECK_FROM_SEAT_OY_PX: number = -46
+  private readonly DRIVER_NECK_FROM_SEAT_OX_PX: number = 12
+  private readonly DRIVER_NECK_FROM_SEAT_OY_PX: number = -44
 
   // Head offset relative to the neck point.
   // User tuning: head 10px down, 1px left
-  private readonly DRIVER_HEAD_FROM_NECK_OX_PX: number = -1
-  private readonly DRIVER_HEAD_FROM_NECK_OY_PX: number = 10
+  private readonly DRIVER_HEAD_FROM_NECK_OX_PX: number = 0
+  private readonly DRIVER_HEAD_FROM_NECK_OY_PX: number = 6
 
   // Hill Climb-style head movement (simple inertia + spring back)
   private headSwingX: number = 0
@@ -69,6 +69,8 @@ export class BaseboundScene extends Phaser.Scene {
   private lastChassisY: number | null = null
   private lastChassisVx: number = 0
   private lastChassisVy: number = 0
+  private filtChassisVx: number = 0
+  private filtChassisVy: number = 0
   private lastChassisAngle: number | null = null
   private lastChassisSpeedPxS: number = 0
   private lastChassisAngularSpeedRadS: number = 0
@@ -465,8 +467,8 @@ export class BaseboundScene extends Phaser.Scene {
     if (this.textures.exists('driver-head')) {
       this.driverHeadGraphic = this.add.image(chassisR.x, chassisR.y, 'driver-head')
       this.driverHeadGraphic.setDisplaySize(40, 40)
-      // Slightly below center helps the head sit naturally on the neck.
-      this.driverHeadGraphic.setOrigin(0.5, 0.85)
+      // Pivot near the bottom so wobble looks like a neck hinge.
+      this.driverHeadGraphic.setOrigin(0.5, 0.95)
       // Head stays above chassis
       this.driverHeadGraphic.setDepth(11)
     }
@@ -974,13 +976,18 @@ export class BaseboundScene extends Phaser.Scene {
       // --- Kinematics for head swing + crash detection ---
       const dtSafe = Math.max(dtSeconds, 1 / 240)
       if (this.lastChassisX !== null && this.lastChassisY !== null) {
-        const vx = (chassisR.x - this.lastChassisX) / dtSafe
-        const vy = (chassisR.y - this.lastChassisY) / dtSafe
+        const vxRaw = (chassisR.x - this.lastChassisX) / dtSafe
+        const vyRaw = (chassisR.y - this.lastChassisY) / dtSafe
 
-        const ax = (vx - this.lastChassisVx) / dtSafe
-        const ay = (vy - this.lastChassisVy) / dtSafe
+        // Filter velocity to avoid jitter from fixed-step physics + variable render dt.
+        const velAlpha = 0.35
+        this.filtChassisVx = this.filtChassisVx * (1 - velAlpha) + vxRaw * velAlpha
+        this.filtChassisVy = this.filtChassisVy * (1 - velAlpha) + vyRaw * velAlpha
 
-        this.lastChassisSpeedPxS = Math.sqrt(vx * vx + vy * vy)
+        const ax = (this.filtChassisVx - this.lastChassisVx) / dtSafe
+        const ay = (this.filtChassisVy - this.lastChassisVy) / dtSafe
+
+        this.lastChassisSpeedPxS = Math.sqrt(this.filtChassisVx * this.filtChassisVx + this.filtChassisVy * this.filtChassisVy)
 
         if (this.lastChassisAngle !== null) {
           const dAngle = Phaser.Math.Angle.Wrap(ca - this.lastChassisAngle)
@@ -991,35 +998,37 @@ export class BaseboundScene extends Phaser.Scene {
         const localAx = ax * cos + ay * sin
         const localAy = -ax * sin + ay * cos
 
-        // Integrate a tiny inertia swing with a spring-back.
-        const dtScale = Phaser.Math.Clamp(dtSeconds * 60, 0, 3)
-        const accelFactor = 0.0018
-        const springK = 0.12
-        const damp = 0.68
+        // Frame-rate independent spring for steadier wobble.
+        // x'' + 2ζω x' + ω^2 x = force
+        const omega = 10
+        const zeta = 0.92
+        const accelFactor = 0.0007
 
-        this.headSwingVelX += (-localAx * accelFactor - this.headSwingX * springK) * dtScale
-        this.headSwingVelY += (-localAy * accelFactor - this.headSwingY * springK) * dtScale
+        const fx = -localAx * accelFactor
+        const fy = -localAy * accelFactor
 
-        this.headSwingVelX *= Math.pow(damp, dtScale)
-        this.headSwingVelY *= Math.pow(damp, dtScale)
+        const axSpring = fx - 2 * zeta * omega * this.headSwingVelX - (omega * omega) * this.headSwingX
+        const aySpring = fy - 2 * zeta * omega * this.headSwingVelY - (omega * omega) * this.headSwingY
 
-        this.headSwingX += this.headSwingVelX * dtScale
-        this.headSwingY += this.headSwingVelY * dtScale
+        this.headSwingVelX += axSpring * dtSafe
+        this.headSwingVelY += aySpring * dtSafe
+        this.headSwingX += this.headSwingVelX * dtSafe
+        this.headSwingY += this.headSwingVelY * dtSafe
 
-        // Keep the translation subtle; Hill Climb's look is mostly rotation + slight lag.
-        this.headSwingX = Phaser.Math.Clamp(this.headSwingX, -10, 10)
-        this.headSwingY = Phaser.Math.Clamp(this.headSwingY, -6, 6)
+        // Tight clamps to stop excessive shaking.
+        this.headSwingX = Phaser.Math.Clamp(this.headSwingX, -6, 6)
+        this.headSwingY = Phaser.Math.Clamp(this.headSwingY, -3, 3)
 
-        // Rotational wobble: reacts to acceleration + chassis spin, then springs back.
-        const targetAngle = Phaser.Math.Clamp((-localAx * 0.00025) + (-this.lastChassisAngularSpeedRadS * 0.06), -0.55, 0.55)
-        const angK = 0.10
-        const angDamp = 0.70
-        this.headSwingAngVel += (targetAngle - this.headSwingAngleRad) * angK * dtScale
-        this.headSwingAngVel *= Math.pow(angDamp, dtScale)
-        this.headSwingAngleRad += this.headSwingAngVel * dtScale
+        // Rotational wobble (also springy, but tighter than before).
+        const targetAngle = Phaser.Math.Clamp((-localAx * 0.00014) + (-this.lastChassisAngularSpeedRadS * 0.035), -0.25, 0.25)
+        const omegaA = 12
+        const zetaA = 0.95
+        const aAng = (targetAngle - this.headSwingAngleRad) * (omegaA * omegaA) - 2 * zetaA * omegaA * this.headSwingAngVel
+        this.headSwingAngVel += aAng * dtSafe
+        this.headSwingAngleRad += this.headSwingAngVel * dtSafe
 
-        this.lastChassisVx = vx
-        this.lastChassisVy = vy
+        this.lastChassisVx = this.filtChassisVx
+        this.lastChassisVy = this.filtChassisVy
       }
       this.lastChassisX = chassisR.x
       this.lastChassisY = chassisR.y
