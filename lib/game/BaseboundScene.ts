@@ -1309,34 +1309,44 @@ export class BaseboundScene extends Phaser.Scene {
 
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
 
-    // Neck-break crash: when flipped (on roof/head) and the head hits terrain.
+    // Neck-break crash: Hill Climb-style head detection.
+    // Trigger when the car is flipped AND the driver's head hits the ground.
     if (isPastGrace && (this.driverHeadGraphic || (this.lastHeadWorldX !== 0 && this.lastHeadWorldY !== 0))) {
       const headX = this.driverHeadGraphic?.x ?? this.lastHeadWorldX
       const headY = this.driverHeadGraphic?.y ?? this.lastHeadWorldY
-      const terrainYAtHead = this.terrain.getHeightAt(headX)
 
-      // If the head is at/under the ground surface (with a tiny tolerance).
-      const headHitsGround = headY >= terrainYAtHead - 4
+      const headRadiusPx = 18
+      const tolPx = 2
 
-      // Require flip + roof sensor contact so this is specifically “landed on head/roof”.
+      // Use the highest ground under the head circle (smallest Y, since Y grows downward).
+      const terrainYAtHead = Math.min(
+        this.terrain.getHeightAt(headX - headRadiusPx),
+        this.terrain.getHeightAt(headX),
+        this.terrain.getHeightAt(headX + headRadiusPx)
+      )
+
+      const headBottomY = headY + headRadiusPx
+      const headHitsGround = headBottomY >= terrainYAtHead - tolPx
+
       const flipped = this.vehicle.isFlipped()
-      const roofOnTerrain = this.roofTerrainContacts > 0
-      const carTouchingTerrain = roofOnTerrain || this.chassisDirtContacts > 0 || this.wheelBackGroundContacts > 0 || this.wheelFrontGroundContacts > 0
+      const carTouchingTerrain =
+        this.roofTerrainContacts > 0 ||
+        this.chassisDirtContacts > 0 ||
+        this.wheelBackGroundContacts > 0 ||
+        this.wheelFrontGroundContacts > 0
 
-      // Combine speed + spin into a single severity score.
+      // Combine speed + spin into a single severity score, scaled by vehicle mass.
       const severity = this.lastChassisSpeedPxS + Math.abs(this.lastChassisAngularSpeedRadS) * 40
-
-      // Heavier cars break neck easier.
       const mass = Math.max(40, this.vehicleStats?.mass ?? 100)
       const massFactor = Phaser.Math.Clamp(mass / 100, 0.8, 2.5)
       const severityMass = severity * massFactor
 
-      // If you actually land on your head, end the run quickly.
-      if (flipped && roofOnTerrain && headHitsGround && carTouchingTerrain) {
+      if (flipped && headHitsGround && carTouchingTerrain) {
         if (this.headOnGroundSinceMs === null) this.headOnGroundSinceMs = time
         const heldMs = time - this.headOnGroundSinceMs
 
-        const impact = severityMass > 180 || Math.abs(this.lastChassisAngularSpeedRadS) > 1.6
+        // End quickly on impact; otherwise end after a short settle on the head.
+        const impact = severityMass > 170 || Math.abs(this.lastChassisAngularSpeedRadS) > 1.45
         if (impact || heldMs > 80) {
           this.endGame('neck')
           return
