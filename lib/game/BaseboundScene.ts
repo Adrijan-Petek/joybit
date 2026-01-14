@@ -1308,54 +1308,45 @@ export class BaseboundScene extends Phaser.Scene {
     const spawnGraceMs = 900
 
     const isPastGrace = time - this.startedAtMs > spawnGraceMs
+    const flipped = this.vehicle.isFlipped()
+    const carTouchingTerrain =
+      this.roofTerrainContacts > 0 ||
+      this.chassisDirtContacts > 0 ||
+      this.wheelBackGroundContacts > 0 ||
+      this.wheelFrontGroundContacts > 0
 
-    // Neck-break crash: Hill Climb-style head detection.
-    // Trigger when the car is flipped AND the driver's head hits the ground.
+    // Hill Climb-style: flipped + touching terrain = instant neck break.
+    if (isPastGrace && flipped && carTouchingTerrain) {
+      if (this.flippedSinceMs === null) this.flippedSinceMs = time
+      if (time - this.flippedSinceMs > 60) {
+        this.endGame('neck')
+        return
+      }
+    } else {
+      this.flippedSinceMs = null
+    }
+
+    // Head-hit game over: if the head touches terrain, end immediately.
     if (isPastGrace && (this.driverHeadGraphic || (this.lastHeadWorldX !== 0 && this.lastHeadWorldY !== 0))) {
       const headX = this.driverHeadGraphic?.x ?? this.lastHeadWorldX
       const headY = this.driverHeadGraphic?.y ?? this.lastHeadWorldY
 
-      const headRadiusPx = 18
-      const tolPx = 2
-
-      // Use the highest ground under the head circle (smallest Y, since Y grows downward).
+      const headRadiusPx = 24
+      const tolPx = 4
       const terrainYAtHead = Math.min(
         this.terrain.getHeightAt(headX - headRadiusPx),
         this.terrain.getHeightAt(headX),
         this.terrain.getHeightAt(headX + headRadiusPx)
       )
-
       const headBottomY = headY + headRadiusPx
       const headHitsGround = headBottomY >= terrainYAtHead - tolPx
 
-      const flipped = this.vehicle.isFlipped()
-      const carTouchingTerrain =
-        this.roofTerrainContacts > 0 ||
-        this.chassisDirtContacts > 0 ||
-        this.wheelBackGroundContacts > 0 ||
-        this.wheelFrontGroundContacts > 0
-
-      // Combine speed + spin into a single severity score, scaled by vehicle mass.
-      const severity = this.lastChassisSpeedPxS + Math.abs(this.lastChassisAngularSpeedRadS) * 40
-      const mass = Math.max(40, this.vehicleStats?.mass ?? 100)
-      const massFactor = Phaser.Math.Clamp(mass / 100, 0.8, 2.5)
-      const severityMass = severity * massFactor
-
-      if (flipped && headHitsGround && carTouchingTerrain) {
-        if (this.headOnGroundSinceMs === null) this.headOnGroundSinceMs = time
-        const heldMs = time - this.headOnGroundSinceMs
-
-        // End quickly on impact; otherwise end after a short settle on the head.
-        const impact = severityMass > 170 || Math.abs(this.lastChassisAngularSpeedRadS) > 1.45
-        if (impact || heldMs > 80) {
-          this.endGame('neck')
-          return
-        }
-      } else {
-        this.headOnGroundSinceMs = null
+      if (headHitsGround) {
+        this.endGame('neck')
+        return
       }
     }
-    
+
     // Check if out of fuel
     if (this.gameState.fuel <= 0) {
       this.endGame('fuel')
