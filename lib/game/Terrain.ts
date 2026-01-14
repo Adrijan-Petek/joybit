@@ -53,11 +53,19 @@ export class Terrain {
     const noiseValue = this.smoothNoise(adjustedX * this.frequency)
     
     // Progressive difficulty: steeper hills further you go
+    const easyLengthPx = 6000 // ~200m (distance uses x/30)
+    const ramp = this.smoothstep(0, easyLengthPx, adjustedX)
+    const baseScale = 0.45 + 0.55 * ramp
     const progressiveSteepness = 1 + Math.min(1.5, adjustedX / 5000)
-    const maxHeight = this.amplitude * progressiveSteepness
+    const maxHeight = this.amplitude * progressiveSteepness * baseScale
     const minHeight = 30
     
     return this.baseY - (noiseValue * (maxHeight - minHeight) + minHeight)
+  }
+
+  private smoothstep(edge0: number, edge1: number, x: number): number {
+    const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)))
+    return t * t * (3 - 2 * t)
   }
   
   public generateChunk(startX: number, endX: number, pointSpacing: number = 15): TerrainPoint[] {

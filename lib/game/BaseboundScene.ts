@@ -1141,7 +1141,8 @@ export class BaseboundScene extends Phaser.Scene {
         this.nextCoinGroupX = this.nextFuelX + minSeparationPx
       }
 
-      const groupSize = Phaser.Math.Between(5, 10)
+      const earlyRun = this.gameState.distance < 200
+      const groupSize = earlyRun ? Phaser.Math.Between(7, 12) : Phaser.Math.Between(5, 10)
       const startX = this.nextCoinGroupX
       const coinSpacing = 38
 
@@ -1158,7 +1159,9 @@ export class BaseboundScene extends Phaser.Scene {
         this.coinPickups.push(coin)
       }
 
-      this.nextCoinGroupX += Phaser.Math.Between(800, 1200)
+      this.nextCoinGroupX += earlyRun
+        ? Phaser.Math.Between(450, 700)
+        : Phaser.Math.Between(800, 1200)
     }
   }
   
@@ -1449,6 +1452,8 @@ export class BaseboundScene extends Phaser.Scene {
   }
   
   private checkPickups(vehiclePos: { x: number; y: number }): void {
+    const headPos = this.getHeadPosition()
+
     // Check fuel pickups
     for (let i = this.fuelPickups.length - 1; i >= 0; i--) {
       const pickup = this.fuelPickups[i]
@@ -1471,13 +1476,26 @@ export class BaseboundScene extends Phaser.Scene {
         vehiclePos.x, vehiclePos.y,
         pickup.x, pickup.y
       )
+      const headDistance = headPos
+        ? Phaser.Math.Distance.Between(headPos.x, headPos.y, pickup.x, pickup.y)
+        : Number.POSITIVE_INFINITY
       
-      if (distance < 30) {
+      if (distance < 30 || headDistance < 30) {
         this.gameState.coins += 1
         pickup.destroy()
         this.coinPickups.splice(i, 1)
       }
     }
+  }
+
+  private getHeadPosition(): { x: number; y: number } | null {
+    if (this.driverHeadGraphic) {
+      return { x: this.driverHeadGraphic.x, y: this.driverHeadGraphic.y }
+    }
+    if (this.lastHeadWorldX !== 0 || this.lastHeadWorldY !== 0) {
+      return { x: this.lastHeadWorldX, y: this.lastHeadWorldY }
+    }
+    return null
   }
   
   private updateHUD(): void {
