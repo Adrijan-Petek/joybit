@@ -98,6 +98,9 @@ export class BaseboundScene extends Phaser.Scene {
   private speedNeedle!: Phaser.GameObjects.Graphics
   private hudIconSizePx: number = 32
   private topHudBg?: Phaser.GameObjects.Graphics
+  private bgTile?: Phaser.GameObjects.TileSprite
+  private cloudSprites: Phaser.GameObjects.Image[] = []
+  private decorationSprites: Phaser.GameObjects.Image[] = []
 
   // Mobile controls
   private gasPedal?: Phaser.GameObjects.Image
@@ -213,10 +216,30 @@ export class BaseboundScene extends Phaser.Scene {
     // User-provided head sprite
     this.load.image('driver-head', '/basebound-game/icons/jesse.png')
 
+    // Backgrounds + decorations
+    this.load.image('bg-sky', '/basebound-game/icons/sky-bg.png')
+    this.load.image('bg-forest', '/basebound-game/icons/sky-bg-forest.png')
+    this.load.image('bg-mars', '/basebound-game/icons/sky-bg-mars.png')
+    this.load.image('bg-cave', '/basebound-game/icons/sky-bg-cave.png')
+    this.load.image('bg-arctic', '/basebound-game/icons/sky-bg-arctic-cave.png')
+    this.load.image('bg-space', '/basebound-game/icons/sky-bg-spacecraft.png')
+    this.load.image('bg-moon', '/basebound-game/icons/moon-bg.png')
+    this.load.image('sky-cloud', '/basebound-game/icons/sky-cloud.png')
+    this.load.image('tree-part1', '/basebound-game/icons/tree-part1.png')
+    this.load.image('tree-part2', '/basebound-game/icons/tree-part2.png')
+    this.load.image('rocks', '/basebound-game/icons/rocks.png')
+    this.load.image('rocks-mars', '/basebound-game/icons/rocks-mars.png')
+    this.load.image('snow', '/basebound-game/icons/snow.png')
+    this.load.image('iceshard', '/basebound-game/icons/iceshard.png')
+    this.load.image('alien-slime', '/basebound-game/icons/alien-slime.png')
+
     // Bottom meters
     this.load.image('meter-rpm', '/basebound-game/icons/meter-rpm.png')
     this.load.image('meter-boost', '/basebound-game/icons/meter-boost.png')
     this.load.image('meter-needle', '/basebound-game/icons/meter-needle.png')
+
+    // Terrain texture (level 1)
+    this.load.image('terrain-ground', '/basebound-game/icons/terrain-ground.png')
     
     // Vehicle audio is loaded above via the catalog
   }
@@ -276,6 +299,7 @@ export class BaseboundScene extends Phaser.Scene {
 
     // Set background color based on level
     this.cameras.main.setBackgroundColor(this.currentLevel.terrain.skyColor)
+    this.setupBackground()
 
     // Create Planck (Box2D-style) physics world.
     // Code-Bullet: gravity = Vec2(0, 10), step = 1/30.
@@ -294,6 +318,7 @@ export class BaseboundScene extends Phaser.Scene {
           2, 2, 0xFFFFFF
         )
         star.setScrollFactor(0.3)
+        star.setDepth(-15)
         this.stars.push(star)
       }
     }
@@ -731,6 +756,127 @@ export class BaseboundScene extends Phaser.Scene {
     this.scale.on('resize', placeMeters)
   }
 
+  private getBackgroundKey(): string | null {
+    switch (this.currentLevel.id) {
+      case 1:
+        return null
+      case 2:
+        return 'bg-sky'
+      case 3:
+        return 'bg-arctic'
+      case 4:
+        return 'bg-cave'
+      case 5:
+        return 'bg-mars'
+      case 6:
+        return 'bg-moon'
+      default:
+        return 'bg-sky'
+    }
+  }
+
+  private setupBackground(): void {
+    const key = this.getBackgroundKey()
+    if (key && this.textures.exists(key)) {
+      this.bgTile = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, key)
+      this.bgTile.setOrigin(0, 0)
+      this.bgTile.setScrollFactor(0)
+      this.bgTile.setDepth(-30)
+    }
+
+    this.createClouds()
+    this.scale.on('resize', (size: Phaser.Structs.Size) => {
+      if (this.bgTile) this.bgTile.setSize(size.width, size.height)
+    })
+  }
+
+  private createClouds(): void {
+    if (!this.currentLevel.environment.hasClouds) return
+    if (!this.textures.exists('sky-cloud')) return
+
+    const cloudCount = this.currentLevel.id === 1 ? 6 : 8
+    for (let i = 0; i < cloudCount; i++) {
+      const cloud = this.add.image(
+        Phaser.Math.Between(0, 2000),
+        Phaser.Math.Between(40, 220),
+        'sky-cloud'
+      )
+      cloud.setScrollFactor(0.25)
+      cloud.setDepth(-20)
+      cloud.setAlpha(0.8)
+      cloud.setScale(Phaser.Math.FloatBetween(0.6, 1.1))
+      this.cloudSprites.push(cloud)
+    }
+  }
+
+  private getDecorationKeys(): string[] {
+    switch (this.currentLevel.id) {
+      case 1:
+        return ['tree-part1', 'tree-part2']
+      case 2:
+        return ['rocks']
+      case 3:
+        return ['snow', 'iceshard', 'rocks']
+      case 4:
+        return ['rocks']
+      case 5:
+        return ['rocks-mars', 'alien-slime']
+      case 6:
+        return ['rocks']
+      default:
+        return ['rocks']
+    }
+  }
+
+  private getDecorationSpacing(): { min: number; max: number } {
+    switch (this.currentLevel.id) {
+      case 1:
+        return { min: 360, max: 700 }
+      case 2:
+      case 4:
+      case 6:
+        return { min: 280, max: 520 }
+      case 3:
+      case 5:
+        return { min: 240, max: 480 }
+      default:
+        return { min: 280, max: 520 }
+    }
+  }
+
+  private getDecorationScale(key: string): number {
+    if (this.currentLevel.id === 1) {
+      if (key.includes('tree')) return Phaser.Math.FloatBetween(0.55, 0.8)
+      return Phaser.Math.FloatBetween(0.35, 0.55)
+    }
+    if (key.includes('tree')) return Phaser.Math.FloatBetween(0.6, 0.9)
+    if (key.includes('iceshard')) return Phaser.Math.FloatBetween(0.4, 0.65)
+    if (key.includes('alien')) return Phaser.Math.FloatBetween(0.35, 0.55)
+    return Phaser.Math.FloatBetween(0.4, 0.7)
+  }
+
+  private spawnDecorations(startX: number, endX: number): void {
+    const keys = this.getDecorationKeys()
+    if (!keys.length) return
+
+    let x = startX + Phaser.Math.Between(160, 320)
+    const spacing = this.getDecorationSpacing()
+    while (x < endX) {
+      const key = Phaser.Utils.Array.GetRandom(keys)
+      if (this.textures.exists(key)) {
+        const groundY = this.terrain.getHeightAt(x)
+        const sprite = this.add.image(x, groundY + 6, key)
+        sprite.setOrigin(0.5, 1)
+        sprite.setDepth(1)
+
+        sprite.setScale(this.getDecorationScale(key))
+
+        this.decorationSprites.push(sprite)
+      }
+      x += Phaser.Math.Between(spacing.min, spacing.max)
+    }
+  }
+
   private createMobilePedals(tryUnlockAudio: () => void): void {
     // Show pedals (desktop + mobile). Keyboard still works; pedals are for touch/mobile UX.
 
@@ -897,27 +1043,68 @@ export class BaseboundScene extends Phaser.Scene {
     })
 
     const bottomY = 6000
+    const useTexturedTerrain =
+      this.currentLevel.id === 1 && this.textures.exists('terrain-ground')
 
-    // Render terrain as one filled shape
-    const g = this.add.graphics()
-    g.setDepth(0)
-    g.fillStyle(this.currentLevel.terrain.groundColor, 1)
-    g.beginPath()
-    g.moveTo(renderPoints[0].x, renderPoints[0].y)
-    for (let i = 1; i < renderPoints.length; i++) g.lineTo(renderPoints[i].x, renderPoints[i].y)
-    g.lineTo(endX, bottomY)
-    g.lineTo(startX, bottomY)
-    g.closePath()
-    g.fillPath()
+    if (useTexturedTerrain) {
+      const maskGfx = this.add.graphics()
+      maskGfx.fillStyle(0xffffff, 1)
+      maskGfx.beginPath()
+      maskGfx.moveTo(renderPoints[0].x, renderPoints[0].y)
+      for (let i = 1; i < renderPoints.length; i++) maskGfx.lineTo(renderPoints[i].x, renderPoints[i].y)
+      maskGfx.lineTo(endX, bottomY)
+      maskGfx.lineTo(startX, bottomY)
+      maskGfx.closePath()
+      maskGfx.fillPath()
 
-    // Grass top stroke
-    g.lineStyle(6, this.currentLevel.terrain.groundTopColor, 1)
-    g.beginPath()
-    g.moveTo(renderPoints[0].x, renderPoints[0].y)
-    for (let i = 1; i < renderPoints.length; i++) g.lineTo(renderPoints[i].x, renderPoints[i].y)
-    g.strokePath()
+      const groundTile = this.add.tileSprite(startX, 0, endX - startX, bottomY, 'terrain-ground')
+      groundTile.setOrigin(0, 0)
+      groundTile.setDepth(0)
+      groundTile.setMask(maskGfx.createGeometryMask())
 
-    this.terrainGraphics.push(g)
+      const bandHeight = 8
+      const topBand = this.add.graphics()
+      topBand.setDepth(2)
+      topBand.fillStyle(this.currentLevel.terrain.groundTopColor, 1)
+      topBand.beginPath()
+      topBand.moveTo(renderPoints[0].x, renderPoints[0].y)
+      for (let i = 1; i < renderPoints.length; i++) topBand.lineTo(renderPoints[i].x, renderPoints[i].y)
+      for (let i = renderPoints.length - 1; i >= 0; i--) {
+        topBand.lineTo(renderPoints[i].x, renderPoints[i].y + bandHeight)
+      }
+      topBand.closePath()
+      topBand.fillPath()
+
+      this.terrainGraphics.push(maskGfx, topBand)
+    } else {
+      // Render terrain as one filled shape
+      const g = this.add.graphics()
+      g.setDepth(0)
+      g.fillStyle(this.currentLevel.terrain.groundColor, 1)
+      g.beginPath()
+      g.moveTo(renderPoints[0].x, renderPoints[0].y)
+      for (let i = 1; i < renderPoints.length; i++) g.lineTo(renderPoints[i].x, renderPoints[i].y)
+      g.lineTo(endX, bottomY)
+      g.lineTo(startX, bottomY)
+      g.closePath()
+      g.fillPath()
+
+      const bandHeight = 8
+      const topBand = this.add.graphics()
+      topBand.setDepth(2)
+      topBand.fillStyle(this.currentLevel.terrain.groundTopColor, 1)
+      topBand.beginPath()
+      topBand.moveTo(renderPoints[0].x, renderPoints[0].y)
+      for (let i = 1; i < renderPoints.length; i++) topBand.lineTo(renderPoints[i].x, renderPoints[i].y)
+      for (let i = renderPoints.length - 1; i >= 0; i--) {
+        topBand.lineTo(renderPoints[i].x, renderPoints[i].y + bandHeight)
+      }
+      topBand.closePath()
+      topBand.fillPath()
+
+      this.terrainGraphics.push(g, topBand)
+    }
+    this.spawnDecorations(startX, endX)
   }
   
   private spawnPickups(): void {
@@ -1168,6 +1355,24 @@ export class BaseboundScene extends Phaser.Scene {
     
     // Update HUD
     this.updateHUD()
+
+    // Background parallax + cloud wrap
+    if (this.bgTile) {
+      this.bgTile.tilePositionX = this.cameras.main.scrollX * 0.2
+    }
+    if (this.cloudSprites.length) {
+      const camX = this.cameras.main.scrollX
+      const camW = this.cameras.main.width
+      for (const cloud of this.cloudSprites) {
+        const sf = cloud.scrollFactorX ?? 1
+        const screenX = cloud.x - camX * sf
+        if (screenX + cloud.displayWidth < -120) {
+          cloud.x = camX * sf + camW + Phaser.Math.Between(120, 320)
+          cloud.y = Phaser.Math.Between(40, 220)
+          cloud.setScale(Phaser.Math.FloatBetween(0.6, 1.1))
+        }
+      }
+    }
     
     // Track aerial flips (rotation in air gives points)
     const currentRotation = this.vehicle.getAngle()
