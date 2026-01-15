@@ -6,19 +6,25 @@ export type BaseboundProfile = {
   coins: number
   bestDistance: number
   upgrades: UpgradeLevels
+  upgradesByVehicle?: Record<number, UpgradeLevels>
 }
 
 const STORAGE_KEY = 'joybit_basebound_profile_v1'
+
+const DEFAULT_UPGRADES_LEVEL1: UpgradeLevels = {
+  engine: 1,
+  suspension: 1,
+  tires: 1,
+  fuel: 1
+}
 
 const DEFAULT_PROFILE: BaseboundProfile = {
   selectedVehicleId: 1,
   coins: 0,
   bestDistance: 0,
-  upgrades: {
-    engine: 0,
-    suspension: 0,
-    tires: 0,
-    fuel: 0
+  upgrades: DEFAULT_UPGRADES_LEVEL1,
+  upgradesByVehicle: {
+    1: DEFAULT_UPGRADES_LEVEL1
   }
 }
 
@@ -30,13 +36,22 @@ export function loadBaseboundProfile(): BaseboundProfile {
     if (!raw) return DEFAULT_PROFILE
     const parsed = JSON.parse(raw) as Partial<BaseboundProfile>
 
+    const mergedUpgrades = {
+      ...DEFAULT_PROFILE.upgrades,
+      ...(parsed.upgrades ?? {})
+    }
+
+    const upgradesByVehicle =
+      parsed.upgradesByVehicle ??
+      ({
+        [parsed.selectedVehicleId ?? DEFAULT_PROFILE.selectedVehicleId]: mergedUpgrades
+      } as Record<number, UpgradeLevels>)
+
     return {
       ...DEFAULT_PROFILE,
       ...parsed,
-      upgrades: {
-        ...DEFAULT_PROFILE.upgrades,
-        ...(parsed.upgrades ?? {})
-      }
+      upgrades: mergedUpgrades,
+      upgradesByVehicle
     }
   } catch {
     return DEFAULT_PROFILE
@@ -59,6 +74,23 @@ export function getUpgradeCost(upgradeKey: keyof UpgradeLevels, currentLevel: nu
 
   // level 0 -> 50, level 1 -> 75, level 2 -> 100 ...
   return Math.round(baseCosts[upgradeKey] * (1 + currentLevel * 0.5))
+}
+
+export function getVehicleUpgrades(profile: BaseboundProfile, vehicleId: number): UpgradeLevels {
+  const byVehicle = profile.upgradesByVehicle?.[vehicleId]
+  if (byVehicle) return byVehicle
+  return profile.upgrades ?? DEFAULT_UPGRADES_LEVEL1
+}
+
+export function ensureVehicleUpgrades(profile: BaseboundProfile, vehicleId: number): BaseboundProfile {
+  if (profile.upgradesByVehicle?.[vehicleId]) return profile
+  return {
+    ...profile,
+    upgradesByVehicle: {
+      ...(profile.upgradesByVehicle ?? {}),
+      [vehicleId]: DEFAULT_UPGRADES_LEVEL1
+    }
+  }
 }
 
 export function applyUpgradesToStats(base: VehicleMetadata['baseStats'], upgrades: UpgradeLevels): VehicleStats {

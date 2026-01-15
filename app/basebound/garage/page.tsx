@@ -1,10 +1,16 @@
 'use client'
 
 import Image from 'next/image'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { VEHICLE_CATALOG } from '@/lib/game/vehicleCatalog'
-import { getUpgradeCost, loadBaseboundProfile, saveBaseboundProfile } from '@/lib/game/baseboundProfile'
+import {
+  ensureVehicleUpgrades,
+  getUpgradeCost,
+  getVehicleUpgrades,
+  loadBaseboundProfile,
+  saveBaseboundProfile
+} from '@/lib/game/baseboundProfile'
 import type { UpgradeLevels } from '@/lib/game/types'
 
 const MAX_UPGRADE_LEVEL = 20
@@ -30,14 +36,27 @@ export default function BaseboundGaragePage() {
     return VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? VEHICLE_CATALOG[0]
   }, [profile.selectedVehicleId])
 
+  const [carouselIndex, setCarouselIndex] = useState(() => {
+    const idx = VEHICLE_CATALOG.findIndex(v => v.id === profile.selectedVehicleId)
+    return idx >= 0 ? idx : 0
+  })
+
+  useEffect(() => {
+    const idx = VEHICLE_CATALOG.findIndex(v => v.id === profile.selectedVehicleId)
+    setCarouselIndex(idx >= 0 ? idx : 0)
+  }, [profile.selectedVehicleId])
+
+  const currentVehicle = VEHICLE_CATALOG[carouselIndex] ?? VEHICLE_CATALOG[0]
+
   const handleSelectVehicle = (vehicleId: number) => {
-    const next = { ...profile, selectedVehicleId: vehicleId }
+    const next = ensureVehicleUpgrades({ ...profile, selectedVehicleId: vehicleId }, vehicleId)
     saveBaseboundProfile(next)
     setProfile(next)
   }
 
   const handleUpgrade = (upgradeKey: keyof UpgradeLevels) => {
-    const currentLevel = profile.upgrades[upgradeKey]
+    const upgrades = getVehicleUpgrades(profile, currentVehicle.id)
+    const currentLevel = upgrades[upgradeKey]
     if (currentLevel >= MAX_UPGRADE_LEVEL) return
 
     const cost = getUpgradeCost(upgradeKey, currentLevel)
@@ -46,9 +65,12 @@ export default function BaseboundGaragePage() {
     const next = {
       ...profile,
       coins: profile.coins - cost,
-      upgrades: {
-        ...profile.upgrades,
-        [upgradeKey]: currentLevel + 1
+      upgradesByVehicle: {
+        ...(profile.upgradesByVehicle ?? {}),
+        [currentVehicle.id]: {
+          ...upgrades,
+          [upgradeKey]: currentLevel + 1
+        }
       }
     }
 
@@ -81,33 +103,45 @@ export default function BaseboundGaragePage() {
         <div className="grid gap-6">
           <section className="bg-gray-900/60 border border-gray-800 rounded-lg p-4">
             <div className="font-bold mb-3">Select Car</div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {VEHICLE_CATALOG.map(vehicle => {
-                const isSelected = vehicle.id === selectedVehicle.id
-                const isLocked = profile.bestDistance < vehicle.unlockDistance
+            <div className="flex items-center gap-4">
+              <button
+                className="h-10 w-10 rounded-full bg-gray-800 hover:bg-gray-700"
+                onClick={() =>
+                  setCarouselIndex(prev => (prev - 1 + VEHICLE_CATALOG.length) % VEHICLE_CATALOG.length)
+                }
+                aria-label="Previous car"
+              >
+                ‹
+              </button>
 
-                return (
-                  <div key={vehicle.id} className="border border-gray-800 rounded-lg p-3 bg-black/40">
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-24 h-12 bg-gray-800/50 rounded overflow-hidden">
-                        <Image
-                          src={vehicle.parts.body.path}
-                          alt={vehicle.name}
-                          fill
-                          sizes="96px"
-                          style={{ objectFit: 'contain' }}
-                          priority={vehicle.isStarter}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-bold">{vehicle.name}</div>
-                        <div className="text-xs text-gray-300">
-                          Unlock: {vehicle.unlockDistance}m • Price: {vehicle.price}
-                        </div>
-                      </div>
+              <div className="flex-1 border border-gray-800 rounded-lg p-4 bg-black/40">
+                <div className="flex items-center gap-4">
+                  <div className="relative w-32 h-16 bg-gray-800/50 rounded overflow-hidden">
+                    <Image
+                      src={currentVehicle.parts.body.path}
+                      alt={currentVehicle.name}
+                      fill
+                      sizes="128px"
+                      style={{ objectFit: 'contain' }}
+                      priority={currentVehicle.isStarter}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-lg">{currentVehicle.name}</div>
+                    <div className="text-xs text-gray-300">
+                      Unlock: {currentVehicle.unlockDistance}m • Price: {currentVehicle.price}
                     </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {carouselIndex + 1} / {VEHICLE_CATALOG.length}
+                    </div>
+                  </div>
+                </div>
 
-                    <div className="mt-3">
+                <div className="mt-4">
+                  {(() => {
+                    const isSelected = currentVehicle.id === selectedVehicle.id
+                    const isLocked = profile.bestDistance < currentVehicle.unlockDistance
+                    return (
                       <button
                         className={
                           isLocked
@@ -117,14 +151,22 @@ export default function BaseboundGaragePage() {
                               : 'w-full px-3 py-2 rounded bg-gray-700 hover:bg-gray-600'
                         }
                         disabled={isLocked}
-                        onClick={() => handleSelectVehicle(vehicle.id)}
+                        onClick={() => handleSelectVehicle(currentVehicle.id)}
                       >
                         {isLocked ? 'Locked' : isSelected ? 'Selected' : 'Select'}
                       </button>
-                    </div>
-                  </div>
-                )
-              })}
+                    )
+                  })()}
+                </div>
+              </div>
+
+              <button
+                className="h-10 w-10 rounded-full bg-gray-800 hover:bg-gray-700"
+                onClick={() => setCarouselIndex(prev => (prev + 1) % VEHICLE_CATALOG.length)}
+                aria-label="Next car"
+              >
+                ›
+              </button>
             </div>
           </section>
 
@@ -132,7 +174,7 @@ export default function BaseboundGaragePage() {
             <div className="font-bold mb-3">Upgrades</div>
             <div className="grid gap-3">
               {UPGRADE_ROWS.map(row => {
-                const level = profile.upgrades[row.key]
+                const level = getVehicleUpgrades(profile, currentVehicle.id)[row.key]
                 const cost = getUpgradeCost(row.key, level)
                 const isMaxed = level >= MAX_UPGRADE_LEVEL
                 const canBuy = !isMaxed && profile.coins >= cost

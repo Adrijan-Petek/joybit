@@ -6,7 +6,7 @@ import { MINI_VEHICLE, VEHICLE_CATALOG } from './vehicleCatalog'
 import { Terrain } from './Terrain'
 import { GameState, VehicleStats } from './types'
 import { getLevelConfig, LevelConfig } from './LevelConfig'
-import { applyUpgradesToStats, loadBaseboundProfile } from './baseboundProfile'
+import { applyUpgradesToStats, getVehicleUpgrades, loadBaseboundProfile } from './baseboundProfile'
 
 export class BaseboundScene extends Phaser.Scene {
   private world!: any
@@ -290,7 +290,7 @@ export class BaseboundScene extends Phaser.Scene {
       this.startSoundPlayed = true
       try {
         if (!this.miniStartSound) {
-          this.miniStartSound = this.sound.add('mini-start')
+          this.miniStartSound = this.sound.add(this.selectedVehicle.audio.start.key)
         }
         this.startSoundPlaying = true
         this.miniStartSound.stop()
@@ -356,7 +356,8 @@ export class BaseboundScene extends Phaser.Scene {
     // Create vehicle at spawn position (selected car + upgrades)
     const profile = loadBaseboundProfile()
     this.selectedVehicle = VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? MINI_VEHICLE
-    const vehicleStats: VehicleStats = applyUpgradesToStats(this.selectedVehicle.baseStats, profile.upgrades)
+    const vehicleUpgrades = getVehicleUpgrades(profile, this.selectedVehicle.id)
+    const vehicleStats: VehicleStats = applyUpgradesToStats(this.selectedVehicle.baseStats, vehicleUpgrades)
     this.vehicleStats = vehicleStats
     this.maxFuel = Math.max(30, Math.round(vehicleStats.fuelCapacity))
     this.gameState.fuel = this.maxFuel
@@ -505,7 +506,9 @@ export class BaseboundScene extends Phaser.Scene {
     // Create graphics for vehicle - use images if available, else shapes
     if (this.textures.exists(this.selectedVehicle.parts.body.key)) {
       this.chassisGraphic = this.add.image(chassisR.x, chassisR.y, this.selectedVehicle.parts.body.key)
-      this.chassisGraphic.setDisplaySize(120, 60)
+      const baseWidth = 120
+      const baseHeight = 60
+      this.chassisGraphic.setDisplaySize(baseWidth, baseHeight)
     } else {
       this.chassisGraphic = this.add.rectangle(chassisR.x, chassisR.y, 120, 60, 0x4169E1)
       this.chassisGraphic.setStrokeStyle(2, 0x000000)
@@ -1484,7 +1487,7 @@ export class BaseboundScene extends Phaser.Scene {
       if (this.currentAudioState !== 'accelerate') {
         stopAllEngineLoops()
         if (!this.miniAccelerateSound) {
-          this.miniAccelerateSound = this.sound.add('mini-accelerate', { loop: true })
+          this.miniAccelerateSound = this.sound.add(this.selectedVehicle.audio.accelerate.key, { loop: true })
         }
         this.miniAccelerateSound.play()
         this.currentAudioState = 'accelerate'
@@ -1494,7 +1497,7 @@ export class BaseboundScene extends Phaser.Scene {
       if (this.currentAudioState !== 'idle') {
         stopAllEngineLoops()
         if (!this.miniIdleSound) {
-          this.miniIdleSound = this.sound.add('mini-idle', { loop: true })
+          this.miniIdleSound = this.sound.add(this.selectedVehicle.audio.idle.key, { loop: true })
         }
         this.miniIdleSound.play()
         this.currentAudioState = 'idle'
@@ -1623,13 +1626,8 @@ export class BaseboundScene extends Phaser.Scene {
 
     // Hill Climb-style: flipped + touching terrain = instant neck break.
     if (isPastGrace && flipped && carTouchingTerrain) {
-      if (this.flippedSinceMs === null) this.flippedSinceMs = time
-      if (time - this.flippedSinceMs > 60) {
-        this.endGame('neck')
-        return
-      }
-    } else {
-      this.flippedSinceMs = null
+      this.endGame('neck')
+      return
     }
 
     // Head-hit game over: if the head touches terrain, end immediately.
