@@ -132,6 +132,14 @@ Visit **[http://localhost:3000](http://localhost:3000)** to start playing!
 - **🏆 Streak Bonus**: +0.0002 JOYB per consecutive day
 - **⚡ Features**: Automatic tracking, NFT achievements
 
+### 🏎️ Basebound (Basebound)
+
+**Side-scrolling hill-climb racer**
+
+- **🎯 Objective**: Drive as far as possible while collecting coins and managing fuel
+- **💰 Rewards**: In-game coins and progression (profile-based)
+- **⚡ Features**: Physics-driven terrain, vehicle upgrades, and mini-app ready
+
 ---
 
 ## 🏗️ Architecture
