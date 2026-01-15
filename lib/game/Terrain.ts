@@ -53,9 +53,9 @@ export class Terrain {
     const noiseValue = this.smoothNoise(adjustedX * this.frequency)
     
     // Progressive difficulty: steeper hills further you go
-    const easyLengthPx = 6000 // ~200m (distance uses x/30)
+    const easyLengthPx = 30000 // ~1000m (distance uses x/30)
     const ramp = this.smoothstep(0, easyLengthPx, adjustedX)
-    const baseScale = 0.45 + 0.55 * ramp
+    const baseScale = 0.35 + 0.65 * ramp
     const progressiveSteepness = 1 + Math.min(1.5, adjustedX / 5000)
     const maxHeight = this.amplitude * progressiveSteepness * baseScale
     const minHeight = 30

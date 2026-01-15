@@ -227,6 +227,10 @@ export class BaseboundScene extends Phaser.Scene {
     this.load.image('sky-cloud', '/basebound-game/icons/sky-cloud.png')
     this.load.image('tree-part1', '/basebound-game/icons/tree-part1.png')
     this.load.image('tree-part2', '/basebound-game/icons/tree-part2.png')
+    this.load.image('tree-lvl1-a', '/basebound-game/icons/1_lvl_tree.png')
+    this.load.image('tree-lvl1-b', '/basebound-game/icons/1_lvl_tree2.png')
+    this.load.image('tree-lvl1-c', '/basebound-game/icons/1_lvl_tree3.png')
+    this.load.image('tree-lvl1-d', '/basebound-game/icons/1_lvl_tree4.png')
     this.load.image('rocks', '/basebound-game/icons/rocks.png')
     this.load.image('rocks-mars', '/basebound-game/icons/rocks-mars.png')
     this.load.image('snow', '/basebound-game/icons/snow.png')
@@ -812,7 +816,7 @@ export class BaseboundScene extends Phaser.Scene {
   private getDecorationKeys(): string[] {
     switch (this.currentLevel.id) {
       case 1:
-        return ['tree-part1', 'tree-part2']
+        return ['tree-lvl1-a', 'tree-lvl1-b', 'tree-lvl1-c', 'tree-lvl1-d']
       case 2:
         return ['rocks']
       case 3:
@@ -846,7 +850,7 @@ export class BaseboundScene extends Phaser.Scene {
 
   private getDecorationScale(key: string): number {
     if (this.currentLevel.id === 1) {
-      if (key.includes('tree')) return Phaser.Math.FloatBetween(0.55, 0.8)
+      if (key.includes('tree')) return Phaser.Math.FloatBetween(0.38, 0.6)
       return Phaser.Math.FloatBetween(0.35, 0.55)
     }
     if (key.includes('tree')) return Phaser.Math.FloatBetween(0.6, 0.9)
@@ -859,21 +863,28 @@ export class BaseboundScene extends Phaser.Scene {
     const keys = this.getDecorationKeys()
     if (!keys.length) return
 
-    let x = startX + Phaser.Math.Between(160, 320)
+    const rand = new Phaser.Math.RandomDataGenerator([`${this.currentLevel.id}-${startX}-${endX}`])
+    let x = startX + rand.between(160, 320)
     const spacing = this.getDecorationSpacing()
     while (x < endX) {
-      const key = Phaser.Utils.Array.GetRandom(keys)
+      const key = keys[rand.between(0, keys.length - 1)]
       if (this.textures.exists(key)) {
         const groundY = this.terrain.getHeightAt(x)
-        const sprite = this.add.image(x, groundY + 6, key)
+        const sprite = this.add.image(x, groundY, key)
         sprite.setOrigin(0.5, 1)
         sprite.setDepth(1)
 
         sprite.setScale(this.getDecorationScale(key))
+        if (this.currentLevel.id === 1) {
+          // Embed trees a bit so roots sit under the top band.
+          sprite.y = groundY + sprite.displayHeight * 0.12
+        } else {
+          sprite.y = groundY + sprite.displayHeight * 0.06
+        }
 
         this.decorationSprites.push(sprite)
       }
-      x += Phaser.Math.Between(spacing.min, spacing.max)
+      x += rand.between(spacing.min, spacing.max)
     }
   }
 
@@ -1059,12 +1070,12 @@ export class BaseboundScene extends Phaser.Scene {
 
       const groundTile = this.add.tileSprite(startX, 0, endX - startX, bottomY, 'terrain-ground')
       groundTile.setOrigin(0, 0)
-      groundTile.setDepth(0)
+      groundTile.setDepth(5)
       groundTile.setMask(maskGfx.createGeometryMask())
 
       const bandHeight = 8
       const topBand = this.add.graphics()
-      topBand.setDepth(2)
+      topBand.setDepth(6)
       topBand.fillStyle(this.currentLevel.terrain.groundTopColor, 1)
       topBand.beginPath()
       topBand.moveTo(renderPoints[0].x, renderPoints[0].y)
@@ -1079,7 +1090,7 @@ export class BaseboundScene extends Phaser.Scene {
     } else {
       // Render terrain as one filled shape
       const g = this.add.graphics()
-      g.setDepth(0)
+      g.setDepth(5)
       g.fillStyle(this.currentLevel.terrain.groundColor, 1)
       g.beginPath()
       g.moveTo(renderPoints[0].x, renderPoints[0].y)
@@ -1091,7 +1102,7 @@ export class BaseboundScene extends Phaser.Scene {
 
       const bandHeight = 8
       const topBand = this.add.graphics()
-      topBand.setDepth(2)
+      topBand.setDepth(6)
       topBand.fillStyle(this.currentLevel.terrain.groundTopColor, 1)
       topBand.beginPath()
       topBand.moveTo(renderPoints[0].x, renderPoints[0].y)
