@@ -147,11 +147,12 @@ export class Vehicle {
     const x = xPx / this.SCALE
     const y = yPx / this.SCALE
     const r = rPx / this.SCALE
+    const gripScale = Math.max(0.6, Math.min(1.6, this.stats?.grip ?? 1))
 
     const wheelBody = world.createBody({ type: 'dynamic', position: Vec2(x, y), angle: 0 })
     wheelBody.createFixture(planck.Circle(r), {
       density: 1,
-      friction: 1.5,
+      friction: 1.5 * gripScale,
       restitution: 0,
       filterCategoryBits: this.WHEEL_CATEGORY,
       filterMaskBits: this.WHEEL_MASK
@@ -190,8 +191,8 @@ export class Vehicle {
     const anchorCar = Vec2(x, (yPx - rPx * 3) / this.SCALE)
     const distJoint = world.createJoint(planck.DistanceJoint({
       // Planck uses Box2D-style spring tuning; dampingRatio should be ~0..1.
-      frequencyHz: 9,
-      dampingRatio: 0.9
+      frequencyHz: 9 * Math.max(0.5, Math.min(1.6, this.stats?.suspension ?? 1)),
+      dampingRatio: Math.max(0.4, Math.min(1.0, 0.9 * (this.stats?.suspension ?? 1)))
     }, rimBody, chassisBody, anchorWheel, anchorCar))
 
     return {

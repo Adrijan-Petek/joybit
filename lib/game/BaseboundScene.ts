@@ -31,6 +31,7 @@ export class BaseboundScene extends Phaser.Scene {
   private vehicle!: Vehicle
   private selectedVehicle = MINI_VEHICLE
   private vehicleStats!: VehicleStats
+  private maxFuel: number = 100
   private terrain!: Terrain
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private gameState: GameState
@@ -87,6 +88,7 @@ export class BaseboundScene extends Phaser.Scene {
   private readonly cameraLeftMarginFrac: number = 0.3
   private hudText!: Phaser.GameObjects.Text
   private fuelIcon!: Phaser.GameObjects.Image
+  private fuelWarningIcon?: Phaser.GameObjects.Image
   private fuelText!: Phaser.GameObjects.Text
   private fuelBar!: Phaser.GameObjects.Graphics
   private coinIcon!: Phaser.GameObjects.Image
@@ -128,6 +130,8 @@ export class BaseboundScene extends Phaser.Scene {
   private miniIdleSound?: Phaser.Sound.BaseSound
   private miniAccelerateSound?: Phaser.Sound.BaseSound
   private miniStartSound?: Phaser.Sound.BaseSound
+  private lowFuelAlarmSound?: Phaser.Sound.BaseSound
+  private lowFuelActive: boolean = false
   private currentAudioState: 'idle' | 'accelerate' | 'none' = 'none'
   private audioUnlocked: boolean = false
   private startSoundPlayed: boolean = false
@@ -204,6 +208,7 @@ export class BaseboundScene extends Phaser.Scene {
     // (These exist in public/basebound-game/icons)
     this.load.image('fuel-icon', '/basebound-game/icons/fuel.png')
     this.load.image('coin-icon', '/basebound-game/icons/coin.png')
+    this.load.image('fuel-warning', '/basebound-game/icons/fuel-warning.png')
 
     // Mobile pedal controls
     this.load.image('pedal-gas-normal', '/basebound-game/icons/pedal-gas-normal.png')
@@ -244,6 +249,12 @@ export class BaseboundScene extends Phaser.Scene {
 
     // Terrain texture (level 1)
     this.load.image('terrain-ground', '/basebound-game/icons/terrain-ground.png')
+
+    // SFX
+    this.load.audio('neck-crack', '/basebound-game/basebound-audio/neck-crack.mp3')
+    this.load.audio('coin-pickup', '/basebound-game/basebound-audio/coin.mp3')
+    this.load.audio('fuel-pickup', '/basebound-game/basebound-audio/refuel.mp3')
+    this.load.audio('low-fuel-alarm', '/basebound-game/basebound-audio/low-fuel-alarm.wav')
     
     // Vehicle audio is loaded above via the catalog
   }
@@ -346,6 +357,8 @@ export class BaseboundScene extends Phaser.Scene {
     this.selectedVehicle = VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? MINI_VEHICLE
     const vehicleStats: VehicleStats = applyUpgradesToStats(this.selectedVehicle.baseStats, profile.upgrades)
     this.vehicleStats = vehicleStats
+    this.maxFuel = Math.max(30, Math.round(vehicleStats.fuelCapacity))
+    this.gameState.fuel = this.maxFuel
     
     // Spawn vehicle ON the terrain (align wheels to surface)
     const spawnX = 200
@@ -646,6 +659,13 @@ export class BaseboundScene extends Phaser.Scene {
     this.fuelIcon.setDisplaySize(iconSizeFuel, iconSizeFuel)
     this.fuelIcon.setScrollFactor(0)
     this.fuelIcon.setDepth(100)
+
+    if (this.textures.exists('fuel-warning')) {
+      this.fuelWarningIcon = this.add.image(0, 0, 'fuel-warning')
+      this.fuelWarningIcon.setDisplaySize(36, 36)
+      this.fuelWarningIcon.setDepth(20)
+      this.fuelWarningIcon.setVisible(false)
+    }
 
     this.fuelBar = this.add.graphics()
     this.fuelBar.setScrollFactor(0)
@@ -1323,7 +1343,8 @@ export class BaseboundScene extends Phaser.Scene {
     this.wheelFrontGraphic.setRotation(wheelFrontR.angle)
     
     // Fuel drains faster to make the game more challenging
-    this.gameState.fuel -= 2.0 * dtSeconds
+    const efficiency = this.vehicleStats?.fuelEfficiency ?? 1.0
+    this.gameState.fuel -= 2.0 * efficiency * dtSeconds
     const hasFuel = this.gameState.fuel > 0
     
     if (hasFuel) {
@@ -1474,9 +1495,16 @@ export class BaseboundScene extends Phaser.Scene {
       )
       
       if (distance < 40) {
-        this.gameState.fuel = Math.min(100, this.gameState.fuel + 30)
+        this.gameState.fuel = Math.min(this.maxFuel, this.gameState.fuel + Math.round(this.maxFuel * 0.3))
         pickup.destroy()
         this.fuelPickups.splice(i, 1)
+        if (this.audioUnlocked) {
+          try {
+            this.sound.play('fuel-pickup', { volume: 0.7 })
+          } catch {
+            // ignore audio errors
+          }
+        }
       }
     }
     
@@ -1495,6 +1523,13 @@ export class BaseboundScene extends Phaser.Scene {
         this.gameState.coins += 1
         pickup.destroy()
         this.coinPickups.splice(i, 1)
+        if (this.audioUnlocked) {
+          try {
+            this.sound.play('coin-pickup', { volume: 0.6 })
+          } catch {
+            // ignore audio errors
+          }
+        }
       }
     }
   }
@@ -1510,12 +1545,22 @@ export class BaseboundScene extends Phaser.Scene {
   }
   
   private updateHUD(): void {
+    const chassisR = this.vehicle.getChassisRender()
     const speed = Math.floor(this.vehicle.getVelocity())
-    const fuelPercent = Math.max(0, Math.floor(this.gameState.fuel))
-    
+    const fuelPercent = Math.max(0, Math.floor((this.gameState.fuel / this.maxFuel) * 100))
+
     // Update fuel display
     this.fuelText.setText(`${fuelPercent}%`)
     this.drawFuelBar(fuelPercent)
+
+    const isLowFuel = fuelPercent <= 15
+    if (this.fuelWarningIcon) {
+      this.fuelWarningIcon.setVisible(isLowFuel)
+      if (isLowFuel) {
+        this.fuelWarningIcon.setPosition(chassisR.x, chassisR.y - 140)
+      }
+    }
+    this.updateLowFuelAlarm(isLowFuel)
     
     // Update coin display
     this.coinText.setText(`${this.gameState.coins}`)
@@ -1591,9 +1636,43 @@ export class BaseboundScene extends Phaser.Scene {
   private endGame(reason: 'neck' | 'fuel'): void {
     this.gameState.isGameOver = true
     this.gameState.crashReason = reason
+    this.updateLowFuelAlarm(false)
+
+    if (reason === 'neck' && this.audioUnlocked) {
+      try {
+        this.sound.play('neck-crack')
+      } catch {
+        // ignore audio errors
+      }
+    }
     
     if (this.onGameOver) {
       this.onGameOver(this.gameState)
+    }
+  }
+
+  private updateLowFuelAlarm(shouldPlay: boolean): void {
+    if (!this.audioUnlocked) return
+    if (shouldPlay && !this.lowFuelActive) {
+      try {
+        if (!this.lowFuelAlarmSound) {
+          this.lowFuelAlarmSound = this.sound.add('low-fuel-alarm', { loop: true, volume: 0.5 })
+        }
+        this.lowFuelAlarmSound.play()
+        this.lowFuelActive = true
+      } catch {
+        // ignore audio errors
+      }
+      return
+    }
+
+    if (!shouldPlay && this.lowFuelActive) {
+      try {
+        this.lowFuelAlarmSound?.stop()
+      } catch {
+        // ignore audio errors
+      }
+      this.lowFuelActive = false
     }
   }
 
