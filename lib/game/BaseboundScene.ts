@@ -249,6 +249,7 @@ export class BaseboundScene extends Phaser.Scene {
 
     // Terrain texture (level 1)
     this.load.image('terrain-ground', '/basebound-game/icons/terrain-ground.png')
+    this.load.image('grass', '/basebound-game/icons/grass.png')
 
     // SFX
     this.load.audio('neck-crack', '/basebound-game/basebound-audio/neck-crack.mp3')
@@ -662,7 +663,7 @@ export class BaseboundScene extends Phaser.Scene {
 
     if (this.textures.exists('fuel-warning')) {
       this.fuelWarningIcon = this.add.image(0, 0, 'fuel-warning')
-      this.fuelWarningIcon.setDisplaySize(36, 36)
+      this.fuelWarningIcon.setDisplaySize(52, 52)
       this.fuelWarningIcon.setDepth(20)
       this.fuelWarningIcon.setVisible(false)
     }
@@ -908,6 +909,30 @@ export class BaseboundScene extends Phaser.Scene {
     }
   }
 
+  private spawnGrassPatches(startX: number, endX: number): void {
+    if (!this.textures.exists('grass')) return
+    if (this.currentLevel.id !== 1) return
+
+    const rand = new Phaser.Math.RandomDataGenerator([`grass-${this.currentLevel.id}-${startX}-${endX}`])
+    let x = startX + rand.between(300, 520)
+    while (x < endX) {
+      const groundY = this.terrain.getHeightAt(x)
+      const groundYNext = this.terrain.getHeightAt(x + 18)
+      const slopeAngle = Math.atan2(groundYNext - groundY, 18)
+      const sprite = this.add.image(x, groundY, 'grass')
+      sprite.setOrigin(0.5, 1)
+      sprite.setDepth(7)
+      const scale = rand.realInRange(0.022, 0.033)
+      sprite.setScale(scale)
+      // Match tree grounding so grass sits into the terrain.
+      sprite.y = groundY + sprite.displayHeight * 0.08
+      sprite.setRotation(slopeAngle)
+      this.decorationSprites.push(sprite)
+
+      x += rand.between(520, 900)
+    }
+  }
+
   private createMobilePedals(tryUnlockAudio: () => void): void {
     // Show pedals (desktop + mobile). Keyboard still works; pedals are for touch/mobile UX.
 
@@ -1107,6 +1132,7 @@ export class BaseboundScene extends Phaser.Scene {
       topBand.fillPath()
 
       this.terrainGraphics.push(maskGfx, topBand)
+      this.spawnGrassPatches(startX, endX)
     } else {
       // Render terrain as one filled shape
       const g = this.add.graphics()
@@ -1134,6 +1160,7 @@ export class BaseboundScene extends Phaser.Scene {
       topBand.fillPath()
 
       this.terrainGraphics.push(g, topBand)
+      this.spawnGrassPatches(startX, endX)
     }
     this.spawnDecorations(startX, endX)
   }
