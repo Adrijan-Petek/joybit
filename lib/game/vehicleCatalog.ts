@@ -345,5 +345,51 @@ export const VEHICLE_CATALOG: VehicleMetadata[] = [
       wheelFront: { key: 'bike-custom-wheel-front', path: '/basebound-game/vehicles/motor%20bikes/motor%20bikes/cutom/tire.png' }
     },
     audio: makeAudio('bike-custom')
+  },
+  {
+    id: 14,
+    slug: 'mustang-gt',
+    name: 'Mustang GT',
+    isStarter: false,
+    unlockDistance: 3900,
+    price: 2600,
+    baseStats: {
+      maxSpeed: 24,
+      torque: 15,
+      suspension: 0.8,
+      fuelCapacity: 100,
+      fuelEfficiency: 1.0,
+      mass: 100,
+      grip: 1.0
+    },
+    parts: {
+      body: { key: 'mustang-gt-body', path: '/basebound-game/vehicles/mustang%20gt/body.gif' },
+      wheelBack: { key: 'mustang-gt-wheel-back', path: '/basebound-game/vehicles/mustang%20gt/tire%20back.gif' },
+      wheelFront: { key: 'mustang-gt-wheel-front', path: '/basebound-game/vehicles/mustang%20gt/tire%20front.gif' }
+    },
+    audio: makeAudio('mustang-gt')
+  },
+  {
+    id: 15,
+    slug: 'humvee',
+    name: 'Humvee',
+    isStarter: false,
+    unlockDistance: 4200,
+    price: 2800,
+    baseStats: {
+      maxSpeed: 24,
+      torque: 15,
+      suspension: 0.8,
+      fuelCapacity: 100,
+      fuelEfficiency: 1.0,
+      mass: 100,
+      grip: 1.0
+    },
+    parts: {
+      body: { key: 'humvee-body', path: '/basebound-game/vehicles/humvee/humvee-body.jpg' },
+      wheelBack: { key: 'humvee-wheel-back', path: '/basebound-game/vehicles/humvee/tires.jpg' },
+      wheelFront: { key: 'humvee-wheel-front', path: '/basebound-game/vehicles/humvee/tires.jpg' }
+    },
+    audio: makeAudio('humvee')
   }
 ]

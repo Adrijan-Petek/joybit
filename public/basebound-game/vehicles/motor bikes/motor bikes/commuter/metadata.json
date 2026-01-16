@@ -1,0 +1,59 @@
+{
+  "id": 6,
+  "slug": "bike-commuter",
+  "name": "Commuter Bike",
+  "isStarter": false,
+  "unlockDistance": 1500,
+  "price": 1000,
+  "baseStats": {
+    "maxSpeed": 30,
+    "torque": 14,
+    "suspension": 0.85,
+    "fuelCapacity": 90,
+    "fuelEfficiency": 0.9,
+    "mass": 70,
+    "grip": 1.15
+  },
+  "parts": {
+    "body": {
+      "key": "bike-commuter-body",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/commuter/body.png"
+    },
+    "wheelBack": {
+      "key": "bike-commuter-wheel-back",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/commuter/tire.png"
+    },
+    "wheelFront": {
+      "key": "bike-commuter-wheel-front",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/commuter/tire.png"
+    }
+  },
+  "audio": {
+    "start": {
+      "key": "bike-commuter-start",
+      "path": "/basebound-game/basebound-audio/cars/mini/start-mini.mp3"
+    },
+    "idle": {
+      "key": "bike-commuter-idle",
+      "path": "/basebound-game/basebound-audio/cars/mini/idle-mini.mp3"
+    },
+    "accelerate": {
+      "key": "bike-commuter-accelerate",
+      "path": "/basebound-game/basebound-audio/cars/mini/accelerate-mini.mp3"
+    }
+  },
+  "render": {
+    "bodyPx": {
+      "width": 841,
+      "height": 350
+    },
+    "wheelBackPx": {
+      "width": 241,
+      "height": 240
+    },
+    "wheelFrontPx": {
+      "width": 241,
+      "height": 240
+    }
+  }
+}

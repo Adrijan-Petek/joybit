@@ -4,6 +4,16 @@
       "id": 1,
       "slug": "mini",
       "metadataPath": "/basebound-game/vehicles/mini/metadata.json"
+    },
+    {
+      "id": 14,
+      "slug": "mustang-gt",
+      "metadataPath": "/basebound-game/vehicles/mustang%20gt/metadata.json"
+    },
+    {
+      "id": 15,
+      "slug": "humvee",
+      "metadataPath": "/basebound-game/vehicles/humvee/metadata.json"
     }
   ]
 }

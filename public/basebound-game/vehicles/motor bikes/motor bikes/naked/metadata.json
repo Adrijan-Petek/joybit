@@ -1,0 +1,59 @@
+{
+  "id": 9,
+  "slug": "bike-naked",
+  "name": "Naked Bike",
+  "isStarter": false,
+  "unlockDistance": 2400,
+  "price": 1600,
+  "baseStats": {
+    "maxSpeed": 33,
+    "torque": 17,
+    "suspension": 0.95,
+    "fuelCapacity": 92,
+    "fuelEfficiency": 0.9,
+    "mass": 72,
+    "grip": 1.18
+  },
+  "parts": {
+    "body": {
+      "key": "bike-naked-body",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/naked/body.png"
+    },
+    "wheelBack": {
+      "key": "bike-naked-wheel-back",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/naked/tire.png"
+    },
+    "wheelFront": {
+      "key": "bike-naked-wheel-front",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/naked/tire.png"
+    }
+  },
+  "audio": {
+    "start": {
+      "key": "bike-naked-start",
+      "path": "/basebound-game/basebound-audio/cars/mini/start-mini.mp3"
+    },
+    "idle": {
+      "key": "bike-naked-idle",
+      "path": "/basebound-game/basebound-audio/cars/mini/idle-mini.mp3"
+    },
+    "accelerate": {
+      "key": "bike-naked-accelerate",
+      "path": "/basebound-game/basebound-audio/cars/mini/accelerate-mini.mp3"
+    }
+  },
+  "render": {
+    "bodyPx": {
+      "width": 840,
+      "height": 421
+    },
+    "wheelBackPx": {
+      "width": 257,
+      "height": 257
+    },
+    "wheelFrontPx": {
+      "width": 257,
+      "height": 257
+    }
+  }
+}

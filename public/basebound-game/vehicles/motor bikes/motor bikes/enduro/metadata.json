@@ -1,0 +1,59 @@
+{
+  "id": 8,
+  "slug": "bike-enduro",
+  "name": "Enduro Bike",
+  "isStarter": false,
+  "unlockDistance": 2100,
+  "price": 1400,
+  "baseStats": {
+    "maxSpeed": 31,
+    "torque": 17,
+    "suspension": 1.1,
+    "fuelCapacity": 95,
+    "fuelEfficiency": 0.9,
+    "mass": 78,
+    "grip": 1.2
+  },
+  "parts": {
+    "body": {
+      "key": "bike-enduro-body",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/enduro/body.png"
+    },
+    "wheelBack": {
+      "key": "bike-enduro-wheel-back",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/enduro/tire.png"
+    },
+    "wheelFront": {
+      "key": "bike-enduro-wheel-front",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/enduro/tire.png"
+    }
+  },
+  "audio": {
+    "start": {
+      "key": "bike-enduro-start",
+      "path": "/basebound-game/basebound-audio/cars/mini/start-mini.mp3"
+    },
+    "idle": {
+      "key": "bike-enduro-idle",
+      "path": "/basebound-game/basebound-audio/cars/mini/idle-mini.mp3"
+    },
+    "accelerate": {
+      "key": "bike-enduro-accelerate",
+      "path": "/basebound-game/basebound-audio/cars/mini/accelerate-mini.mp3"
+    }
+  },
+  "render": {
+    "bodyPx": {
+      "width": 716,
+      "height": 413
+    },
+    "wheelBackPx": {
+      "width": 228,
+      "height": 228
+    },
+    "wheelFrontPx": {
+      "width": 228,
+      "height": 228
+    }
+  }
+}

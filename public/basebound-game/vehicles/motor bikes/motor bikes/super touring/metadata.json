@@ -1,0 +1,59 @@
+{
+  "id": 12,
+  "slug": "bike-super-touring",
+  "name": "Super Touring",
+  "isStarter": false,
+  "unlockDistance": 3300,
+  "price": 2200,
+  "baseStats": {
+    "maxSpeed": 34,
+    "torque": 19,
+    "suspension": 1.0,
+    "fuelCapacity": 98,
+    "fuelEfficiency": 0.9,
+    "mass": 85,
+    "grip": 1.12
+  },
+  "parts": {
+    "body": {
+      "key": "bike-super-touring-body",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/super%20touring/body.png"
+    },
+    "wheelBack": {
+      "key": "bike-super-touring-wheel-back",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/super%20touring/tire.png"
+    },
+    "wheelFront": {
+      "key": "bike-super-touring-wheel-front",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/super%20touring/tire.png"
+    }
+  },
+  "audio": {
+    "start": {
+      "key": "bike-super-touring-start",
+      "path": "/basebound-game/basebound-audio/cars/mini/start-mini.mp3"
+    },
+    "idle": {
+      "key": "bike-super-touring-idle",
+      "path": "/basebound-game/basebound-audio/cars/mini/idle-mini.mp3"
+    },
+    "accelerate": {
+      "key": "bike-super-touring-accelerate",
+      "path": "/basebound-game/basebound-audio/cars/mini/accelerate-mini.mp3"
+    }
+  },
+  "render": {
+    "bodyPx": {
+      "width": 864,
+      "height": 485
+    },
+    "wheelBackPx": {
+      "width": 220,
+      "height": 220
+    },
+    "wheelFrontPx": {
+      "width": 220,
+      "height": 220
+    }
+  }
+}

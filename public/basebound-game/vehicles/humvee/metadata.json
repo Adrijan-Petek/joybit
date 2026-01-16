@@ -1,0 +1,59 @@
+{
+  "id": 15,
+  "slug": "humvee",
+  "name": "Humvee",
+  "isStarter": false,
+  "unlockDistance": 4200,
+  "price": 2800,
+  "baseStats": {
+    "maxSpeed": 24,
+    "torque": 15,
+    "suspension": 0.8,
+    "fuelCapacity": 100,
+    "fuelEfficiency": 1.0,
+    "mass": 100,
+    "grip": 1.0
+  },
+  "parts": {
+    "body": {
+      "key": "humvee-body",
+      "path": "/basebound-game/vehicles/humvee/humvee-body.jpg"
+    },
+    "wheelBack": {
+      "key": "humvee-wheel-back",
+      "path": "/basebound-game/vehicles/humvee/tires.jpg"
+    },
+    "wheelFront": {
+      "key": "humvee-wheel-front",
+      "path": "/basebound-game/vehicles/humvee/tires.jpg"
+    }
+  },
+  "audio": {
+    "start": {
+      "key": "humvee-start",
+      "path": "/basebound-game/basebound-audio/cars/mini/start-mini.mp3"
+    },
+    "idle": {
+      "key": "humvee-idle",
+      "path": "/basebound-game/basebound-audio/cars/mini/idle-mini.mp3"
+    },
+    "accelerate": {
+      "key": "humvee-accelerate",
+      "path": "/basebound-game/basebound-audio/cars/mini/accelerate-mini.mp3"
+    }
+  },
+  "render": {
+    "bodyPx": {
+      "width": 906,
+      "height": 510
+    },
+    "wheelBackPx": {
+      "width": 172,
+      "height": 170
+    },
+    "wheelFrontPx": {
+      "width": 172,
+      "height": 170
+    }
+  }
+}

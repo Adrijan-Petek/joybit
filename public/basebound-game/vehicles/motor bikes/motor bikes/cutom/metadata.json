@@ -1,0 +1,59 @@
+{
+  "id": 13,
+  "slug": "bike-custom",
+  "name": "Custom Bike",
+  "isStarter": false,
+  "unlockDistance": 3600,
+  "price": 2400,
+  "baseStats": {
+    "maxSpeed": 33,
+    "torque": 20,
+    "suspension": 0.95,
+    "fuelCapacity": 95,
+    "fuelEfficiency": 0.9,
+    "mass": 88,
+    "grip": 1.1
+  },
+  "parts": {
+    "body": {
+      "key": "bike-custom-body",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/cutom/body.png"
+    },
+    "wheelBack": {
+      "key": "bike-custom-wheel-back",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/cutom/tire.png"
+    },
+    "wheelFront": {
+      "key": "bike-custom-wheel-front",
+      "path": "/basebound-game/vehicles/motor%20bikes/motor%20bikes/cutom/tire.png"
+    }
+  },
+  "audio": {
+    "start": {
+      "key": "bike-custom-start",
+      "path": "/basebound-game/basebound-audio/cars/mini/start-mini.mp3"
+    },
+    "idle": {
+      "key": "bike-custom-idle",
+      "path": "/basebound-game/basebound-audio/cars/mini/idle-mini.mp3"
+    },
+    "accelerate": {
+      "key": "bike-custom-accelerate",
+      "path": "/basebound-game/basebound-audio/cars/mini/accelerate-mini.mp3"
+    }
+  },
+  "render": {
+    "bodyPx": {
+      "width": 973,
+      "height": 396
+    },
+    "wheelBackPx": {
+      "width": 266,
+      "height": 266
+    },
+    "wheelFrontPx": {
+      "width": 266,
+      "height": 266
+    }
+  }
+}

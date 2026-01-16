@@ -1,0 +1,59 @@
+{
+  "id": 2,
+  "slug": "cartoon-car",
+  "name": "Cartoon Car",
+  "isStarter": false,
+  "unlockDistance": 300,
+  "price": 200,
+  "baseStats": {
+    "maxSpeed": 26,
+    "torque": 16,
+    "suspension": 0.9,
+    "fuelCapacity": 105,
+    "fuelEfficiency": 0.98,
+    "mass": 95,
+    "grip": 1.05
+  },
+  "parts": {
+    "body": {
+      "key": "cartoon-car-body",
+      "path": "/basebound-game/vehicles/cartoon%20car/car-body.png"
+    },
+    "wheelBack": {
+      "key": "cartoon-car-wheel-back",
+      "path": "/basebound-game/vehicles/cartoon%20car/tire.png"
+    },
+    "wheelFront": {
+      "key": "cartoon-car-wheel-front",
+      "path": "/basebound-game/vehicles/cartoon%20car/tire.png"
+    }
+  },
+  "audio": {
+    "start": {
+      "key": "cartoon-car-start",
+      "path": "/basebound-game/basebound-audio/cars/mini/start-mini.mp3"
+    },
+    "idle": {
+      "key": "cartoon-car-idle",
+      "path": "/basebound-game/basebound-audio/cars/mini/idle-mini.mp3"
+    },
+    "accelerate": {
+      "key": "cartoon-car-accelerate",
+      "path": "/basebound-game/basebound-audio/cars/mini/accelerate-mini.mp3"
+    }
+  },
+  "render": {
+    "bodyPx": {
+      "width": 471,
+      "height": 259
+    },
+    "wheelBackPx": {
+      "width": 105,
+      "height": 105
+    },
+    "wheelFrontPx": {
+      "width": 105,
+      "height": 105
+    }
+  }
+}
