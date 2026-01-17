@@ -55,5 +55,14 @@
       "width": 257,
       "height": 256
     }
+  },
+  "driver": {
+    "seatOxPx": -8,
+    "seatOyPx": 8,
+    "neckOxPx": 12,
+    "neckOyPx": -44,
+    "headOxPx": -9,
+    "headOyPx": 6,
+    "followBodyOffset": false
   }
 }

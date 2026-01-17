@@ -45,18 +45,26 @@ export class BaseboundScene extends Phaser.Scene {
   // Driver attachment tuning (local to chassis, in pixels)
   // Seat anchor is where the driver's body bottom-center sits.
   // User tuning: body lower + right
-  private readonly DRIVER_SEAT_OX_PX: number = -8
-  private readonly DRIVER_SEAT_OY_PX: number = 8
+  private readonly DEFAULT_DRIVER_SEAT_OX_PX: number = -8
+  private readonly DEFAULT_DRIVER_SEAT_OY_PX: number = 8
 
   // Neck point on the body, relative to the seat anchor (body origin is bottom-center).
   // These values control whether the head visually sits on the body.
-  private readonly DRIVER_NECK_FROM_SEAT_OX_PX: number = 12
-  private readonly DRIVER_NECK_FROM_SEAT_OY_PX: number = -44
+  private readonly DEFAULT_DRIVER_NECK_FROM_SEAT_OX_PX: number = 12
+  private readonly DEFAULT_DRIVER_NECK_FROM_SEAT_OY_PX: number = -44
 
   // Head offset relative to the neck point.
   // User tuning: head 10px down, 1px left
-  private readonly DRIVER_HEAD_FROM_NECK_OX_PX: number = -9
-  private readonly DRIVER_HEAD_FROM_NECK_OY_PX: number = 6
+  private readonly DEFAULT_DRIVER_HEAD_FROM_NECK_OX_PX: number = -9
+  private readonly DEFAULT_DRIVER_HEAD_FROM_NECK_OY_PX: number = 6
+
+  private driverSeatOxPx: number = this.DEFAULT_DRIVER_SEAT_OX_PX
+  private driverSeatOyPx: number = this.DEFAULT_DRIVER_SEAT_OY_PX
+  private driverNeckFromSeatOxPx: number = this.DEFAULT_DRIVER_NECK_FROM_SEAT_OX_PX
+  private driverNeckFromSeatOyPx: number = this.DEFAULT_DRIVER_NECK_FROM_SEAT_OY_PX
+  private driverHeadFromNeckOxPx: number = this.DEFAULT_DRIVER_HEAD_FROM_NECK_OX_PX
+  private driverHeadFromNeckOyPx: number = this.DEFAULT_DRIVER_HEAD_FROM_NECK_OY_PX
+  private driverFollowBodyOffset: boolean = false
 
   // Hill Climb-style head movement (simple inertia + spring back)
   private headSwingX: number = 0
@@ -202,6 +210,9 @@ export class BaseboundScene extends Phaser.Scene {
       this.load.audio(v.audio.start.key, v.audio.start.path)
       this.load.audio(v.audio.idle.key, v.audio.idle.path)
       this.load.audio(v.audio.accelerate.key, v.audio.accelerate.path)
+
+      const metadataPath = v.parts.body.path.replace(/\/[^/]+$/, '/metadata.json')
+      this.load.json(`vehicle-meta-${v.slug}`, metadataPath)
     }
     
     // Load HUD icons
@@ -356,6 +367,23 @@ export class BaseboundScene extends Phaser.Scene {
     // Create vehicle at spawn position (selected car + upgrades)
     const profile = loadBaseboundProfile()
     this.selectedVehicle = VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? MINI_VEHICLE
+    this.driverSeatOxPx = this.DEFAULT_DRIVER_SEAT_OX_PX
+    this.driverSeatOyPx = this.DEFAULT_DRIVER_SEAT_OY_PX
+    this.driverNeckFromSeatOxPx = this.DEFAULT_DRIVER_NECK_FROM_SEAT_OX_PX
+    this.driverNeckFromSeatOyPx = this.DEFAULT_DRIVER_NECK_FROM_SEAT_OY_PX
+    this.driverHeadFromNeckOxPx = this.DEFAULT_DRIVER_HEAD_FROM_NECK_OX_PX
+    this.driverHeadFromNeckOyPx = this.DEFAULT_DRIVER_HEAD_FROM_NECK_OY_PX
+    this.driverFollowBodyOffset = false
+    const driverMeta = this.cache.json.get(`vehicle-meta-${this.selectedVehicle.slug}`)?.driver
+    if (driverMeta) {
+      this.driverSeatOxPx = driverMeta.seatOxPx ?? this.driverSeatOxPx
+      this.driverSeatOyPx = driverMeta.seatOyPx ?? this.driverSeatOyPx
+      this.driverNeckFromSeatOxPx = driverMeta.neckOxPx ?? this.driverNeckFromSeatOxPx
+      this.driverNeckFromSeatOyPx = driverMeta.neckOyPx ?? this.driverNeckFromSeatOyPx
+      this.driverHeadFromNeckOxPx = driverMeta.headOxPx ?? this.driverHeadFromNeckOxPx
+      this.driverHeadFromNeckOyPx = driverMeta.headOyPx ?? this.driverHeadFromNeckOyPx
+      this.driverFollowBodyOffset = Boolean(driverMeta.followBodyOffset)
+    }
     const vehicleUpgrades = getVehicleUpgrades(profile, this.selectedVehicle.id)
     const vehicleStats: VehicleStats = applyUpgradesToStats(this.selectedVehicle.baseStats, vehicleUpgrades)
     this.vehicleStats = vehicleStats
@@ -504,16 +532,19 @@ export class BaseboundScene extends Phaser.Scene {
     const wheelFrontR = this.vehicle.getWheelFrontRender()
 
     // Create graphics for vehicle - use images if available, else shapes
+    const bodyOffsetY = this.selectedVehicle.slug === 'cartoon-car' ? -30 : 0
     if (this.textures.exists(this.selectedVehicle.parts.body.key)) {
-      this.chassisGraphic = this.add.image(chassisR.x, chassisR.y, this.selectedVehicle.parts.body.key)
-      const baseWidth = 120
-      const baseHeight = 60
+      this.chassisGraphic = this.add.image(chassisR.x, chassisR.y + bodyOffsetY, this.selectedVehicle.parts.body.key)
+      const baseWidth = this.selectedVehicle.slug === 'cartoon-car' ? 140 : 120
+      const baseHeight = this.selectedVehicle.slug === 'cartoon-car' ? 100 : 60
       this.chassisGraphic.setDisplaySize(baseWidth, baseHeight)
     } else {
       this.chassisGraphic = this.add.rectangle(chassisR.x, chassisR.y, 120, 60, 0x4169E1)
       this.chassisGraphic.setStrokeStyle(2, 0x000000)
     }
     this.chassisGraphic.setDepth(10)
+
+    const driverBaseY = chassisR.y + (this.driverFollowBodyOffset ? bodyOffsetY : 0)
     
     if (this.textures.exists(this.selectedVehicle.parts.wheelBack.key)) {
       this.wheelBackGraphic = this.add.image(wheelBackR.x, wheelBackR.y, this.selectedVehicle.parts.wheelBack.key)
@@ -535,7 +566,7 @@ export class BaseboundScene extends Phaser.Scene {
 
     // Driver sprites sit on top of the chassis
     if (this.textures.exists('driver-body')) {
-      this.driverBodyGraphic = this.add.image(chassisR.x, chassisR.y, 'driver-body')
+      this.driverBodyGraphic = this.add.image(chassisR.x, driverBaseY, 'driver-body')
       this.driverBodyGraphic.setDisplaySize(70, 50)
       // Anchor the body by its bottom-center so it can sit on the seat point.
       this.driverBodyGraphic.setOrigin(0.5, 1)
@@ -544,7 +575,7 @@ export class BaseboundScene extends Phaser.Scene {
     }
 
     if (this.textures.exists('driver-head')) {
-      this.driverHeadGraphic = this.add.image(chassisR.x, chassisR.y, 'driver-head')
+      this.driverHeadGraphic = this.add.image(chassisR.x, driverBaseY, 'driver-head')
       this.driverHeadGraphic.setDisplaySize(40, 40)
       // Pivot near the bottom so wobble looks like a neck hinge.
       this.driverHeadGraphic.setOrigin(0.5, 0.95)
@@ -1247,7 +1278,8 @@ export class BaseboundScene extends Phaser.Scene {
     const wheelBackR = this.vehicle.getWheelBackRender()
     const wheelFrontR = this.vehicle.getWheelFrontRender()
 
-    this.chassisGraphic.setPosition(chassisR.x, chassisR.y)
+    const bodyOffsetY = this.selectedVehicle.slug === 'cartoon-car' ? -30 : 0
+    this.chassisGraphic.setPosition(chassisR.x, chassisR.y + bodyOffsetY)
     this.chassisGraphic.setRotation(chassisR.angle)
 
     // Attach driver body/head to chassis.
@@ -1258,10 +1290,12 @@ export class BaseboundScene extends Phaser.Scene {
       const cos = Math.cos(ca)
       const sin = Math.sin(ca)
 
+      const driverBaseX = chassisR.x
+      const driverBaseY = chassisR.y + (this.driverFollowBodyOffset ? bodyOffsetY : 0)
       const applyOffset = (ox: number, oy: number) => {
         return {
-          x: chassisR.x + ox * cos - oy * sin,
-          y: chassisR.y + ox * sin + oy * cos
+          x: driverBaseX + ox * cos - oy * sin,
+          y: driverBaseY + ox * sin + oy * cos
         }
       }
 
@@ -1334,7 +1368,7 @@ export class BaseboundScene extends Phaser.Scene {
       this.lastChassisY = chassisR.y
       this.lastChassisAngle = ca
 
-      const seat = applyOffset(this.DRIVER_SEAT_OX_PX, this.DRIVER_SEAT_OY_PX)
+      const seat = applyOffset(this.driverSeatOxPx, this.driverSeatOyPx)
 
       if (this.driverBodyGraphic) {
         this.driverBodyGraphic.setPosition(seat.x, seat.y)
@@ -1342,16 +1376,16 @@ export class BaseboundScene extends Phaser.Scene {
       }
 
       if (this.driverHeadGraphic) {
-        const neckLocalOx = this.DRIVER_NECK_FROM_SEAT_OX_PX
-        const neckLocalOy = this.DRIVER_NECK_FROM_SEAT_OY_PX
+        const neckLocalOx = this.driverNeckFromSeatOxPx
+        const neckLocalOy = this.driverNeckFromSeatOyPx
 
         const neck = {
           x: seat.x + neckLocalOx * cos - neckLocalOy * sin,
           y: seat.y + neckLocalOx * sin + neckLocalOy * cos
         }
 
-        const headLocalOx = this.DRIVER_HEAD_FROM_NECK_OX_PX + this.headSwingX
-        const headLocalOy = this.DRIVER_HEAD_FROM_NECK_OY_PX + this.headSwingY
+        const headLocalOx = this.driverHeadFromNeckOxPx + this.headSwingX
+        const headLocalOy = this.driverHeadFromNeckOyPx + this.headSwingY
 
         const head = {
           x: neck.x + headLocalOx * cos - headLocalOy * sin,
