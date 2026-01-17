@@ -532,18 +532,26 @@ export class BaseboundScene extends Phaser.Scene {
     const wheelFrontR = this.vehicle.getWheelFrontRender()
 
     // Create graphics for vehicle - use images if available, else shapes
-    const bodyOffsetY = this.selectedVehicle.slug === 'cartoon-car' ? -30 : 0
+    // Apply body offset in chassis-local space so it stays aligned when flipping.
+    const bodyOffsetLocalX = 0
+    const bodyOffsetLocalY = this.selectedVehicle.slug === 'cartoon-car' ? -30 : 0
+    const initCa = chassisR.angle
+    const initCos = Math.cos(initCa)
+    const initSin = Math.sin(initCa)
+    const bodyOffsetX = bodyOffsetLocalX * initCos - bodyOffsetLocalY * initSin
+    const bodyOffsetY = bodyOffsetLocalX * initSin + bodyOffsetLocalY * initCos
     if (this.textures.exists(this.selectedVehicle.parts.body.key)) {
-      this.chassisGraphic = this.add.image(chassisR.x, chassisR.y + bodyOffsetY, this.selectedVehicle.parts.body.key)
+      this.chassisGraphic = this.add.image(chassisR.x + bodyOffsetX, chassisR.y + bodyOffsetY, this.selectedVehicle.parts.body.key)
       const baseWidth = this.selectedVehicle.slug === 'cartoon-car' ? 140 : 120
       const baseHeight = this.selectedVehicle.slug === 'cartoon-car' ? 100 : 60
       this.chassisGraphic.setDisplaySize(baseWidth, baseHeight)
     } else {
-      this.chassisGraphic = this.add.rectangle(chassisR.x, chassisR.y, 120, 60, 0x4169E1)
+      this.chassisGraphic = this.add.rectangle(chassisR.x + bodyOffsetX, chassisR.y + bodyOffsetY, 120, 60, 0x4169E1)
       this.chassisGraphic.setStrokeStyle(2, 0x000000)
     }
     this.chassisGraphic.setDepth(10)
 
+    const driverBaseX = chassisR.x + (this.driverFollowBodyOffset ? bodyOffsetX : 0)
     const driverBaseY = chassisR.y + (this.driverFollowBodyOffset ? bodyOffsetY : 0)
     
     if (this.textures.exists(this.selectedVehicle.parts.wheelBack.key)) {
@@ -566,7 +574,7 @@ export class BaseboundScene extends Phaser.Scene {
 
     // Driver sprites sit on top of the chassis
     if (this.textures.exists('driver-body')) {
-      this.driverBodyGraphic = this.add.image(chassisR.x, driverBaseY, 'driver-body')
+      this.driverBodyGraphic = this.add.image(driverBaseX, driverBaseY, 'driver-body')
       this.driverBodyGraphic.setDisplaySize(70, 50)
       // Anchor the body by its bottom-center so it can sit on the seat point.
       this.driverBodyGraphic.setOrigin(0.5, 1)
@@ -575,7 +583,7 @@ export class BaseboundScene extends Phaser.Scene {
     }
 
     if (this.textures.exists('driver-head')) {
-      this.driverHeadGraphic = this.add.image(chassisR.x, driverBaseY, 'driver-head')
+      this.driverHeadGraphic = this.add.image(driverBaseX, driverBaseY, 'driver-head')
       this.driverHeadGraphic.setDisplaySize(40, 40)
       // Pivot near the bottom so wobble looks like a neck hinge.
       this.driverHeadGraphic.setOrigin(0.5, 0.95)
@@ -1278,19 +1286,21 @@ export class BaseboundScene extends Phaser.Scene {
     const wheelBackR = this.vehicle.getWheelBackRender()
     const wheelFrontR = this.vehicle.getWheelFrontRender()
 
-    const bodyOffsetY = this.selectedVehicle.slug === 'cartoon-car' ? -30 : 0
-    this.chassisGraphic.setPosition(chassisR.x, chassisR.y + bodyOffsetY)
-    this.chassisGraphic.setRotation(chassisR.angle)
+    const bodyOffsetLocalX = 0
+    const bodyOffsetLocalY = this.selectedVehicle.slug === 'cartoon-car' ? -30 : 0
+    const ca = chassisR.angle
+    const cos = Math.cos(ca)
+    const sin = Math.sin(ca)
+    const bodyOffsetX = bodyOffsetLocalX * cos - bodyOffsetLocalY * sin
+    const bodyOffsetY = bodyOffsetLocalX * sin + bodyOffsetLocalY * cos
+    this.chassisGraphic.setPosition(chassisR.x + bodyOffsetX, chassisR.y + bodyOffsetY)
+    this.chassisGraphic.setRotation(ca)
 
     // Attach driver body/head to chassis.
     // Body is anchored to a seat point; head is anchored to the body and has a bit of inertia.
     // Offsets are in chassis local-space pixels.
     if (this.driverBodyGraphic || this.driverHeadGraphic) {
-      const ca = chassisR.angle
-      const cos = Math.cos(ca)
-      const sin = Math.sin(ca)
-
-      const driverBaseX = chassisR.x
+      const driverBaseX = chassisR.x + (this.driverFollowBodyOffset ? bodyOffsetX : 0)
       const driverBaseY = chassisR.y + (this.driverFollowBodyOffset ? bodyOffsetY : 0)
       const applyOffset = (ox: number, oy: number) => {
         return {

@@ -47,6 +47,7 @@ export default function BaseboundGaragePage() {
   }, [profile.selectedVehicleId])
 
   const currentVehicle = VEHICLE_CATALOG[carouselIndex] ?? VEHICLE_CATALOG[0]
+  const isComingSoon = currentVehicle.slug !== 'mini' && currentVehicle.slug !== 'cartoon-car'
 
   const handleSelectVehicle = (vehicleId: number) => {
     const next = ensureVehicleUpgrades({ ...profile, selectedVehicleId: vehicleId }, vehicleId)
@@ -127,7 +128,10 @@ export default function BaseboundGaragePage() {
                     />
                   </div>
                   <div className="flex-1">
-                    <div className="font-bold text-lg">{currentVehicle.name}</div>
+                    <div className="font-bold text-lg">
+                      {currentVehicle.name}
+                      {isComingSoon && <span className="ml-2 text-xs text-yellow-400">Coming Soon</span>}
+                    </div>
                     <div className="text-xs text-gray-300">
                       Unlock: {currentVehicle.unlockDistance}m • Price: {currentVehicle.price}
                     </div>
@@ -141,19 +145,20 @@ export default function BaseboundGaragePage() {
                   {(() => {
                     const isSelected = currentVehicle.id === selectedVehicle.id
                     const isLocked = profile.bestDistance < currentVehicle.unlockDistance
+                    const isDisabled = isComingSoon || isLocked
                     return (
                       <button
                         className={
-                          isLocked
+                          isDisabled
                             ? 'w-full px-3 py-2 rounded bg-gray-800 text-gray-400 cursor-not-allowed'
                             : isSelected
                               ? 'w-full px-3 py-2 rounded bg-green-600 text-black font-bold'
                               : 'w-full px-3 py-2 rounded bg-gray-700 hover:bg-gray-600'
                         }
-                        disabled={isLocked}
+                        disabled={isDisabled}
                         onClick={() => handleSelectVehicle(currentVehicle.id)}
                       >
-                        {isLocked ? 'Locked' : isSelected ? 'Selected' : 'Select'}
+                        {isComingSoon ? 'Coming Soon' : isLocked ? 'Locked' : isSelected ? 'Selected' : 'Select'}
                       </button>
                     )
                   })()}
