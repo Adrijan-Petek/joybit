@@ -295,5 +295,6 @@ export default function BaseboundGaragePage() {
       </div>
       </div>
     </div>
+    </div>
   )
 }
