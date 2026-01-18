@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { VEHICLE_CATALOG } from '@/lib/game/vehicleCatalog'
 import { useForceLandscape } from '@/lib/hooks/useForceLandscape'
@@ -35,7 +35,6 @@ export default function BaseboundGaragePage() {
   const { isLandscape, isMobile } = useForceLandscape({ lockOrientation: true })
   const forceLandscape = isMobile && !isLandscape
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0, offsetLeft: 0, offsetTop: 0 })
-  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const selectedVehicle = useMemo(() => {
     return VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? VEHICLE_CATALOG[0]
@@ -50,41 +49,6 @@ export default function BaseboundGaragePage() {
     const idx = VEHICLE_CATALOG.findIndex(v => v.id === profile.selectedVehicleId)
     setCarouselIndex(idx >= 0 ? idx : 0)
   }, [profile.selectedVehicleId])
-
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    if (!forceLandscape) return
-
-    let startY = 0
-    let startScrollLeft = 0
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return
-      startY = event.touches[0].clientY
-      startScrollLeft = el.scrollLeft
-    }
-
-    const onTouchMove = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return
-      const currentY = event.touches[0].clientY
-      const deltaY = currentY - startY
-      // The entire garage UI is rotated 90deg for forced landscape.
-      // To make "finger up/down" feel natural, map vertical finger movement
-      // to horizontal scroll in the DOM.
-      const sensitivity = 2
-      el.scrollLeft = startScrollLeft + deltaY * sensitivity
-      event.preventDefault()
-    }
-
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchmove', onTouchMove, { passive: false })
-
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchmove', onTouchMove)
-    }
-  }, [forceLandscape])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -109,6 +73,7 @@ export default function BaseboundGaragePage() {
 
   const currentVehicle = VEHICLE_CATALOG[carouselIndex] ?? VEHICLE_CATALOG[0]
   const isComingSoon = currentVehicle.slug !== 'mini' && currentVehicle.slug !== 'cartoon-car'
+  const compact = isMobile
 
   const handleSelectVehicle = (vehicleId: number) => {
     const next = ensureVehicleUpgrades({ ...profile, selectedVehicleId: vehicleId }, vehicleId)
@@ -158,41 +123,35 @@ export default function BaseboundGaragePage() {
           WebkitOverflowScrolling: 'touch'
         }}
       >
-      <div className="h-full w-full overflow-hidden p-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-      <div
-        ref={scrollRef}
-        className={forceLandscape ? 'h-full w-full overflow-x-auto overflow-y-hidden' : 'h-full w-full overflow-y-auto overflow-x-hidden'}
-        style={{
-          WebkitOverflowScrolling: 'touch',
-          touchAction: forceLandscape ? 'none' : 'pan-y'
-        }}
-      >
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className={compact ? 'h-full w-full p-3' : 'h-full w-full p-4'} style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className={compact ? 'h-full w-full mx-auto max-w-5xl flex flex-col' : 'max-w-3xl mx-auto'}>
+        <div className={compact ? 'flex items-center justify-between mb-3' : 'flex items-center justify-between mb-6'}>
           <button
-            className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700"
+            className={compact ? 'px-3 py-2 rounded bg-gray-800 hover:bg-gray-700 text-sm' : 'px-4 py-2 rounded bg-gray-800 hover:bg-gray-700'}
             onClick={() => router.push('/')}
           >
             Back
           </button>
           <div className="text-center">
-            <div className="text-xl font-bold">Basebound Garage</div>
-            <div className="text-sm text-gray-300">Coins: {profile.coins} • Best: {Math.floor(profile.bestDistance)}m</div>
+            <div className={compact ? 'text-lg font-bold' : 'text-xl font-bold'}>Basebound Garage</div>
+            <div className={compact ? 'text-xs text-gray-300' : 'text-sm text-gray-300'}>
+              Coins: {profile.coins} • Best: {Math.floor(profile.bestDistance)}m
+            </div>
           </div>
           <button
-            className="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold"
+            className={compact ? 'px-3 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-sm' : 'px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold'}
             onClick={() => router.push('/basebound?skipTx=1')}
           >
             Play
           </button>
         </div>
 
-        <div className="grid gap-6">
-          <section className="bg-gray-900/60 border border-gray-800 rounded-lg p-4">
-            <div className="font-bold mb-3">Select Car</div>
-            <div className="flex items-center gap-4">
+        <div className={compact ? 'grid grid-cols-2 gap-3 flex-1 min-h-0' : 'grid gap-6'}>
+          <section className={compact ? 'bg-gray-900/60 border border-gray-800 rounded-lg p-3' : 'bg-gray-900/60 border border-gray-800 rounded-lg p-4'}>
+            <div className={compact ? 'font-bold mb-2 text-sm' : 'font-bold mb-3'}>Select Car</div>
+            <div className={compact ? 'flex items-center gap-2' : 'flex items-center gap-4'}>
               <button
-                className="h-10 w-10 rounded-full bg-gray-800 hover:bg-gray-700"
+                className={compact ? 'h-9 w-9 rounded-full bg-gray-800 hover:bg-gray-700' : 'h-10 w-10 rounded-full bg-gray-800 hover:bg-gray-700'}
                 onClick={() =>
                   setCarouselIndex(prev => (prev - 1 + VEHICLE_CATALOG.length) % VEHICLE_CATALOG.length)
                 }
@@ -201,20 +160,20 @@ export default function BaseboundGaragePage() {
                 ‹
               </button>
 
-              <div className="flex-1 border border-gray-800 rounded-lg p-4 bg-black/40">
-                <div className="flex items-center gap-4">
-                  <div className="relative w-32 h-16 bg-gray-800/50 rounded overflow-hidden">
+              <div className={compact ? 'flex-1 border border-gray-800 rounded-lg p-3 bg-black/40' : 'flex-1 border border-gray-800 rounded-lg p-4 bg-black/40'}>
+                <div className={compact ? 'flex items-center gap-3' : 'flex items-center gap-4'}>
+                  <div className={compact ? 'relative w-24 h-12 bg-gray-800/50 rounded overflow-hidden' : 'relative w-32 h-16 bg-gray-800/50 rounded overflow-hidden'}>
                     <Image
                       src={currentVehicle.parts.body.path}
                       alt={currentVehicle.name}
                       fill
-                      sizes="128px"
+                      sizes={compact ? '96px' : '128px'}
                       style={{ objectFit: 'contain' }}
                       priority={currentVehicle.isStarter}
                     />
                   </div>
                   <div className="flex-1">
-                    <div className="font-bold text-lg">
+                    <div className={compact ? 'font-bold text-base' : 'font-bold text-lg'}>
                       {currentVehicle.name}
                       {isComingSoon && <span className="ml-2 text-xs text-yellow-400">Coming Soon</span>}
                     </div>
@@ -227,7 +186,7 @@ export default function BaseboundGaragePage() {
                   </div>
                 </div>
 
-                <div className="mt-4">
+                <div className={compact ? 'mt-3' : 'mt-4'}>
                   {(() => {
                     const isSelected = currentVehicle.id === selectedVehicle.id
                     const isLocked = profile.bestDistance < currentVehicle.unlockDistance
@@ -252,7 +211,7 @@ export default function BaseboundGaragePage() {
               </div>
 
               <button
-                className="h-10 w-10 rounded-full bg-gray-800 hover:bg-gray-700"
+                className={compact ? 'h-9 w-9 rounded-full bg-gray-800 hover:bg-gray-700' : 'h-10 w-10 rounded-full bg-gray-800 hover:bg-gray-700'}
                 onClick={() => setCarouselIndex(prev => (prev + 1) % VEHICLE_CATALOG.length)}
                 aria-label="Next car"
               >
@@ -261,9 +220,9 @@ export default function BaseboundGaragePage() {
             </div>
           </section>
 
-          <section className="bg-gray-900/60 border border-gray-800 rounded-lg p-4">
-            <div className="font-bold mb-3">Upgrades</div>
-            <div className="grid gap-3">
+          <section className={compact ? 'bg-gray-900/60 border border-gray-800 rounded-lg p-3' : 'bg-gray-900/60 border border-gray-800 rounded-lg p-4'}>
+            <div className={compact ? 'font-bold mb-2 text-sm' : 'font-bold mb-3'}>Upgrades</div>
+            <div className={compact ? 'grid gap-2' : 'grid gap-3'}>
               {UPGRADE_ROWS.map(row => {
                 const level = getVehicleUpgrades(profile, currentVehicle.id)[row.key]
                 const cost = getUpgradeCost(row.key, level)
@@ -271,23 +230,25 @@ export default function BaseboundGaragePage() {
                 const canBuy = !isMaxed && profile.coins >= cost
 
                 return (
-                  <div key={row.key} className="flex items-center justify-between gap-3 border border-gray-800 rounded-lg p-3 bg-black/40">
+                  <div key={row.key} className={compact ? 'flex items-center justify-between gap-2 border border-gray-800 rounded-lg p-2 bg-black/40' : 'flex items-center justify-between gap-3 border border-gray-800 rounded-lg p-3 bg-black/40'}>
                     <div>
-                      <div className="font-bold">{row.title} <span className="text-gray-300">Lv. {level}</span></div>
-                      <div className="text-xs text-gray-400">{row.subtitle}</div>
+                      <div className={compact ? 'font-bold text-sm' : 'font-bold'}>
+                        {row.title} <span className="text-gray-300">Lv. {level}</span>
+                      </div>
+                      {!compact && <div className="text-xs text-gray-400">{row.subtitle}</div>}
                     </div>
                     <button
                       className={
                         isMaxed
-                          ? 'px-4 py-2 rounded bg-gray-800 text-gray-400 cursor-not-allowed'
+                          ? (compact ? 'px-3 py-1.5 rounded bg-gray-800 text-gray-400 cursor-not-allowed text-xs' : 'px-4 py-2 rounded bg-gray-800 text-gray-400 cursor-not-allowed')
                           : canBuy
-                            ? 'px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold'
-                            : 'px-4 py-2 rounded bg-gray-700 text-gray-300 cursor-not-allowed'
+                            ? (compact ? 'px-3 py-1.5 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-xs' : 'px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold')
+                            : (compact ? 'px-3 py-1.5 rounded bg-gray-700 text-gray-300 cursor-not-allowed text-xs' : 'px-4 py-2 rounded bg-gray-700 text-gray-300 cursor-not-allowed')
                       }
                       disabled={!canBuy}
                       onClick={() => handleUpgrade(row.key)}
                     >
-                      {isMaxed ? 'Max' : `Upgrade (${cost})`}
+                      {isMaxed ? 'Max' : compact ? 'Upgrade' : `Upgrade (${cost})`}
                     </button>
                   </div>
                 )
@@ -295,10 +256,9 @@ export default function BaseboundGaragePage() {
             </div>
           </section>
         </div>
+        </div>
       </div>
       </div>
-      </div>
-    </div>
     </div>
   )
 }
