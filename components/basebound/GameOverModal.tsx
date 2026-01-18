@@ -41,16 +41,16 @@ export function GameOverModal({ gameState, shareImageUrl, onRetry, onExit, force
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl p-4 md:p-5 w-full max-w-[340px] md:max-w-sm max-h-[85vh] overflow-auto"
+        className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl p-3 md:p-5 w-full max-w-[320px] md:max-w-sm max-h-[72vh] md:max-h-[85vh] overflow-auto"
       >
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-1 text-red-400">
+          <h2 className="text-xl md:text-2xl font-bold mb-1 text-red-400">
             Game Over!
           </h2>
-          <p className="text-base text-gray-400 mb-4">{crashMessage}</p>
+          <p className="text-sm md:text-base text-gray-400 mb-3">{crashMessage}</p>
 
           {shareImageUrl && (
-            <div className="relative mx-auto mb-3 w-full h-[160px] md:h-[218px] overflow-hidden rounded-lg">
+            <div className="relative mx-auto mb-3 w-full h-[120px] md:h-[218px] overflow-hidden rounded-lg">
               <img
                 src={shareImageUrl}
                 alt="Game snapshot"
@@ -59,20 +59,20 @@ export function GameOverModal({ gameState, shareImageUrl, onRetry, onExit, force
             </div>
           )}
           
-          <div className="grid grid-cols-3 gap-2 mb-5">
-            <div className="bg-black/30 rounded-lg p-2.5">
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="bg-black/30 rounded-lg p-2">
               <div className="text-gray-400 text-[11px]">Distance</div>
-              <div className="text-lg font-bold text-cyan-300">{gameState.distance}m</div>
+              <div className="text-base md:text-lg font-bold text-cyan-300">{gameState.distance}m</div>
             </div>
-            <div className="bg-black/30 rounded-lg p-2.5">
+            <div className="bg-black/30 rounded-lg p-2">
               <div className="text-gray-400 text-[11px]">Coins</div>
-              <div className="text-lg font-bold text-yellow-400">
+              <div className="text-base md:text-lg font-bold text-yellow-400">
                 {gameState.coins}
               </div>
             </div>
-            <div className="bg-black/30 rounded-lg p-2.5">
+            <div className="bg-black/30 rounded-lg p-2">
               <div className="text-gray-400 text-[11px]">Fuel</div>
-              <div className="text-lg font-bold text-orange-400">
+              <div className="text-base md:text-lg font-bold text-orange-400">
                 {Math.max(0, Math.floor(gameState.fuel))}
               </div>
             </div>
@@ -81,13 +81,13 @@ export function GameOverModal({ gameState, shareImageUrl, onRetry, onExit, force
           <div className="flex gap-2">
             <button
               onClick={onRetry}
-              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-2.5 rounded-lg transition-all"
+              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-2 rounded-lg transition-all text-sm"
             >
               🔄 Retry
             </button>
             <button
               onClick={onExit}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2.5 rounded-lg transition-all"
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg transition-all text-sm"
             >
               Exit
             </button>
