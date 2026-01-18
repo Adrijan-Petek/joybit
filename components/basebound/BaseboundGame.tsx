@@ -41,7 +41,8 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     }
 
     gameRef.current = new Phaser.Game(config)
-    
+    let sizeWatcher: number | undefined
+
     // Wait for scene to be ready (Phaser doesn't emit "ready" in some cases, so poll)
     const captureSnapshot = () => {
       const canvas = gameRef.current?.canvas
@@ -104,6 +105,18 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     window.visualViewport?.addEventListener('scroll', handleResize)
     window.screen?.orientation?.addEventListener('change', handleOrientationChange)
 
+    const startSizeWatcher = () => {
+      let last = getViewportSize()
+      sizeWatcher = window.setInterval(() => {
+        const next = getViewportSize()
+        if (next.width !== last.width || next.height !== last.height) {
+          last = next
+          resizeGame()
+        }
+      }, 250)
+    }
+    startSizeWatcher()
+
     return () => {
       window.clearInterval(readyCheck)
       window.removeEventListener('resize', handleResize)
@@ -111,6 +124,7 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
       window.visualViewport?.removeEventListener('resize', handleResize)
       window.visualViewport?.removeEventListener('scroll', handleResize)
       window.screen?.orientation?.removeEventListener('change', handleOrientationChange)
+      if (sizeWatcher) window.clearInterval(sizeWatcher)
       if (gameRef.current) {
         gameRef.current.destroy(true)
         gameRef.current = null
