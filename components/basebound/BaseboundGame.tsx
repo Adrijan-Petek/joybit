@@ -13,6 +13,8 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
   const gameRef = useRef<Phaser.Game | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [forceRotate, setForceRotate] = useState(false)
+  const forceRotateRef = useRef(false)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -82,11 +84,26 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     const resizeGame = () => {
       if (!gameRef.current) return
       const { width, height } = getViewportSize()
-      gameRef.current.scale.resize(width, height)
+      const targetWidth = forceRotateRef.current ? height : width
+      const targetHeight = forceRotateRef.current ? width : height
+      gameRef.current.scale.resize(targetWidth, targetHeight)
       const canvas = gameRef.current.canvas
       if (canvas) {
-        canvas.style.width = `${width}px`
-        canvas.style.height = `${height}px`
+        canvas.style.width = `${targetWidth}px`
+        canvas.style.height = `${targetHeight}px`
+      }
+    }
+
+    const updateRotation = () => {
+      const screenOrientation = window.screen?.orientation
+      const angle = typeof screenOrientation?.angle === 'number'
+        ? screenOrientation.angle
+        : (typeof window.orientation === 'number' ? window.orientation : 0)
+      const isLandscapeAngle = angle === 90 || angle === -90 || angle === 270
+      if (forceRotateRef.current !== isLandscapeAngle) {
+        forceRotateRef.current = isLandscapeAngle
+        setForceRotate(isLandscapeAngle)
+        resizeGame()
       }
     }
 
@@ -97,6 +114,7 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     const handleOrientationChange = () => {
       window.setTimeout(resizeGame, 150)
       window.setTimeout(resizeGame, 350)
+      updateRotation()
     }
 
     window.addEventListener('resize', handleResize)
@@ -104,6 +122,7 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     window.visualViewport?.addEventListener('resize', handleResize)
     window.visualViewport?.addEventListener('scroll', handleResize)
     window.screen?.orientation?.addEventListener('change', handleOrientationChange)
+    updateRotation()
 
     const startSizeWatcher = () => {
       let last = getViewportSize()
@@ -133,7 +152,7 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
   }, [onGameOver])
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden">
+    <div className="relative w-screen h-screen overflow-hidden bg-black">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white">
           <div className="text-center">
@@ -142,7 +161,17 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
           </div>
         </div>
       )}
-      <div ref={containerRef} className="absolute inset-0" />
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          width: forceRotate ? '100vh' : '100vw',
+          height: forceRotate ? '100vw' : '100vh',
+          transform: forceRotate ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)',
+          transformOrigin: 'center center'
+        }}
+      >
+        <div ref={containerRef} className="absolute inset-0" />
+      </div>
     </div>
   )
 }
