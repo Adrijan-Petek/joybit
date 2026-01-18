@@ -57,19 +57,23 @@ export default function BaseboundGaragePage() {
     if (!forceLandscape) return
 
     let startY = 0
-    let startScrollTop = 0
+    let startScrollLeft = 0
 
     const onTouchStart = (event: TouchEvent) => {
       if (event.touches.length !== 1) return
       startY = event.touches[0].clientY
-      startScrollTop = el.scrollTop
+      startScrollLeft = el.scrollLeft
     }
 
     const onTouchMove = (event: TouchEvent) => {
       if (event.touches.length !== 1) return
       const currentY = event.touches[0].clientY
       const deltaY = currentY - startY
-      el.scrollTop = startScrollTop - deltaY
+      // The entire garage UI is rotated 90deg for forced landscape.
+      // To make "finger up/down" feel natural, map vertical finger movement
+      // to horizontal scroll in the DOM.
+      const sensitivity = 2
+      el.scrollLeft = startScrollLeft + deltaY * sensitivity
       event.preventDefault()
     }
 
@@ -157,7 +161,7 @@ export default function BaseboundGaragePage() {
       <div className="h-full w-full overflow-hidden p-4" style={{ WebkitOverflowScrolling: 'touch' }}>
       <div
         ref={scrollRef}
-        className="h-full w-full overflow-y-auto overflow-x-hidden"
+        className={forceLandscape ? 'h-full w-full overflow-x-auto overflow-y-hidden' : 'h-full w-full overflow-y-auto overflow-x-hidden'}
         style={{
           WebkitOverflowScrolling: 'touch',
           touchAction: forceLandscape ? 'none' : 'pan-y'
