@@ -41,7 +41,7 @@ export function GameOverModal({ gameState, shareImageUrl, onRetry, onExit, force
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl p-5 max-w-sm w-full"
+        className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl p-4 md:p-5 w-full max-w-[340px] md:max-w-sm max-h-[85vh] overflow-auto"
       >
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-1 text-red-400">
@@ -50,7 +50,7 @@ export function GameOverModal({ gameState, shareImageUrl, onRetry, onExit, force
           <p className="text-base text-gray-400 mb-4">{crashMessage}</p>
 
           {shareImageUrl && (
-            <div className="relative mx-auto mb-4 w-full h-[218px] overflow-hidden rounded-lg">
+            <div className="relative mx-auto mb-3 w-full h-[160px] md:h-[218px] overflow-hidden rounded-lg">
               <img
                 src={shareImageUrl}
                 alt="Game snapshot"

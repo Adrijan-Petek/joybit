@@ -1011,7 +1011,7 @@ export class BaseboundScene extends Phaser.Scene {
           this.brakePedal.setAlpha(1)
         } else {
           this.brakePedal.disableInteractive()
-          this.brakePedal.setAlpha(0.35)
+          this.brakePedal.setAlpha(0)
         }
       }
 
@@ -1024,7 +1024,7 @@ export class BaseboundScene extends Phaser.Scene {
           this.gasPedal.setAlpha(1)
         } else {
           this.gasPedal.disableInteractive()
-          this.gasPedal.setAlpha(0.35)
+          this.gasPedal.setAlpha(0)
         }
       }
     }

@@ -17,6 +17,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
   const gameRef = useRef<Phaser.Game | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [overlayPedals, setOverlayPedals] = useState({ brake: false, gas: false })
   const initialRotate = typeof forceRotateOverride === 'boolean' ? forceRotateOverride : false
   const [forceRotate, setForceRotate] = useState(initialRotate)
   const forceRotateRef = useRef(initialRotate)
@@ -241,20 +242,54 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
       {forceRotate && (
         <div className="absolute inset-0 z-40 flex items-end justify-between px-6 pb-6">
           <button
-            className="h-24 w-24 rounded-full bg-white/10 backdrop-blur border border-white/20"
-            onPointerDown={() => gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: true })}
-            onPointerUp={() => gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: false })}
-            onPointerLeave={() => gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: false })}
-            onPointerCancel={() => gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: false })}
+            className="h-24 w-24 select-none touch-none"
+            onPointerDown={() => {
+              setOverlayPedals(prev => ({ ...prev, brake: true }))
+              gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: true })
+            }}
+            onPointerUp={() => {
+              setOverlayPedals(prev => ({ ...prev, brake: false }))
+              gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: false })
+            }}
+            onPointerLeave={() => {
+              setOverlayPedals(prev => ({ ...prev, brake: false }))
+              gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: false })
+            }}
+            onPointerCancel={() => {
+              setOverlayPedals(prev => ({ ...prev, brake: false }))
+              gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: false })
+            }}
             aria-label="Brake"
           />
           <button
-            className="h-24 w-24 rounded-full bg-white/10 backdrop-blur border border-white/20"
-            onPointerDown={() => gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: true })}
-            onPointerUp={() => gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: false })}
-            onPointerLeave={() => gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: false })}
-            onPointerCancel={() => gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: false })}
+            className="h-24 w-24 select-none touch-none"
+            onPointerDown={() => {
+              setOverlayPedals(prev => ({ ...prev, gas: true }))
+              gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: true })
+            }}
+            onPointerUp={() => {
+              setOverlayPedals(prev => ({ ...prev, gas: false }))
+              gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: false })
+            }}
+            onPointerLeave={() => {
+              setOverlayPedals(prev => ({ ...prev, gas: false }))
+              gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: false })
+            }}
+            onPointerCancel={() => {
+              setOverlayPedals(prev => ({ ...prev, gas: false }))
+              gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: false })
+            }}
             aria-label="Gas"
+          />
+          <img
+            src={overlayPedals.brake ? '/basebound-game/icons/pedal-brake-pressed.png' : '/basebound-game/icons/pedal-brake-normal.png'}
+            alt=""
+            className="pointer-events-none absolute bottom-6 left-6 h-24 w-24 opacity-95"
+          />
+          <img
+            src={overlayPedals.gas ? '/basebound-game/icons/pedal-gas-pressed.png' : '/basebound-game/icons/pedal-gas-normal.png'}
+            alt=""
+            className="pointer-events-none absolute bottom-6 right-6 h-24 w-24 opacity-95"
           />
         </div>
       )}
