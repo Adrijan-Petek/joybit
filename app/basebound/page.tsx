@@ -217,6 +217,12 @@ export default function BaseboundPage() {
   const isDataReady = typeof canPlayFree === 'boolean' && typeof playFee === 'bigint' && typeof retryFee === 'bigint'
   const showFreePlay = canPlayFree ? 'FREE ✅' : `${formatEther(playFee || 0n)} ETH`
   const retryCost = `${formatEther(retryFee || 0n)} ETH`
+  const gameContainerSize = viewportSize.width && viewportSize.height
+    ? {
+        width: forceLandscape ? viewportSize.height : viewportSize.width,
+        height: forceLandscape ? viewportSize.width : viewportSize.height
+      }
+    : undefined
 
   return (
     <div className="fixed inset-0 bg-black">
@@ -247,7 +253,12 @@ export default function BaseboundPage() {
 
       {/* Game Canvas */}
       {isGameActive && (
-        <BaseboundGame key={gameKey} onGameOver={handleGameOver} forceRotate={forceLandscape} />
+        <BaseboundGame
+          key={gameKey}
+          onGameOver={handleGameOver}
+          forceRotate={forceLandscape}
+          containerSize={gameContainerSize}
+        />
       )}
 
       {/* Game Over Modal */}

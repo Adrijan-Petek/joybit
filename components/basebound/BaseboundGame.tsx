@@ -8,9 +8,10 @@ import { GameState } from '@/lib/game/types'
 interface BaseboundGameProps {
   onGameOver: (state: GameState, snapshotUrl?: string | null) => void
   forceRotate?: boolean
+  containerSize?: { width: number; height: number }
 }
 
-export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: BaseboundGameProps) {
+export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, containerSize }: BaseboundGameProps) {
   const BASE_WIDTH = 1280
   const BASE_HEIGHT = 720
   const gameRef = useRef<Phaser.Game | null>(null)
@@ -90,10 +91,11 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
 
     const resizeGame = () => {
       if (!gameRef.current) return
-      const bounds = containerRef.current?.getBoundingClientRect()
       const fallback = getViewportSize()
-      const availableWidth = Math.round(bounds?.width ?? fallback.width)
-      const availableHeight = Math.round(bounds?.height ?? fallback.height)
+      const bounds = containerRef.current?.getBoundingClientRect()
+      const forcedSize = typeof forceRotateOverride === 'boolean' ? containerSize : undefined
+      const availableWidth = Math.round(forcedSize?.width ?? bounds?.width ?? fallback.width)
+      const availableHeight = Math.round(forcedSize?.height ?? bounds?.height ?? fallback.height)
       const isTouch = (navigator.maxTouchPoints || 0) > 0
       const scale = (() => {
         if (!isTouch) return 1
