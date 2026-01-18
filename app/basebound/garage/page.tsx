@@ -34,6 +34,7 @@ export default function BaseboundGaragePage() {
   const [profile, setProfile] = useState(() => loadBaseboundProfile())
   const { isLandscape, isMobile } = useForceLandscape({ lockOrientation: true })
   const forceLandscape = isMobile && !isLandscape
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 })
 
   const selectedVehicle = useMemo(() => {
     return VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? VEHICLE_CATALOG[0]
@@ -48,6 +49,25 @@ export default function BaseboundGaragePage() {
     const idx = VEHICLE_CATALOG.findIndex(v => v.id === profile.selectedVehicleId)
     setCarouselIndex(idx >= 0 ? idx : 0)
   }, [profile.selectedVehicleId])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const update = () => {
+      const vv = window.visualViewport
+      const width = Math.round(vv?.width ?? window.innerWidth)
+      const height = Math.round(vv?.height ?? window.innerHeight)
+      setViewportSize({ width, height })
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('scroll', update)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('scroll', update)
+    }
+  }, [])
 
   const currentVehicle = VEHICLE_CATALOG[carouselIndex] ?? VEHICLE_CATALOG[0]
   const isComingSoon = currentVehicle.slug !== 'mini' && currentVehicle.slug !== 'cartoon-car'
@@ -87,8 +107,12 @@ export default function BaseboundGaragePage() {
       <div
         className="absolute left-1/2 top-1/2 overflow-hidden p-4"
         style={{
-          width: forceLandscape ? '100vh' : '100vw',
-          height: forceLandscape ? '100vw' : '100vh',
+          width: viewportSize.width
+            ? `${forceLandscape ? viewportSize.height : viewportSize.width}px`
+            : (forceLandscape ? '100vh' : '100vw'),
+          height: viewportSize.height
+            ? `${forceLandscape ? viewportSize.width : viewportSize.height}px`
+            : (forceLandscape ? '100vw' : '100vh'),
           transform: forceLandscape ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)',
           transformOrigin: 'center center'
         }}

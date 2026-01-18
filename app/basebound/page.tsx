@@ -42,6 +42,7 @@ export default function BaseboundPage() {
   const { isLandscape, isMobile } = useForceLandscape({ lockOrientation: true })
   const forceLandscape = isMobile && !isLandscape
   const overlayPosition = forceLandscape ? 'absolute' : 'fixed'
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 })
 
   useEffect(() => {
     setMounted(true)
@@ -63,6 +64,25 @@ export default function BaseboundPage() {
       setIsGameActive(true)
       setGameKey(prev => prev + 1)
       setStartMode('play')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const update = () => {
+      const vv = window.visualViewport
+      const width = Math.round(vv?.width ?? window.innerWidth)
+      const height = Math.round(vv?.height ?? window.innerHeight)
+      setViewportSize({ width, height })
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('scroll', update)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('scroll', update)
     }
   }, [])
 
@@ -201,8 +221,12 @@ export default function BaseboundPage() {
       <div
         className="absolute left-1/2 top-1/2 overflow-hidden"
         style={{
-          width: forceLandscape ? '100vh' : '100vw',
-          height: forceLandscape ? '100vw' : '100vh',
+          width: viewportSize.width
+            ? `${forceLandscape ? viewportSize.height : viewportSize.width}px`
+            : (forceLandscape ? '100vh' : '100vw'),
+          height: viewportSize.height
+            ? `${forceLandscape ? viewportSize.width : viewportSize.height}px`
+            : (forceLandscape ? '100vw' : '100vh'),
           transform: forceLandscape ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)',
           transformOrigin: 'center center'
         }}
