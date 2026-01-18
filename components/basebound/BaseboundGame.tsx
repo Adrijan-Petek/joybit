@@ -70,17 +70,28 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
       }
     }, 100)
 
-    // Handle window resize
-    const handleResize = () => {
-      if (gameRef.current) {
-        gameRef.current.scale.resize(window.innerWidth, window.innerHeight)
-      }
+    const resizeGame = () => {
+      if (!gameRef.current) return
+      const width = window.innerWidth
+      const height = window.innerHeight
+      gameRef.current.scale.resize(width, height)
     }
+
+    const handleResize = () => {
+      resizeGame()
+    }
+
+    const handleOrientationChange = () => {
+      window.setTimeout(resizeGame, 150)
+    }
+
     window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleOrientationChange)
 
     return () => {
       window.clearInterval(readyCheck)
       window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleOrientationChange)
       if (gameRef.current) {
         gameRef.current.destroy(true)
         gameRef.current = null
