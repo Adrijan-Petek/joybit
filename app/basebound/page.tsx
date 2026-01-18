@@ -42,7 +42,7 @@ export default function BaseboundPage() {
   const { isLandscape, isMobile } = useForceLandscape({ lockOrientation: true })
   const forceLandscape = isMobile && !isLandscape
   const overlayPosition = forceLandscape ? 'absolute' : 'fixed'
-  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 })
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0, offsetLeft: 0, offsetTop: 0 })
 
   useEffect(() => {
     setMounted(true)
@@ -73,7 +73,9 @@ export default function BaseboundPage() {
       const vv = window.visualViewport
       const width = Math.round(vv?.width ?? window.innerWidth)
       const height = Math.round(vv?.height ?? window.innerHeight)
-      setViewportSize({ width, height })
+      const offsetLeft = Math.round(vv?.offsetLeft ?? 0)
+      const offsetTop = Math.round(vv?.offsetTop ?? 0)
+      setViewportSize({ width, height, offsetLeft, offsetTop })
     }
     update()
     window.addEventListener('resize', update)
@@ -219,8 +221,10 @@ export default function BaseboundPage() {
   return (
     <div className="fixed inset-0 bg-black">
       <div
-        className="absolute left-1/2 top-1/2 overflow-hidden"
+        className="absolute overflow-hidden"
         style={{
+          left: `calc(50% + ${viewportSize.offsetLeft}px)`,
+          top: `calc(50% + ${viewportSize.offsetTop}px)`,
           width: viewportSize.width
             ? `${forceLandscape ? viewportSize.height : viewportSize.width}px`
             : (forceLandscape ? '100vh' : '100vw'),

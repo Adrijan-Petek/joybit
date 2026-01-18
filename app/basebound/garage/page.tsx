@@ -34,7 +34,7 @@ export default function BaseboundGaragePage() {
   const [profile, setProfile] = useState(() => loadBaseboundProfile())
   const { isLandscape, isMobile } = useForceLandscape({ lockOrientation: true })
   const forceLandscape = isMobile && !isLandscape
-  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 })
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0, offsetLeft: 0, offsetTop: 0 })
 
   const selectedVehicle = useMemo(() => {
     return VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? VEHICLE_CATALOG[0]
@@ -56,7 +56,9 @@ export default function BaseboundGaragePage() {
       const vv = window.visualViewport
       const width = Math.round(vv?.width ?? window.innerWidth)
       const height = Math.round(vv?.height ?? window.innerHeight)
-      setViewportSize({ width, height })
+      const offsetLeft = Math.round(vv?.offsetLeft ?? 0)
+      const offsetTop = Math.round(vv?.offsetTop ?? 0)
+      setViewportSize({ width, height, offsetLeft, offsetTop })
     }
     update()
     window.addEventListener('resize', update)
@@ -105,8 +107,10 @@ export default function BaseboundGaragePage() {
   return (
     <div className="fixed inset-0 bg-black text-white">
       <div
-        className="absolute left-1/2 top-1/2 overflow-hidden p-4"
+        className="absolute overflow-hidden p-4"
         style={{
+          left: `calc(50% + ${viewportSize.offsetLeft}px)`,
+          top: `calc(50% + ${viewportSize.offsetTop}px)`,
           width: viewportSize.width
             ? `${forceLandscape ? viewportSize.height : viewportSize.width}px`
             : (forceLandscape ? '100vh' : '100vw'),
