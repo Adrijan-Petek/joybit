@@ -20,7 +20,11 @@ export function useForceLandscape(options: ForceLandscapeOptions = {}): ForceLan
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const isMobile = () => Math.min(window.innerWidth, window.innerHeight) <= 900
+    const isMobile = () => {
+      const smallScreen = Math.min(window.innerWidth, window.innerHeight) <= 900
+      const hasTouch = (navigator.maxTouchPoints || 0) > 0
+      return smallScreen && hasTouch
+    }
 
     const updateFromScreen = () => {
       const mobile = isMobile()
