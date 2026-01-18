@@ -20,6 +20,9 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
 
   useEffect(() => {
     if (!containerRef.current) return
+    containerRef.current.style.width = '100%'
+    containerRef.current.style.height = '100%'
+    containerRef.current.style.position = 'relative'
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
@@ -97,6 +100,10 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
       gameRef.current.scale.resize(finalWidth, finalHeight)
       const canvas = gameRef.current.canvas
       if (canvas) {
+        canvas.style.position = 'absolute'
+        canvas.style.left = '0'
+        canvas.style.top = '0'
+        canvas.style.display = 'block'
         canvas.style.width = overrideActive ? '100%' : `${finalWidth}px`
         canvas.style.height = overrideActive ? '100%' : `${finalHeight}px`
       }
@@ -154,6 +161,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
     window.screen?.orientation?.addEventListener('change', handleOrientationChange)
     window.addEventListener('deviceorientation', updateRotationFromSensor)
     updateRotation()
+    window.requestAnimationFrame(resizeGame)
 
     const startSizeWatcher = () => {
       let last = getViewportSize()
@@ -190,6 +198,12 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
     setForceRotate(forceRotateOverride)
     gameRef.current?.registry.set('baseboundForceRotate', forceRotateOverride)
     gameRef.current?.events.emit('basebound-force-rotate')
+    window.requestAnimationFrame(() => {
+      if (!containerRef.current) return
+      containerRef.current.style.width = '100%'
+      containerRef.current.style.height = '100%'
+      containerRef.current.style.position = 'relative'
+    })
   }, [forceRotateOverride])
 
   return (
