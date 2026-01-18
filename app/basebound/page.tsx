@@ -39,7 +39,7 @@ export default function BaseboundPage() {
   const shareSnapshotKey = 'basebound_last_snapshot'
   const { startGame, retryGame, isStarting, isConfirmed, txHash } = useBaseboundGame()
   const { canPlayFree, playFee, retryFee } = useBaseboundGameData(address)
-  const { isLandscape, isMobile } = useForceLandscape()
+  const { isLandscape, isMobile } = useForceLandscape({ lockOrientation: true })
   const forceLandscape = isMobile && !isLandscape
   const overlayPosition = forceLandscape ? 'absolute' : 'fixed'
 

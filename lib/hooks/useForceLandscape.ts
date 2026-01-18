@@ -1,15 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type ForceLandscapeState = {
   isLandscape: boolean
   isMobile: boolean
 }
 
-export function useForceLandscape(): ForceLandscapeState {
+type ForceLandscapeOptions = {
+  lockOrientation?: boolean
+}
+
+export function useForceLandscape(options: ForceLandscapeOptions = {}): ForceLandscapeState {
   const [state, setState] = useState<ForceLandscapeState>({
     isLandscape: false,
     isMobile: false
   })
+  const lockedLandscapeRef = useRef<boolean | null>(null)
+  const lockOrientation = options.lockOrientation === true
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -19,6 +25,7 @@ export function useForceLandscape(): ForceLandscapeState {
     const updateFromScreen = () => {
       const mobile = isMobile()
       if (!mobile) {
+        lockedLandscapeRef.current = null
         setState({ isLandscape: false, isMobile: false })
         return
       }
@@ -27,6 +34,14 @@ export function useForceLandscape(): ForceLandscapeState {
         ? screenOrientation.angle
         : (typeof window.orientation === 'number' ? window.orientation : 0)
       const next = angle === 90 || angle === -90 || angle === 270
+      if (lockOrientation) {
+        if (lockedLandscapeRef.current === null) {
+          lockedLandscapeRef.current = next
+        }
+        setState({ isLandscape: lockedLandscapeRef.current, isMobile: true })
+        return
+      }
+
       setState({ isLandscape: next, isMobile: true })
     }
 
@@ -39,6 +54,14 @@ export function useForceLandscape(): ForceLandscapeState {
       lastSensorUpdate = now
       const beta = Math.abs(event.beta)
       const gamma = Math.abs(event.gamma)
+      if (lockOrientation) {
+        if (lockedLandscapeRef.current === null) {
+          lockedLandscapeRef.current = gamma > beta
+        }
+        setState({ isLandscape: lockedLandscapeRef.current, isMobile: true })
+        return
+      }
+
       setState({ isLandscape: gamma > beta, isMobile: true })
     }
 

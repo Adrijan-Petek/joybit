@@ -32,7 +32,7 @@ const UPGRADE_ROWS: UpgradeRow[] = [
 export default function BaseboundGaragePage() {
   const router = useRouter()
   const [profile, setProfile] = useState(() => loadBaseboundProfile())
-  const { isLandscape, isMobile } = useForceLandscape()
+  const { isLandscape, isMobile } = useForceLandscape({ lockOrientation: true })
   const forceLandscape = isMobile && !isLandscape
 
   const selectedVehicle = useMemo(() => {
