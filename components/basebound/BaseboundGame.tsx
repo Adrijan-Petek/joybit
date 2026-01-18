@@ -86,15 +86,19 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
 
     const resizeGame = () => {
       if (!gameRef.current) return
+      const overrideActive = typeof forceRotateOverride === 'boolean'
       const { width, height } = getViewportSize()
-      const rotateCanvas = typeof forceRotateOverride === 'boolean' ? false : forceRotateRef.current
+      const rotateCanvas = overrideActive ? false : forceRotateRef.current
       const targetWidth = rotateCanvas ? height : width
       const targetHeight = rotateCanvas ? width : height
-      gameRef.current.scale.resize(targetWidth, targetHeight)
+      const bounds = containerRef.current?.getBoundingClientRect()
+      const finalWidth = overrideActive && bounds ? Math.round(bounds.width) : targetWidth
+      const finalHeight = overrideActive && bounds ? Math.round(bounds.height) : targetHeight
+      gameRef.current.scale.resize(finalWidth, finalHeight)
       const canvas = gameRef.current.canvas
       if (canvas) {
-        canvas.style.width = `${targetWidth}px`
-        canvas.style.height = `${targetHeight}px`
+        canvas.style.width = overrideActive ? '100%' : `${finalWidth}px`
+        canvas.style.height = overrideActive ? '100%' : `${finalHeight}px`
       }
     }
 
