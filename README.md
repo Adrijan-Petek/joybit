@@ -152,9 +152,23 @@ Visit **[http://localhost:3000](http://localhost:3000)** to start playing!
 | **JoybitGame** | Match-3 Logic | Score validation, reward distribution |
 | **CardGame** | Card Game | Block randomness, JOYB rewards |
 | **DailyClaim** | Daily Rewards | Streak tracking, NFT achievements |
+| **BaseboundGame** | Basebound Racer | Gameplay state and on-chain hooks |
+| **AchievementERC1155** | Achievements | ERC1155 badges and rewards |
 | **Treasury** | Fund Management | ETH fee collection, authorized withdrawals |
 | **GameSettings** | Configuration | Dynamic pricing, game parameters |
 | **AccessControl** | Permissions | Role-based access, admin management |
+
+### Deployed Contracts (Base Mainnet)
+
+| Contract | Address |
+|----------|---------|
+| **JoybitToken** | `0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07` |
+| **Treasury** | `0x91F67245cE0ad7AFB5301EE5d8eaE29Db69078Af` |
+| **Match3Game (JoybitGame)** | `0x72cC365b09D7cB4bE3416279407655cA9BBdc532` |
+| **CardGame** | `0xa59Fd0ffE17D446157430E13db2d133DD2DfF3da` |
+| **DailyClaim** | `0x6A27938E353Be8f25ECD7dEd90A47221e93F2941` |
+| **AchievementERC1155** | `0x3DDfe21080b8852496414535DA65AC2C3005f5DE` |
+| **BaseboundGame** | `0x56A173A52997974BAc324Ab6918437A5286585E1` |
 
 ### Tech Stack
 
