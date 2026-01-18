@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { VEHICLE_CATALOG } from '@/lib/game/vehicleCatalog'
 import { useForceLandscape } from '@/lib/hooks/useForceLandscape'
@@ -35,6 +35,7 @@ export default function BaseboundGaragePage() {
   const { isLandscape, isMobile } = useForceLandscape({ lockOrientation: true })
   const forceLandscape = isMobile && !isLandscape
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0, offsetLeft: 0, offsetTop: 0 })
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const selectedVehicle = useMemo(() => {
     return VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? VEHICLE_CATALOG[0]
@@ -49,6 +50,37 @@ export default function BaseboundGaragePage() {
     const idx = VEHICLE_CATALOG.findIndex(v => v.id === profile.selectedVehicleId)
     setCarouselIndex(idx >= 0 ? idx : 0)
   }, [profile.selectedVehicleId])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    if (!forceLandscape) return
+
+    let startY = 0
+    let startScrollTop = 0
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return
+      startY = event.touches[0].clientY
+      startScrollTop = el.scrollTop
+    }
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return
+      const currentY = event.touches[0].clientY
+      const deltaY = currentY - startY
+      el.scrollTop = startScrollTop - deltaY
+      event.preventDefault()
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+    }
+  }, [forceLandscape])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -122,7 +154,15 @@ export default function BaseboundGaragePage() {
           WebkitOverflowScrolling: 'touch'
         }}
       >
-      <div className="h-full w-full overflow-y-auto overflow-x-hidden p-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="h-full w-full overflow-hidden p-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div
+        ref={scrollRef}
+        className="h-full w-full overflow-y-auto overflow-x-hidden"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          touchAction: forceLandscape ? 'none' : 'pan-y'
+        }}
+      >
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button
