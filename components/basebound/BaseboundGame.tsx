@@ -43,6 +43,7 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     }
 
     gameRef.current = new Phaser.Game(config)
+    gameRef.current.registry.set('baseboundForceRotate', forceRotateRef.current)
     let sizeWatcher: number | undefined
 
     // Wait for scene to be ready (Phaser doesn't emit "ready" in some cases, so poll)
@@ -103,6 +104,8 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
       if (forceRotateRef.current !== isLandscapeAngle) {
         forceRotateRef.current = isLandscapeAngle
         setForceRotate(isLandscapeAngle)
+        gameRef.current?.registry.set('baseboundForceRotate', isLandscapeAngle)
+        gameRef.current?.events.emit('basebound-force-rotate')
         resizeGame()
       }
     }
@@ -119,6 +122,8 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
       if (forceRotateRef.current !== isLandscape) {
         forceRotateRef.current = isLandscape
         setForceRotate(isLandscape)
+        gameRef.current?.registry.set('baseboundForceRotate', isLandscape)
+        gameRef.current?.events.emit('basebound-force-rotate')
         resizeGame()
       }
     }

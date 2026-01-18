@@ -988,7 +988,8 @@ export class BaseboundScene extends Phaser.Scene {
 
       // Rotate in portrait so pedals feel natural when phone is rotated.
       const isPortrait = h > w
-      const angle = isPortrait ? -90 : 0
+      const isForcedRotate = this.game.registry.get('baseboundForceRotate') === true
+      const angle = isPortrait && !isForcedRotate ? -90 : 0
 
       // Bottom safe area so terrain never shows under the pedals.
       if (this.pedalSafeArea) {
@@ -1077,6 +1078,10 @@ export class BaseboundScene extends Phaser.Scene {
     // Initial layout + on resize
     placePedals()
     this.scale.on('resize', placePedals)
+    this.game.events.on('basebound-force-rotate', placePedals)
+    this.events.once('shutdown', () => {
+      this.game.events.off('basebound-force-rotate', placePedals)
+    })
   }
   
   private drawFuelBar(fuelPercent: number): void {
