@@ -107,7 +107,7 @@ export default function BaseboundGaragePage() {
   return (
     <div className="fixed inset-0 bg-black text-white">
       <div
-        className="absolute overflow-hidden p-4"
+        className="absolute overflow-y-auto overflow-x-hidden p-4 overscroll-contain"
         style={{
           left: `calc(50% + ${viewportSize.offsetLeft}px)`,
           top: `calc(50% + ${viewportSize.offsetTop}px)`,
@@ -118,7 +118,8 @@ export default function BaseboundGaragePage() {
             ? `${forceLandscape ? viewportSize.width : viewportSize.height}px`
             : (forceLandscape ? '100vw' : '100vh'),
           transform: forceLandscape ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)',
-          transformOrigin: 'center center'
+          transformOrigin: 'center center',
+          WebkitOverflowScrolling: 'touch'
         }}
       >
       <div className="max-w-3xl mx-auto">
