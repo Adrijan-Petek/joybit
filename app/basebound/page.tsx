@@ -51,6 +51,25 @@ export default function BaseboundPage() {
   }, [playMusic, shareSnapshotKey])
 
   useEffect(() => {
+    const handleOrientationReset = () => {
+      if (!isGameActive) return
+      setGameState(null)
+      setShowStartPopup(true)
+      setIsGameActive(false)
+      setStartMode('play')
+      setGameKey(prev => prev + 1)
+    }
+
+    window.addEventListener('orientationchange', handleOrientationReset)
+    window.screen?.orientation?.addEventListener('change', handleOrientationReset)
+
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationReset)
+      window.screen?.orientation?.removeEventListener('change', handleOrientationReset)
+    }
+  }, [isGameActive])
+
+  useEffect(() => {
     if (!pendingHash || !pendingAction) return
     if (isConfirmed && txHash === pendingHash) {
       setShowStartPopup(false)
