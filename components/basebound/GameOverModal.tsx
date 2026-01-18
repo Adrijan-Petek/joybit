@@ -8,9 +8,10 @@ interface GameOverModalProps {
   shareImageUrl?: string | null
   onRetry: () => void
   onExit: () => void
+  forceLandscape?: boolean
 }
 
-export function GameOverModal({ gameState, shareImageUrl, onRetry, onExit }: GameOverModalProps) {
+export function GameOverModal({ gameState, shareImageUrl, onRetry, onExit, forceLandscape }: GameOverModalProps) {
   const crashMessage = gameState.crashReason === 'neck'
     ? '💀 Neck Broken!'
     : '⛽ Out of Fuel!'
@@ -35,7 +36,7 @@ export function GameOverModal({ gameState, shareImageUrl, onRetry, onExit }: Gam
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className={`${forceLandscape ? 'absolute' : 'fixed'} inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4`}
     >
       <motion.div
         initial={{ scale: 0.9, y: 20 }}

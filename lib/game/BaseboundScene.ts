@@ -1000,18 +1000,32 @@ export class BaseboundScene extends Phaser.Scene {
         this.pedalSafeArea.fillRect(0, h - safeH, w, safeH)
       }
 
+      const shouldUsePhaserInput = !isForcedRotate
+
       if (this.brakePedal) {
         this.brakePedal.setPosition(margin + sideInset + size / 2, h - margin - size / 2)
         this.brakePedal.setDisplaySize(size, size)
         this.brakePedal.setAngle(angle)
-        this.brakePedal.setInteractive(new Phaser.Geom.Circle(0, 0, size * 0.48), Phaser.Geom.Circle.Contains)
+        if (shouldUsePhaserInput) {
+          this.brakePedal.setInteractive(new Phaser.Geom.Circle(0, 0, size * 0.48), Phaser.Geom.Circle.Contains)
+          this.brakePedal.setAlpha(1)
+        } else {
+          this.brakePedal.disableInteractive()
+          this.brakePedal.setAlpha(0.35)
+        }
       }
 
       if (this.gasPedal) {
         this.gasPedal.setPosition(w - margin - sideInset - size / 2, h - margin - size / 2)
         this.gasPedal.setDisplaySize(size, size)
         this.gasPedal.setAngle(angle)
-        this.gasPedal.setInteractive(new Phaser.Geom.Circle(0, 0, size * 0.48), Phaser.Geom.Circle.Contains)
+        if (shouldUsePhaserInput) {
+          this.gasPedal.setInteractive(new Phaser.Geom.Circle(0, 0, size * 0.48), Phaser.Geom.Circle.Contains)
+          this.gasPedal.setAlpha(1)
+        } else {
+          this.gasPedal.disableInteractive()
+          this.gasPedal.setAlpha(0.35)
+        }
       }
     }
 
@@ -1075,12 +1089,22 @@ export class BaseboundScene extends Phaser.Scene {
     this.gasPedal.on('pointerout', releaseGas)
     this.gasPedal.on('pointerupoutside', releaseGas)
 
+    const handleExternalPedal = (payload: { type?: string; pressed?: boolean }) => {
+      if (payload?.type === 'brake') {
+        payload.pressed ? pressBrake() : releaseBrake()
+      } else if (payload?.type === 'gas') {
+        payload.pressed ? pressGas() : releaseGas()
+      }
+    }
+
     // Initial layout + on resize
     placePedals()
     this.scale.on('resize', placePedals)
     this.game.events.on('basebound-force-rotate', placePedals)
+    this.game.events.on('basebound-pedal', handleExternalPedal)
     this.events.once('shutdown', () => {
       this.game.events.off('basebound-force-rotate', placePedals)
+      this.game.events.off('basebound-pedal', handleExternalPedal)
     })
   }
   

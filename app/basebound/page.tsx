@@ -11,6 +11,7 @@ import { formatEther } from 'viem'
 import { AnimatePresence, motion } from 'framer-motion'
 import { WalletButton } from '@/components/WalletButton'
 import { useBaseboundGame, useBaseboundGameData } from '@/lib/hooks/useBaseboundGame'
+import { useForceLandscape } from '@/lib/hooks/useForceLandscape'
 
 const BaseboundGame = dynamic(
   () => import('@/components/basebound/BaseboundGame').then(mod => ({ default: mod.BaseboundGame })),
@@ -38,6 +39,9 @@ export default function BaseboundPage() {
   const shareSnapshotKey = 'basebound_last_snapshot'
   const { startGame, retryGame, isStarting, isConfirmed, txHash } = useBaseboundGame()
   const { canPlayFree, playFee, retryFee } = useBaseboundGameData(address)
+  const { isLandscape, isMobile } = useForceLandscape()
+  const forceLandscape = isMobile && !isLandscape
+  const overlayPosition = forceLandscape ? 'absolute' : 'fixed'
 
   useEffect(() => {
     setMounted(true)
@@ -194,8 +198,17 @@ export default function BaseboundPage() {
 
   return (
     <div className="fixed inset-0 bg-black">
+      <div
+        className="absolute left-1/2 top-1/2 overflow-hidden"
+        style={{
+          width: forceLandscape ? '100vh' : '100vw',
+          height: forceLandscape ? '100vw' : '100vh',
+          transform: forceLandscape ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)',
+          transformOrigin: 'center center'
+        }}
+      >
       {/* Overlay menu */}
-      <div className="fixed top-4 right-4 z-50">
+      <div className={`${overlayPosition} top-4 right-4 z-50`}>
         <button
           className="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold"
           onClick={() => router.push('/basebound/garage')}
@@ -206,7 +219,7 @@ export default function BaseboundPage() {
 
       {/* Game Canvas */}
       {isGameActive && (
-        <BaseboundGame key={gameKey} onGameOver={handleGameOver} />
+        <BaseboundGame key={gameKey} onGameOver={handleGameOver} forceRotate={forceLandscape} />
       )}
 
       {/* Game Over Modal */}
@@ -216,6 +229,7 @@ export default function BaseboundPage() {
           shareImageUrl={shareImageUrl}
           onRetry={handleRetry}
           onExit={handleExit}
+          forceLandscape={forceLandscape}
         />
       )}
 
@@ -225,7 +239,7 @@ export default function BaseboundPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            className={`${overlayPosition} inset-0 z-50 flex items-center justify-center bg-black/80 p-4`}
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -285,6 +299,7 @@ export default function BaseboundPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   )
 }

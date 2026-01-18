@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { VEHICLE_CATALOG } from '@/lib/game/vehicleCatalog'
+import { useForceLandscape } from '@/lib/hooks/useForceLandscape'
 import {
   ensureVehicleUpgrades,
   getUpgradeCost,
@@ -31,6 +32,8 @@ const UPGRADE_ROWS: UpgradeRow[] = [
 export default function BaseboundGaragePage() {
   const router = useRouter()
   const [profile, setProfile] = useState(() => loadBaseboundProfile())
+  const { isLandscape, isMobile } = useForceLandscape()
+  const forceLandscape = isMobile && !isLandscape
 
   const selectedVehicle = useMemo(() => {
     return VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? VEHICLE_CATALOG[0]
@@ -80,7 +83,16 @@ export default function BaseboundGaragePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4">
+    <div className="fixed inset-0 bg-black text-white">
+      <div
+        className="absolute left-1/2 top-1/2 overflow-hidden p-4"
+        style={{
+          width: forceLandscape ? '100vh' : '100vw',
+          height: forceLandscape ? '100vw' : '100vh',
+          transform: forceLandscape ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)',
+          transformOrigin: 'center center'
+        }}
+      >
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button
@@ -209,6 +221,7 @@ export default function BaseboundGaragePage() {
             </div>
           </section>
         </div>
+      </div>
       </div>
     </div>
   )

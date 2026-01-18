@@ -7,14 +7,16 @@ import { GameState } from '@/lib/game/types'
 
 interface BaseboundGameProps {
   onGameOver: (state: GameState, snapshotUrl?: string | null) => void
+  forceRotate?: boolean
 }
 
-export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
+export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: BaseboundGameProps) {
   const gameRef = useRef<Phaser.Game | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [forceRotate, setForceRotate] = useState(false)
-  const forceRotateRef = useRef(false)
+  const initialRotate = typeof forceRotateOverride === 'boolean' ? forceRotateOverride : false
+  const [forceRotate, setForceRotate] = useState(initialRotate)
+  const forceRotateRef = useRef(initialRotate)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -85,8 +87,9 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     const resizeGame = () => {
       if (!gameRef.current) return
       const { width, height } = getViewportSize()
-      const targetWidth = forceRotateRef.current ? height : width
-      const targetHeight = forceRotateRef.current ? width : height
+      const rotateCanvas = typeof forceRotateOverride === 'boolean' ? false : forceRotateRef.current
+      const targetWidth = rotateCanvas ? height : width
+      const targetHeight = rotateCanvas ? width : height
       gameRef.current.scale.resize(targetWidth, targetHeight)
       const canvas = gameRef.current.canvas
       if (canvas) {
@@ -96,6 +99,7 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     }
 
     const updateRotation = () => {
+      if (typeof forceRotateOverride === 'boolean') return
       const screenOrientation = window.screen?.orientation
       const angle = typeof screenOrientation?.angle === 'number'
         ? screenOrientation.angle
@@ -112,6 +116,7 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
 
     let lastSensorUpdate = 0
     const updateRotationFromSensor = (event: DeviceOrientationEvent) => {
+      if (typeof forceRotateOverride === 'boolean') return
       if (typeof event.beta !== 'number' || typeof event.gamma !== 'number') return
       const now = Date.now()
       if (now - lastSensorUpdate < 250) return
@@ -174,6 +179,15 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     }
   }, [onGameOver])
 
+  useEffect(() => {
+    if (typeof forceRotateOverride !== 'boolean') return
+    if (forceRotateRef.current === forceRotateOverride) return
+    forceRotateRef.current = forceRotateOverride
+    setForceRotate(forceRotateOverride)
+    gameRef.current?.registry.set('baseboundForceRotate', forceRotateOverride)
+    gameRef.current?.events.emit('basebound-force-rotate')
+  }, [forceRotateOverride])
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black">
       {isLoading && (
@@ -187,14 +201,36 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
       <div
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
         style={{
-          width: forceRotate ? '100vh' : '100vw',
-          height: forceRotate ? '100vw' : '100vh',
-          transform: forceRotate ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)',
+          width: typeof forceRotateOverride === 'boolean' ? '100%' : (forceRotate ? '100vh' : '100vw'),
+          height: typeof forceRotateOverride === 'boolean' ? '100%' : (forceRotate ? '100vw' : '100vh'),
+          transform: typeof forceRotateOverride === 'boolean'
+            ? 'translate(-50%, -50%)'
+            : (forceRotate ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)'),
           transformOrigin: 'center center'
         }}
       >
         <div ref={containerRef} className="absolute inset-0" />
       </div>
+      {forceRotate && (
+        <div className="absolute inset-0 z-40 flex items-end justify-between px-6 pb-6">
+          <button
+            className="h-24 w-24 rounded-full bg-white/10 backdrop-blur border border-white/20"
+            onPointerDown={() => gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: true })}
+            onPointerUp={() => gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: false })}
+            onPointerLeave={() => gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: false })}
+            onPointerCancel={() => gameRef.current?.events.emit('basebound-pedal', { type: 'brake', pressed: false })}
+            aria-label="Brake"
+          />
+          <button
+            className="h-24 w-24 rounded-full bg-white/10 backdrop-blur border border-white/20"
+            onPointerDown={() => gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: true })}
+            onPointerUp={() => gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: false })}
+            onPointerLeave={() => gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: false })}
+            onPointerCancel={() => gameRef.current?.events.emit('basebound-pedal', { type: 'gas', pressed: false })}
+            aria-label="Gas"
+          />
+        </div>
+      )}
     </div>
   )
 }
