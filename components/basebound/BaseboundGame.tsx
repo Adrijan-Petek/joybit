@@ -189,7 +189,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
   }, [forceRotateOverride])
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black">
+    <div className="relative w-full h-full overflow-hidden bg-black">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white">
           <div className="text-center">
