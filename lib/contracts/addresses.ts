@@ -2,6 +2,7 @@ export const CONTRACT_ADDRESSES = {
   joybitToken: (process.env.NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS || '') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_TREASURY_ADDRESS || '') as `0x${string}`,
   match3Game: (process.env.NEXT_PUBLIC_MATCH3_GAME_ADDRESS || '') as `0x${string}`,
+  baseboundGame: (process.env.NEXT_PUBLIC_BASEBOUND_GAME_ADDRESS || '') as `0x${string}`,
   cardGame: (process.env.NEXT_PUBLIC_CARD_GAME_ADDRESS || '') as `0x${string}`,
   dailyClaim: (process.env.NEXT_PUBLIC_DAILY_CLAIM_ADDRESS || '') as `0x${string}`,
   achievementNFT: (process.env.NEXT_PUBLIC_ACHIEVEMENT_NFT_ADDRESS || '') as `0x${string}`,

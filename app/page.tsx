@@ -427,45 +427,87 @@ export default function Home() {
             <SeasonDisplay />
           </div>
 
-          <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-8 md:mb-12">
-            {/* Play Match-3 Game */}
+          {/* Season Games */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5 mb-6 md:mb-8">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="backdrop-blur-lg rounded-xl p-5 md:p-6 shadow-2xl border hover:border-gray-700 transition-all"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18 }}
+              className="rounded-xl border shadow-xl overflow-hidden"
               style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
-              onClick={() => router.push('/game')}
             >
-              <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">🎮 Play. Win. Earn JOYB.</h2>
-              <p className="text-gray-400 mb-4 md:mb-5 text-sm md:text-base">
-                Beat Match-3 milestone levels 15, 20, and 30 for massive JOYB rewards and climb the leaderboard for seasonal prize drops.
-              </p>
-              <button
-                onClick={() => router.push('/game')}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 md:py-4 px-6 md:px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-sm md:text-base"
-              >
-                Start Playing
-              </button>
+              <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: 'var(--theme-border)' }}>
+                <span className="h-2 w-2 rounded-full bg-red-400" />
+                <span className="h-2 w-2 rounded-full bg-yellow-400" />
+                <span className="h-2 w-2 rounded-full bg-green-400" />
+                <span className="ml-2 text-xs text-gray-400">Match-3</span>
+              </div>
+              <div className="p-4">
+                <h3 className="text-base md:text-lg font-bold mb-1">🧩 Match-3</h3>
+                <p className="text-xs md:text-sm text-gray-400 mb-3">
+                  Beat milestones, climb the season leaderboard.
+                </p>
+                <button
+                  onClick={() => router.push('/game')}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm"
+                >
+                  Play Now
+                </button>
+              </div>
             </motion.div>
 
-            {/* Card Game */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="bg-gray-900/50 backdrop-blur-lg rounded-xl p-5 md:p-6 shadow-2xl border border-gray-800 hover:border-gray-700 transition-all"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.22 }}
+              className="rounded-xl border shadow-xl overflow-hidden bg-gray-900/50"
+              style={{ borderColor: 'var(--theme-border)' }}
             >
-              <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">🃏 3-Card Game</h2>
-              <p className="text-gray-400 mb-4 md:mb-5 text-sm md:text-base">
-                Flip the cards, test your luck, and win 2,000 JOYB per victory! One free play daily - play again anytime..
-              </p>
-              <button
-                onClick={() => router.push('/card-game')}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 md:py-4 px-6 md:px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-sm md:text-base"
-              >
-                Try Your Luck
-              </button>
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
+                <span className="h-2 w-2 rounded-full bg-red-400" />
+                <span className="h-2 w-2 rounded-full bg-yellow-400" />
+                <span className="h-2 w-2 rounded-full bg-green-400" />
+                <span className="ml-2 text-xs text-gray-400">3-Card</span>
+              </div>
+              <div className="p-4">
+                <h3 className="text-base md:text-lg font-bold mb-1">🃏 3-Card</h3>
+                <p className="text-xs md:text-sm text-gray-400 mb-3">
+                  Flip a card and test your luck for JOYB.
+                </p>
+                <button
+                  onClick={() => router.push('/card-game')}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm"
+                >
+                  Play Now
+                </button>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.26 }}
+              className="rounded-xl border shadow-xl overflow-hidden bg-gray-900/50"
+              style={{ borderColor: 'var(--theme-border)' }}
+            >
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
+                <span className="h-2 w-2 rounded-full bg-red-400" />
+                <span className="h-2 w-2 rounded-full bg-yellow-400" />
+                <span className="h-2 w-2 rounded-full bg-green-400" />
+                <span className="ml-2 text-xs text-gray-400">Basebound</span>
+              </div>
+              <div className="p-4">
+                <h3 className="text-base md:text-lg font-bold mb-1">🏎️ Basebound</h3>
+                <p className="text-xs md:text-sm text-gray-400 mb-3">
+                  Drive, collect coins, and push your distance.
+                </p>
+                <button
+                  onClick={() => router.push('/basebound')}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm"
+                >
+                  Play Now
+                </button>
+              </div>
             </motion.div>
           </div>
 

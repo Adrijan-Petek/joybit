@@ -576,6 +576,21 @@ export default function Match3Game() {
     setShowStartPopup(true)
   }
 
+  const handleShareResult = useCallback((channel?: 'base') => {
+    if (typeof window === 'undefined') return
+    const outcome = gameResult === 'win' ? 'won' : 'hit Game Over'
+    const shareText = `🎮 I ${outcome} in Joybit Match-3!\n` +
+      `🏆 Score: ${gameState.score}\n` +
+      `🎯 Level: ${gameState.level}\n\n` +
+      `Come play on Base! #Joybit #Base`
+    const shareUrl = `${window.location.origin}/game`
+    const url = new URL('https://warpcast.com/~/compose')
+    url.searchParams.set('text', shareText)
+    url.searchParams.append('embeds[]', shareUrl)
+    if (channel) url.searchParams.set('channel', channel)
+    window.open(url.toString(), '_blank', 'noopener,noreferrer')
+  }, [gameResult, gameState.level, gameState.score])
+
   const handleContinueLevel = useCallback(async () => {
     if (!isConnected || !address) return
     
@@ -1078,6 +1093,20 @@ export default function Match3Game() {
                   >
                     👤 Go to Profile
                   </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleShareResult()}
+                      className="bg-black/30 hover:bg-black/40 px-4 py-2 rounded-xl font-bold transition-all text-xs md:text-sm"
+                    >
+                      🔁 Recast (Farcaster)
+                    </button>
+                    <button
+                      onClick={() => handleShareResult('base')}
+                      className="bg-black/30 hover:bg-black/40 px-4 py-2 rounded-xl font-bold transition-all text-xs md:text-sm"
+                    >
+                      🔁 Recast (Base)
+                    </button>
+                  </div>
                   <button
                     onClick={() => router.push('/')}
                     className="w-full bg-gray-700 hover:bg-gray-600 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base"

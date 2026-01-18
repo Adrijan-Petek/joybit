@@ -6,7 +6,7 @@ import { BaseboundScene } from '@/lib/game/BaseboundScene'
 import { GameState } from '@/lib/game/types'
 
 interface BaseboundGameProps {
-  onGameOver: (state: GameState) => void
+  onGameOver: (state: GameState, snapshotUrl?: string | null) => void
 }
 
 export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
@@ -23,6 +23,9 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
       height: window.innerHeight,
       parent: containerRef.current,
       backgroundColor: '#87CEEB',
+      render: {
+        preserveDrawingBuffer: true,
+      },
       scene: [BaseboundScene],
       physics: {
         default: 'matter',
@@ -40,10 +43,28 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     gameRef.current = new Phaser.Game(config)
     
     // Wait for scene to be ready (Phaser doesn't emit "ready" in some cases, so poll)
+    const captureSnapshot = () => {
+      const canvas = gameRef.current?.canvas
+      if (!canvas) return null
+      const targetWidth = 512
+      const scale = targetWidth / canvas.width
+      const targetHeight = Math.max(1, Math.round(canvas.height * scale))
+      const snapshotCanvas = document.createElement('canvas')
+      snapshotCanvas.width = targetWidth
+      snapshotCanvas.height = targetHeight
+      const ctx = snapshotCanvas.getContext('2d')
+      if (!ctx) return null
+      ctx.drawImage(canvas, 0, 0, targetWidth, targetHeight)
+      return snapshotCanvas.toDataURL('image/png')
+    }
+
     const readyCheck = window.setInterval(() => {
       const scene = gameRef.current?.scene.getScene('BaseboundScene') as BaseboundScene | undefined
       if (scene && scene.scene.isActive()) {
-        scene.setGameOverCallback(onGameOver)
+        scene.setGameOverCallback((state: GameState) => {
+          const snapshotUrl = captureSnapshot()
+          onGameOver(state, snapshotUrl)
+        })
         setIsLoading(false)
         window.clearInterval(readyCheck)
       }

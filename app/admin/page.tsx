@@ -12,6 +12,7 @@ import { useAudio } from '@/components/audio/AudioContext'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { 
   TREASURY_ABI, 
+  BASEBOUND_GAME_ABI,
   MATCH3_GAME_ABI, 
   CARD_GAME_ABI,
   DAILY_CLAIM_ABI,
@@ -182,6 +183,7 @@ export default function AdminPage() {
               className="space-y-4 md:space-y-6"
             >
               <LevelRewardsManager />
+              <BaseboundGameSection />
               <Match3GameSection setActiveTab={setActiveTab} />
               <CardGameSection />
               <DailyClaimSection />
@@ -2466,6 +2468,18 @@ function SettingsOverview() {
     functionName: 'winReward',
   })
 
+  const { data: baseboundPlayFee } = useReadContract({
+    address: CONTRACT_ADDRESSES.baseboundGame,
+    abi: BASEBOUND_GAME_ABI,
+    functionName: 'playFee',
+  })
+
+  const { data: baseboundRetryFee } = useReadContract({
+    address: CONTRACT_ADDRESSES.baseboundGame,
+    abi: BASEBOUND_GAME_ABI,
+    functionName: 'retryFee',
+  })
+
   const { data: dailyBaseReward } = useReadContract({
     address: CONTRACT_ADDRESSES.dailyClaim,
     abi: DAILY_CLAIM_ABI,
@@ -2569,6 +2583,21 @@ function SettingsOverview() {
             <div className="flex justify-between">
               <span className="text-gray-400">Win Reward:</span>
               <span className="font-bold">{formatEther(cardWinReward || 0n)} JOYB</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Basebound Game */}
+        <div className="bg-black/30 rounded-lg p-3 md:p-4">
+          <h3 className="text-sm md:text-base font-bold text-cyan-400 mb-2">🏁 Basebound Game</h3>
+          <div className="space-y-1 text-xs md:text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-400">Play Fee:</span>
+              <span className="font-bold">{formatEther(baseboundPlayFee || 0n)} ETH</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Retry Fee:</span>
+              <span className="font-bold">{formatEther(baseboundRetryFee || 0n)} ETH</span>
             </div>
           </div>
         </div>
@@ -3896,6 +3925,132 @@ function MultiTokenLeaderboardRewardsSection() {
       <p className="text-xs text-purple-300 mt-4">
         💡 Credits rewards in selected tokens to player profiles - they can claim later from their profile page
       </p>
+    </motion.div>
+  )
+}
+
+// Basebound Game Section
+function BaseboundGameSection() {
+  const [playFee, setPlayFee] = useState('')
+  const [retryFee, setRetryFee] = useState('')
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
+
+  const { writeContractAsync: writeContract, isPending } = useWriteContract()
+  const { isLoading: isProcessing, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+
+  const { data: currentPlayFee } = useReadContract({
+    address: CONTRACT_ADDRESSES.baseboundGame,
+    abi: BASEBOUND_GAME_ABI,
+    functionName: 'playFee',
+  })
+
+  const { data: currentRetryFee } = useReadContract({
+    address: CONTRACT_ADDRESSES.baseboundGame,
+    abi: BASEBOUND_GAME_ABI,
+    functionName: 'retryFee',
+  })
+
+  useEffect(() => {
+    if (isSuccess) {
+      alert('✅ Basebound settings updated!')
+      setPlayFee('')
+      setRetryFee('')
+    }
+  }, [isSuccess])
+
+  const handleSetPlayFee = async () => {
+    if (!playFee || Number(playFee) < 0) {
+      alert('❌ Enter valid fee')
+      return
+    }
+    try {
+      const hash = await writeContract({
+        address: CONTRACT_ADDRESSES.baseboundGame,
+        abi: BASEBOUND_GAME_ABI,
+        functionName: 'setPlayFee',
+        args: [parseEther(playFee)],
+      })
+      setTxHash(hash)
+    } catch (error) {
+      console.error(error)
+      alert('❌ Transaction rejected')
+    }
+  }
+
+  const handleSetRetryFee = async () => {
+    if (!retryFee || Number(retryFee) < 0) {
+      alert('❌ Enter valid fee')
+      return
+    }
+    try {
+      const hash = await writeContract({
+        address: CONTRACT_ADDRESSES.baseboundGame,
+        abi: BASEBOUND_GAME_ABI,
+        functionName: 'setRetryFee',
+        args: [parseEther(retryFee)],
+      })
+      setTxHash(hash)
+    } catch (error) {
+      console.error(error)
+      alert('❌ Transaction rejected')
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-cyan-500/20 border border-cyan-500/30 rounded-xl p-6"
+    >
+      <h2 className="text-2xl font-bold mb-4">🏁 Basebound Game</h2>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm text-cyan-200 mb-2">Play Fee (ETH)</label>
+          <div className="grid grid-cols-3 gap-2">
+            <input
+              type="text"
+              value={playFee}
+              onChange={(e) => setPlayFee(e.target.value)}
+              placeholder={currentPlayFee ? formatEther(currentPlayFee as bigint) : '0.001'}
+              className="col-span-2 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white"
+            />
+            <button
+              onClick={handleSetPlayFee}
+              disabled={isPending || isProcessing}
+              className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-500 px-4 py-3 rounded-lg font-bold transition-all"
+            >
+              {isPending || isProcessing ? '⏳' : 'Update'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Current: {currentPlayFee ? formatEther(currentPlayFee as bigint) : '0.0'} ETH
+          </p>
+        </div>
+
+        <div className="pt-4 border-t border-white/10">
+          <label className="block text-sm text-cyan-200 mb-2">Retry Fee (ETH)</label>
+          <div className="grid grid-cols-3 gap-2">
+            <input
+              type="text"
+              value={retryFee}
+              onChange={(e) => setRetryFee(e.target.value)}
+              placeholder={currentRetryFee ? formatEther(currentRetryFee as bigint) : '0.0005'}
+              className="col-span-2 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white"
+            />
+            <button
+              onClick={handleSetRetryFee}
+              disabled={isPending || isProcessing}
+              className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-500 px-4 py-3 rounded-lg font-bold transition-all"
+            >
+              {isPending || isProcessing ? '⏳' : 'Update'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Current: {currentRetryFee ? formatEther(currentRetryFee as bigint) : '0.0'} ETH
+          </p>
+        </div>
+      </div>
     </motion.div>
   )
 }
