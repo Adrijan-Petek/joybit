@@ -107,6 +107,22 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
       }
     }
 
+    let lastSensorUpdate = 0
+    const updateRotationFromSensor = (event: DeviceOrientationEvent) => {
+      if (typeof event.beta !== 'number' || typeof event.gamma !== 'number') return
+      const now = Date.now()
+      if (now - lastSensorUpdate < 250) return
+      lastSensorUpdate = now
+      const beta = Math.abs(event.beta)
+      const gamma = Math.abs(event.gamma)
+      const isLandscape = gamma > beta
+      if (forceRotateRef.current !== isLandscape) {
+        forceRotateRef.current = isLandscape
+        setForceRotate(isLandscape)
+        resizeGame()
+      }
+    }
+
     const handleResize = () => {
       resizeGame()
     }
@@ -122,6 +138,7 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
     window.visualViewport?.addEventListener('resize', handleResize)
     window.visualViewport?.addEventListener('scroll', handleResize)
     window.screen?.orientation?.addEventListener('change', handleOrientationChange)
+    window.addEventListener('deviceorientation', updateRotationFromSensor)
     updateRotation()
 
     const startSizeWatcher = () => {
@@ -143,6 +160,7 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
       window.visualViewport?.removeEventListener('resize', handleResize)
       window.visualViewport?.removeEventListener('scroll', handleResize)
       window.screen?.orientation?.removeEventListener('change', handleOrientationChange)
+      window.removeEventListener('deviceorientation', updateRotationFromSensor)
       if (sizeWatcher) window.clearInterval(sizeWatcher)
       if (gameRef.current) {
         gameRef.current.destroy(true)

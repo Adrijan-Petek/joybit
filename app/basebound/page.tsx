@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { GameState } from '@/lib/game/types'
 import { useAudio } from '@/components/audio/AudioContext'
@@ -24,6 +24,7 @@ const GameOverModal = dynamic(
 
 export default function BaseboundPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { playMusic } = useAudio()
   const { address, isConnected } = useAccount()
   const [gameState, setGameState] = useState<GameState | null>(null)
@@ -49,6 +50,17 @@ export default function BaseboundPage() {
       // ignore storage errors
     }
   }, [playMusic, shareSnapshotKey])
+
+  useEffect(() => {
+    if (!searchParams) return
+    const skipTx = searchParams.get('skipTx') === '1'
+    if (skipTx) {
+      setShowStartPopup(false)
+      setIsGameActive(true)
+      setGameKey(prev => prev + 1)
+      setStartMode('play')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const handleOrientationReset = () => {
