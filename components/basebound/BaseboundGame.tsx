@@ -240,7 +240,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
         <div ref={containerRef} className="absolute inset-0" />
       </div>
       {forceRotate && (
-        <div className="absolute inset-0 z-40 flex items-end justify-between px-6 pb-6">
+        <div className="absolute inset-0 z-40 flex items-end justify-between px-6 pb-2">
           <button
             className="h-24 w-24 select-none touch-none"
             onPointerDown={() => {
@@ -284,12 +284,12 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
           <img
             src={overlayPedals.brake ? '/basebound-game/icons/pedal-brake-pressed.png' : '/basebound-game/icons/pedal-brake-normal.png'}
             alt=""
-            className="pointer-events-none absolute bottom-6 left-6 h-24 w-24 opacity-95"
+            className="pointer-events-none absolute bottom-2 left-6 h-24 w-24 opacity-95"
           />
           <img
             src={overlayPedals.gas ? '/basebound-game/icons/pedal-gas-pressed.png' : '/basebound-game/icons/pedal-gas-normal.png'}
             alt=""
-            className="pointer-events-none absolute bottom-6 right-6 h-24 w-24 opacity-95"
+            className="pointer-events-none absolute bottom-2 right-6 h-24 w-24 opacity-95"
           />
         </div>
       )}

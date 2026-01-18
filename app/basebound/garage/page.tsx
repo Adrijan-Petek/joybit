@@ -107,7 +107,7 @@ export default function BaseboundGaragePage() {
   return (
     <div className="fixed inset-0 bg-black text-white">
       <div
-        className="absolute overflow-y-auto overflow-x-hidden p-4 overscroll-contain"
+        className="absolute overflow-hidden overscroll-contain"
         style={{
           left: `calc(50% + ${viewportSize.offsetLeft}px)`,
           top: `calc(50% + ${viewportSize.offsetTop}px)`,
@@ -122,6 +122,7 @@ export default function BaseboundGaragePage() {
           WebkitOverflowScrolling: 'touch'
         }}
       >
+      <div className="h-full w-full overflow-y-auto overflow-x-hidden p-4" style={{ WebkitOverflowScrolling: 'touch' }}>
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button
@@ -249,7 +250,7 @@ export default function BaseboundGaragePage() {
               })}
             </div>
           </section>
-        </div>
+      </div>
       </div>
       </div>
     </div>
