@@ -11,6 +11,8 @@ interface BaseboundGameProps {
 }
 
 export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: BaseboundGameProps) {
+  const BASE_WIDTH = 1280
+  const BASE_HEIGHT = 720
   const gameRef = useRef<Phaser.Game | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -26,8 +28,8 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
-      width: window.innerWidth,
-      height: window.innerHeight,
+      width: BASE_WIDTH,
+      height: BASE_HEIGHT,
       parent: containerRef.current,
       backgroundColor: '#87CEEB',
       render: {
@@ -42,8 +44,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
         }
       },
       scale: {
-        mode: Phaser.Scale.RESIZE,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        mode: Phaser.Scale.NONE
       }
     }
 
@@ -90,22 +91,22 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
     const resizeGame = () => {
       if (!gameRef.current) return
       const overrideActive = typeof forceRotateOverride === 'boolean'
-      const { width, height } = getViewportSize()
-      const rotateCanvas = overrideActive ? false : forceRotateRef.current
-      const targetWidth = rotateCanvas ? height : width
-      const targetHeight = rotateCanvas ? width : height
       const bounds = containerRef.current?.getBoundingClientRect()
-      const finalWidth = overrideActive && bounds ? Math.round(bounds.width) : targetWidth
-      const finalHeight = overrideActive && bounds ? Math.round(bounds.height) : targetHeight
-      gameRef.current.scale.resize(finalWidth, finalHeight)
+      const fallback = getViewportSize()
+      const availableWidth = Math.round(bounds?.width ?? fallback.width)
+      const availableHeight = Math.round(bounds?.height ?? fallback.height)
+      const scale = Math.min(availableWidth / BASE_WIDTH, availableHeight / BASE_HEIGHT)
+      const displayWidth = Math.max(1, Math.floor(BASE_WIDTH * scale))
+      const displayHeight = Math.max(1, Math.floor(BASE_HEIGHT * scale))
+      gameRef.current.scale.resize(BASE_WIDTH, BASE_HEIGHT)
       const canvas = gameRef.current.canvas
       if (canvas) {
         canvas.style.position = 'absolute'
-        canvas.style.left = '0'
-        canvas.style.top = '0'
+        canvas.style.left = `${Math.floor((availableWidth - displayWidth) / 2)}px`
+        canvas.style.top = `${Math.floor((availableHeight - displayHeight) / 2)}px`
         canvas.style.display = 'block'
-        canvas.style.width = overrideActive ? '100%' : `${finalWidth}px`
-        canvas.style.height = overrideActive ? '100%' : `${finalHeight}px`
+        canvas.style.width = `${displayWidth}px`
+        canvas.style.height = `${displayHeight}px`
       }
     }
 
