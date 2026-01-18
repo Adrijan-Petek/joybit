@@ -70,11 +70,23 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
       }
     }, 100)
 
+    const getViewportSize = () => {
+      const vv = window.visualViewport
+      if (vv) {
+        return { width: Math.round(vv.width), height: Math.round(vv.height) }
+      }
+      return { width: window.innerWidth, height: window.innerHeight }
+    }
+
     const resizeGame = () => {
       if (!gameRef.current) return
-      const width = window.innerWidth
-      const height = window.innerHeight
+      const { width, height } = getViewportSize()
       gameRef.current.scale.resize(width, height)
+      const canvas = gameRef.current.canvas
+      if (canvas) {
+        canvas.style.width = `${width}px`
+        canvas.style.height = `${height}px`
+      }
     }
 
     const handleResize = () => {
@@ -83,15 +95,22 @@ export function BaseboundGame({ onGameOver }: BaseboundGameProps) {
 
     const handleOrientationChange = () => {
       window.setTimeout(resizeGame, 150)
+      window.setTimeout(resizeGame, 350)
     }
 
     window.addEventListener('resize', handleResize)
     window.addEventListener('orientationchange', handleOrientationChange)
+    window.visualViewport?.addEventListener('resize', handleResize)
+    window.visualViewport?.addEventListener('scroll', handleResize)
+    window.screen?.orientation?.addEventListener('change', handleOrientationChange)
 
     return () => {
       window.clearInterval(readyCheck)
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('orientationchange', handleOrientationChange)
+      window.visualViewport?.removeEventListener('resize', handleResize)
+      window.visualViewport?.removeEventListener('scroll', handleResize)
+      window.screen?.orientation?.removeEventListener('change', handleOrientationChange)
       if (gameRef.current) {
         gameRef.current.destroy(true)
         gameRef.current = null
