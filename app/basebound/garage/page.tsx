@@ -250,6 +250,7 @@ export default function BaseboundGaragePage() {
               })}
             </div>
           </section>
+        </div>
       </div>
       </div>
       </div>
