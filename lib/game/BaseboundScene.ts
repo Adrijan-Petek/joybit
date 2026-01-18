@@ -273,6 +273,13 @@ export class BaseboundScene extends Phaser.Scene {
   
   create() {
     this.startedAtMs = this.time.now
+    this.applyCameraZoom()
+    this.game.events.on('basebound-zoom', this.applyCameraZoom)
+    this.scale.on('resize', this.applyCameraZoom)
+    this.events.once('shutdown', () => {
+      this.game.events.off('basebound-zoom', this.applyCameraZoom)
+      this.scale.off('resize', this.applyCameraZoom)
+    })
 
     // WebAudio is blocked until a user gesture in most browsers.
     // Gate all sound playback behind an explicit unlock.
@@ -972,6 +979,14 @@ export class BaseboundScene extends Phaser.Scene {
       this.decorationSprites.push(sprite)
 
       x += rand.between(520, 900)
+    }
+  }
+
+  private applyCameraZoom = (): void => {
+    const zoom = this.game.registry.get('baseboundZoom')
+    if (typeof zoom === 'number' && zoom > 0) {
+      this.cameras.main.setZoom(zoom)
+      this.cameras.main.setViewport(0, 0, this.scale.gameSize.width, this.scale.gameSize.height)
     }
   }
 

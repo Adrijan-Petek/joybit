@@ -50,6 +50,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
 
     gameRef.current = new Phaser.Game(config)
     gameRef.current.registry.set('baseboundForceRotate', forceRotateRef.current)
+    gameRef.current.registry.set('baseboundZoom', 1)
     let sizeWatcher: number | undefined
 
     // Wait for scene to be ready (Phaser doesn't emit "ready" in some cases, so poll)
@@ -95,15 +96,20 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride }: 
       const fallback = getViewportSize()
       const availableWidth = Math.round(bounds?.width ?? fallback.width)
       const availableHeight = Math.round(bounds?.height ?? fallback.height)
-      const scale = Math.min(availableWidth / BASE_WIDTH, availableHeight / BASE_HEIGHT)
-      const displayWidth = Math.max(1, Math.floor(BASE_WIDTH * scale))
-      const displayHeight = Math.max(1, Math.floor(BASE_HEIGHT * scale))
+      const isTouch = (navigator.maxTouchPoints || 0) > 0
+      const scaleX = availableWidth / BASE_WIDTH
+      const scaleY = availableHeight / BASE_HEIGHT
+      const zoom = isTouch ? Math.min(scaleX, scaleY) : 1
+      const displayWidth = Math.max(1, Math.floor(availableWidth))
+      const displayHeight = Math.max(1, Math.floor(availableHeight))
       gameRef.current.scale.resize(BASE_WIDTH, BASE_HEIGHT)
+      gameRef.current.registry.set('baseboundZoom', zoom)
+      gameRef.current.events.emit('basebound-zoom')
       const canvas = gameRef.current.canvas
       if (canvas) {
         canvas.style.position = 'absolute'
-        canvas.style.left = `${Math.floor((availableWidth - displayWidth) / 2)}px`
-        canvas.style.top = `${Math.floor((availableHeight - displayHeight) / 2)}px`
+        canvas.style.left = '0'
+        canvas.style.top = '0'
         canvas.style.display = 'block'
         canvas.style.width = `${displayWidth}px`
         canvas.style.height = `${displayHeight}px`
