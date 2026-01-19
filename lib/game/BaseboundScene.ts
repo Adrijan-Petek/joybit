@@ -326,6 +326,8 @@ export class BaseboundScene extends Phaser.Scene {
 
     // Set background color based on level
     this.cameras.main.setBackgroundColor(this.currentLevel.terrain.skyColor)
+    // Prevent sub-pixel shimmering/seams on textured terrain in mobile webviews.
+    this.cameras.main.roundPixels = true
     this.setupBackground()
 
     // Create Planck (Box2D-style) physics world.
@@ -1187,6 +1189,8 @@ export class BaseboundScene extends Phaser.Scene {
       const groundTile = this.add.tileSprite(startX, 0, endX - startX, bottomY, 'terrain-ground')
       groundTile.setOrigin(0, 0)
       groundTile.setDepth(5)
+      // Keep texture phase continuous across chunk boundaries to avoid vertical seam flicker.
+      groundTile.tilePositionX = startX
       groundTile.setMask(maskGfx.createGeometryMask())
 
       const bandHeight = 8
