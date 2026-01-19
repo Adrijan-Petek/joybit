@@ -13,6 +13,7 @@ import { WalletButton } from '@/components/WalletButton'
 import { useBaseboundGame, useBaseboundGameData } from '@/lib/hooks/useBaseboundGame'
 import { useForceLandscape } from '@/lib/hooks/useForceLandscape'
 import { GarageContent } from '@/components/basebound/GarageContent'
+import { AudioButtons } from '@/components/AudioButtons'
 
 const BaseboundGame = dynamic(
   () => import('@/components/basebound/BaseboundGame').then(mod => ({ default: mod.BaseboundGame })),
@@ -246,7 +247,8 @@ export default function BaseboundPage() {
         }}
       >
       {/* Overlay menu */}
-      <div className={`${overlayPosition} top-4 right-4 z-50`}>
+      <div className={`${overlayPosition} top-4 right-4 z-50 flex items-center gap-2`}>
+        <AudioButtons />
         <button
           className="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!isGameActive || showStartPopup}
