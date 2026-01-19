@@ -9,6 +9,16 @@ import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-c
 import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets'
 import '@rainbow-me/rainbowkit/styles.css'
 import { ThemeProvider } from './theme/ThemeContext'
+
+const getBaseRpcUrl = () => {
+  const alchemyKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
+  const alchemyRpc = alchemyKey ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}` : null
+  const envRpc = process.env.NEXT_PUBLIC_BASE_RPC_URL
+  const defaultRpc = 'https://mainnet.base.org'
+
+  // Prefer a dedicated RPC when available to avoid public endpoint rate limits.
+  return alchemyRpc ?? envRpc ?? defaultRpc
+}
 // Polyfill indexedDB for server-side rendering
 if (typeof window === 'undefined') {
   (global as any).indexedDB = {
@@ -54,7 +64,7 @@ const config = createConfig({
     miniAppConnector()
   ],
   transports: {
-    [base.id]: http('https://mainnet.base.org', {
+    [base.id]: http(getBaseRpcUrl(), {
       batch: {
         wait: 100, // Batch requests every 100ms
       },
