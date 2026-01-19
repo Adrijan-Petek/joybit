@@ -25,16 +25,23 @@ const getBaseTransports = () => {
   const urls = [
     getBaseRpcUrl(),
     // Additional public fallbacks to reduce provider-specific rate limiting.
+    'https://base.publicnode.com',
     'https://base.llamarpc.com',
     'https://1rpc.io/base',
-    'https://mainnet.base.org',
   ].filter(Boolean)
 
-  const transports = urls.map((url) =>
+  // Shuffle/rotate endpoints per session so we don't stampede a single provider.
+  const rotated = (() => {
+    if (typeof window === 'undefined') return urls
+    const seed = Math.floor(Math.random() * urls.length)
+    return [...urls.slice(seed), ...urls.slice(0, seed)]
+  })()
+
+  const transports = rotated.map((url) =>
     http(url, {
       batch: {
         // Batch more aggressively to reduce rate-limit bursts.
-        wait: 250,
+        wait: 500,
       },
       retryCount: 5,
       retryDelay: 1200,

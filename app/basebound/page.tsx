@@ -245,7 +245,14 @@ export default function BaseboundPage() {
       <div className={`${overlayPosition} top-4 right-4 z-50`}>
         <button
           className="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold"
-          onClick={() => router.push('/basebound/garage')}
+          onClick={() => {
+            const isCoinbaseWebView = typeof navigator !== 'undefined' && /CoinbaseWallet|CBWallet|Coinbase/i.test(navigator.userAgent)
+            if (isCoinbaseWebView) {
+              window.location.href = '/basebound/garage'
+              return
+            }
+            router.push('/basebound/garage')
+          }}
         >
           Garage
         </button>
