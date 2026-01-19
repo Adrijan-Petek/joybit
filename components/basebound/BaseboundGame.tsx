@@ -28,8 +28,12 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
     containerRef.current.style.height = '100%'
     containerRef.current.style.position = 'relative'
 
+    const isTouchDevice = (navigator.maxTouchPoints || 0) > 0
+
     const config: Phaser.Types.Core.GameConfig = {
-      type: Phaser.AUTO,
+      // WebViews (incl. Farcaster) can lose WebGL textures when navigating away (e.g., to Garage).
+      // Prefer Canvas on touch devices for stability.
+      type: isTouchDevice ? Phaser.CANVAS : Phaser.AUTO,
       width: BASE_WIDTH,
       height: BASE_HEIGHT,
       parent: containerRef.current,
