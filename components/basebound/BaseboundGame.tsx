@@ -9,13 +9,15 @@ interface BaseboundGameProps {
   onGameOver: (state: GameState, snapshotUrl?: string | null) => void
   forceRotate?: boolean
   containerSize?: { width: number; height: number }
+  paused?: boolean
 }
 
-export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, containerSize }: BaseboundGameProps) {
+export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, containerSize, paused }: BaseboundGameProps) {
   const BASE_WIDTH = 1280
   const BASE_HEIGHT = 720
   const gameRef = useRef<Phaser.Game | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const sceneRef = useRef<BaseboundScene | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [overlayPedals, setOverlayPedals] = useState({ brake: false, gas: false })
   const [instanceKey, setInstanceKey] = useState(0)
@@ -92,6 +94,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
     const readyCheck = window.setInterval(() => {
       const scene = gameRef.current?.scene.getScene('BaseboundScene') as BaseboundScene | undefined
       if (scene && scene.scene.isActive()) {
+        sceneRef.current = scene
         scene.setGameOverCallback((state: GameState) => {
           const snapshotUrl = captureSnapshot()
           onGameOver(state, snapshotUrl)
@@ -241,9 +244,20 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
       window.removeEventListener('pageshow', handlePageShow)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (sizeWatcher) window.clearInterval(sizeWatcher)
+      sceneRef.current = null
       destroyGame()
     }
   }, [onGameOver, instanceKey])
+
+  useEffect(() => {
+    const scene = sceneRef.current
+    if (!scene) return
+    if (paused) {
+      if (!scene.scene.isPaused()) scene.scene.pause()
+    } else {
+      if (scene.scene.isPaused()) scene.scene.resume()
+    }
+  }, [paused, instanceKey])
 
   useEffect(() => {
     if (typeof forceRotateOverride !== 'boolean') return

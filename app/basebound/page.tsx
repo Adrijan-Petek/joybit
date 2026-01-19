@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { WalletButton } from '@/components/WalletButton'
 import { useBaseboundGame, useBaseboundGameData } from '@/lib/hooks/useBaseboundGame'
 import { useForceLandscape } from '@/lib/hooks/useForceLandscape'
+import { GarageContent } from '@/components/basebound/GarageContent'
 
 const BaseboundGame = dynamic(
   () => import('@/components/basebound/BaseboundGame').then(mod => ({ default: mod.BaseboundGame })),
@@ -36,6 +37,7 @@ export default function BaseboundPage() {
   const [pendingAction, setPendingAction] = useState<'play' | 'retry' | null>(null)
   const [pendingHash, setPendingHash] = useState<`0x${string}` | null>(null)
   const [isGameActive, setIsGameActive] = useState(false)
+  const [showGarage, setShowGarage] = useState(false)
   const shareSnapshotKey = 'basebound_last_snapshot'
   const { startGame, retryGame, isStarting, isConfirmed, txHash } = useBaseboundGame()
   const { canPlayFree, playFee, retryFee } = useBaseboundGameData(address)
@@ -178,6 +180,7 @@ export default function BaseboundPage() {
   const handleGameOver = useCallback((state: GameState, snapshotUrl?: string | null) => {
     setGameState(state)
     setShareImageUrl(snapshotUrl ?? null)
+    setShowGarage(false)
     if (snapshotUrl) {
       try {
         window.localStorage.setItem(shareSnapshotKey, snapshotUrl)
@@ -206,6 +209,7 @@ export default function BaseboundPage() {
     setIsGameActive(false)
     setShowStartPopup(true)
     setStartMode('retry')
+    setShowGarage(false)
   }, [])
 
   const handleExit = useCallback(() => {
@@ -244,14 +248,10 @@ export default function BaseboundPage() {
       {/* Overlay menu */}
       <div className={`${overlayPosition} top-4 right-4 z-50`}>
         <button
-          className="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold"
+          className="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!isGameActive || showStartPopup}
           onClick={() => {
-            const isCoinbaseWebView = typeof navigator !== 'undefined' && /CoinbaseWallet|CBWallet|Coinbase/i.test(navigator.userAgent)
-            if (isCoinbaseWebView) {
-              window.location.href = '/basebound/garage'
-              return
-            }
-            router.push('/basebound/garage')
+            setShowGarage(true)
           }}
         >
           Garage
@@ -265,7 +265,19 @@ export default function BaseboundPage() {
           onGameOver={handleGameOver}
           forceRotate={forceLandscape}
           containerSize={gameContainerSize}
+          paused={showStartPopup || showGarage || Boolean(gameState?.isGameOver)}
         />
+      )}
+
+      {/* Garage Overlay */}
+      {showGarage && (
+        <div className={`${overlayPosition} inset-0 z-50 bg-black/85`}>
+          <GarageContent
+            compact={isMobile}
+            onBack={() => setShowGarage(false)}
+            onPlay={() => setShowGarage(false)}
+          />
+        </div>
       )}
 
       {/* Game Over Modal */}
