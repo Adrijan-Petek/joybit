@@ -18,6 +18,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
   const containerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [overlayPedals, setOverlayPedals] = useState({ brake: false, gas: false })
+  const [instanceKey, setInstanceKey] = useState(0)
   const initialRotate = typeof forceRotateOverride === 'boolean' ? forceRotateOverride : false
   const [forceRotate, setForceRotate] = useState(initialRotate)
   const forceRotateRef = useRef(initialRotate)
@@ -28,7 +29,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
     containerRef.current.style.height = '100%'
     containerRef.current.style.position = 'relative'
 
-    const isTouchDevice = (navigator.maxTouchPoints || 0) > 0
+    const isTouchDevice = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window
 
     const config: Phaser.Types.Core.GameConfig = {
       // WebViews (incl. Farcaster) can lose WebGL textures when navigating away (e.g., to Garage).
@@ -57,6 +58,20 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
     gameRef.current = new Phaser.Game(config)
     gameRef.current.registry.set('baseboundForceRotate', forceRotateRef.current)
     let sizeWatcher: number | undefined
+    let isDestroyed = false
+
+    const destroyGame = () => {
+      if (isDestroyed) return
+      if (!gameRef.current) return
+      isDestroyed = true
+      try {
+        gameRef.current.destroy(true)
+      } catch {
+        // ignore destroy errors
+      } finally {
+        gameRef.current = null
+      }
+    }
 
     // Wait for scene to be ready (Phaser doesn't emit "ready" in some cases, so poll)
     const captureSnapshot = () => {
@@ -189,6 +204,31 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
     }
     startSizeWatcher()
 
+    const handlePageHide = () => {
+      // Some mobile webviews keep the page alive (bfcache) without unmounting React.
+      // Destroy Phaser to avoid WebGL/texture loss when coming back.
+      destroyGame()
+    }
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // If we were restored from bfcache or the game was destroyed, re-init.
+      if (event.persisted || !gameRef.current) {
+        setInstanceKey(prev => prev + 1)
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        destroyGame()
+      } else if (!gameRef.current) {
+        setInstanceKey(prev => prev + 1)
+      }
+    }
+
+    window.addEventListener('pagehide', handlePageHide)
+    window.addEventListener('pageshow', handlePageShow)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     return () => {
       window.clearInterval(readyCheck)
       window.removeEventListener('resize', handleResize)
@@ -197,13 +237,13 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
       window.visualViewport?.removeEventListener('scroll', handleResize)
       window.screen?.orientation?.removeEventListener('change', handleOrientationChange)
       window.removeEventListener('deviceorientation', updateRotationFromSensor)
+      window.removeEventListener('pagehide', handlePageHide)
+      window.removeEventListener('pageshow', handlePageShow)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (sizeWatcher) window.clearInterval(sizeWatcher)
-      if (gameRef.current) {
-        gameRef.current.destroy(true)
-        gameRef.current = null
-      }
+      destroyGame()
     }
-  }, [onGameOver])
+  }, [onGameOver, instanceKey])
 
   useEffect(() => {
     if (typeof forceRotateOverride !== 'boolean') return
