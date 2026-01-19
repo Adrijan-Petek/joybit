@@ -74,6 +74,7 @@ export default function BaseboundGaragePage() {
   const currentVehicle = VEHICLE_CATALOG[carouselIndex] ?? VEHICLE_CATALOG[0]
   const isComingSoon = currentVehicle.slug !== 'mini' && currentVehicle.slug !== 'cartoon-car'
   const compact = isMobile
+  const isCoinbaseWebView = typeof navigator !== 'undefined' && /CoinbaseWallet|CBWallet|Coinbase/i.test(navigator.userAgent)
 
   const handleSelectVehicle = (vehicleId: number) => {
     const next = ensureVehicleUpgrades({ ...profile, selectedVehicleId: vehicleId }, vehicleId)
@@ -140,7 +141,15 @@ export default function BaseboundGaragePage() {
           </div>
           <button
             className={compact ? 'px-3 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-sm' : 'px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold'}
-            onClick={() => router.push('/basebound?skipTx=1')}
+            onClick={() => {
+              // Coinbase/Base in-app webviews can lose Phaser textures on SPA navigation.
+              // Force a full navigation back to the game to reload assets.
+              if (isCoinbaseWebView) {
+                window.location.href = '/basebound?skipTx=1'
+                return
+              }
+              router.push('/basebound?skipTx=1')
+            }}
           >
             Play
           </button>

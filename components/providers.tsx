@@ -1,8 +1,9 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { WagmiProvider, http, createStorage, cookieStorage, createConfig } from 'wagmi'
+import { WagmiProvider, createStorage, cookieStorage, createConfig } from 'wagmi'
 import { base } from 'wagmi/chains'
+import { fallback, http } from 'viem'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RainbowKitProvider, darkTheme, connectorsForWallets } from '@rainbow-me/rainbowkit'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
@@ -18,6 +19,30 @@ const getBaseRpcUrl = () => {
 
   // Prefer a dedicated RPC when available to avoid public endpoint rate limits.
   return alchemyRpc ?? envRpc ?? defaultRpc
+}
+
+const getBaseTransports = () => {
+  const urls = [
+    getBaseRpcUrl(),
+    // Additional public fallbacks to reduce provider-specific rate limiting.
+    'https://base.llamarpc.com',
+    'https://1rpc.io/base',
+    'https://mainnet.base.org',
+  ].filter(Boolean)
+
+  const transports = urls.map((url) =>
+    http(url, {
+      batch: {
+        // Batch more aggressively to reduce rate-limit bursts.
+        wait: 250,
+      },
+      retryCount: 5,
+      retryDelay: 1200,
+      timeout: 15000,
+    })
+  )
+
+  return transports.length > 1 ? fallback(transports) : transports[0]
 }
 // Polyfill indexedDB for server-side rendering
 if (typeof window === 'undefined') {
@@ -64,14 +89,7 @@ const config = createConfig({
     miniAppConnector()
   ],
   transports: {
-    [base.id]: http(getBaseRpcUrl(), {
-      batch: {
-        wait: 100, // Batch requests every 100ms
-      },
-      retryCount: 3,
-      retryDelay: 1000, // 1 second between retries
-      timeout: 10000, // 10 second timeout
-    }),
+    [base.id]: getBaseTransports(),
   },
   ssr: false, // Disable SSR to avoid indexedDB issues
 })
