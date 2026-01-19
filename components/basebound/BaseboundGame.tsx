@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as Phaser from 'phaser'
 import { BaseboundScene } from '@/lib/game/BaseboundScene'
 import { GameState } from '@/lib/game/types'
+import { useAudio } from '@/components/audio/AudioContext'
 
 interface BaseboundGameProps {
   onGameOver: (state: GameState, snapshotUrl?: string | null) => void
@@ -18,6 +19,7 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
   const gameRef = useRef<Phaser.Game | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<BaseboundScene | null>(null)
+  const { isMuted, isSoundMuted } = useAudio()
   const [isLoading, setIsLoading] = useState(true)
   const [overlayPedals, setOverlayPedals] = useState({ brake: false, gas: false })
   const [instanceKey, setInstanceKey] = useState(0)
@@ -258,6 +260,13 @@ export function BaseboundGame({ onGameOver, forceRotate: forceRotateOverride, co
       if (scene.scene.isPaused()) scene.scene.resume()
     }
   }, [paused, instanceKey])
+
+  useEffect(() => {
+    const game = gameRef.current
+    if (!game?.sound) return
+    // Basebound uses Phaser audio; treat it as "sound effects" (SFX) so the SFX toggle applies.
+    game.sound.mute = Boolean(isMuted || isSoundMuted)
+  }, [isMuted, isSoundMuted, instanceKey])
 
   useEffect(() => {
     if (typeof forceRotateOverride !== 'boolean') return
