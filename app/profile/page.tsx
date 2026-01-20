@@ -331,24 +331,9 @@ export default function ProfilePage() {
         })
         return
       }
-      
-      // Only generate profile if user has no ENS or Farcaster data
-      console.log('🎨 No ENS/Farcaster found, generating profile for user without external identity...')
-      const generatedProfile = generateUserProfile()
-      
-      // Store generated profile in database
-      await fetch('/api/leaderboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          address, 
-          score: data.currentScore || 0,
-          username: generatedProfile.username,
-          pfp: generatedProfile.avatar
-        })
-      })
-      
-      setUserData(generatedProfile)
+
+      // No Farcaster/Basename/DB profile found: show address + OnchainKit Avatar in UI.
+      setUserData({})
       return
     } catch (error) {
       console.error('Error fetching user data:', error)
@@ -627,13 +612,18 @@ export default function ProfilePage() {
     }
 
     try {
-      // Save to database
+      // Preserve existing score (do not modify points)
+      const current = await fetch(`/api/leaderboard?address=${address}`)
+      const currentData = await current.json()
+      const currentScore = currentData.currentScore || 0
+
+      // Save to database (with the same score)
       await fetch('/api/leaderboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           address,
-          score: 0, // Don't update score
+          score: currentScore,
           username: editingUsername,
           pfp: userData.pfp // Keep existing PFP
         })
@@ -656,13 +646,18 @@ export default function ProfilePage() {
     try {
       const profile = generateUserProfile()
 
-      // Save to database
+      // Preserve existing score (do not modify points)
+      const current = await fetch(`/api/leaderboard?address=${address}`)
+      const currentData = await current.json()
+      const currentScore = currentData.currentScore || 0
+
+      // Save to database (with the same score)
       await fetch('/api/leaderboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           address,
-          score: 0, // Don't update score
+          score: currentScore,
           username: profile.username,
           pfp: profile.avatar
         })
@@ -850,14 +845,14 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-base md:text-lg font-bold mb-0.5">
-                      {userData.username || 'Player'}
+                      {farcasterUserData.username || userData.username || 'Player'}
                     </h2>
                     <p className="text-gray-400 font-mono text-xs md:text-sm truncate">{address}</p>
                   </div>
                   <button
                     onClick={() => {
                       setIsEditingUsername(true)
-                      setEditingUsername(userData.username || '')
+                      setEditingUsername(farcasterUserData.username || userData.username || '')
                     }}
                     className="ml-2 p-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
                     title="Edit username"
