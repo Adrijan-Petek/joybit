@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@libsql/client'
+import { getAvatar, getName } from '@coinbase/onchainkit/identity'
+import { base } from 'viem/chains'
 
 const client = createClient({
   url: process.env.TURSO_DATABASE_URL!,
@@ -36,6 +38,63 @@ async function initTables() {
 // Call init on module load
 initTables().catch(console.error)
 
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: controller.signal
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function fetchFarcasterIdentity(address: string): Promise<{ username?: string; pfp?: string } | null> {
+  try {
+    const response = await fetchWithTimeout(
+      `https://api.farcaster.xyz/v2/user-by-verification?address=${address}`,
+      2500
+    )
+    if (!response.ok) return null
+    const data = await response.json()
+    const user = data?.result?.user
+    if (!user) return null
+    return {
+      username: typeof user.username === 'string' ? user.username : undefined,
+      pfp: typeof user.pfp?.url === 'string' ? user.pfp.url : undefined
+    }
+  } catch {
+    return null
+  }
+}
+
+async function fetchBasename(address: string): Promise<string | null> {
+  try {
+    const name = await Promise.race([
+      getName({ address: address as `0x${string}`, chain: base }),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 2000))
+    ])
+    return typeof name === 'string' && name.trim().length > 0 ? name : null
+  } catch {
+    return null
+  }
+}
+
+async function fetchBasenameAvatar(basename: string): Promise<string | null> {
+  try {
+    const avatar = await Promise.race([
+      getAvatar({ ensName: basename, chain: base }),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 2000))
+    ])
+    return typeof avatar === 'string' && avatar.trim().length > 0 ? avatar : null
+  } catch {
+    return null
+  }
+}
+
 // GET leaderboard
 export async function GET(request: NextRequest) {
   try {
@@ -67,29 +126,78 @@ export async function GET(request: NextRequest) {
     console.log('Turso URL:', process.env.TURSO_DATABASE_URL ? 'Set' : 'Missing')
     console.log('Turso Token:', process.env.TURSO_AUTH_TOKEN ? 'Set' : 'Missing')
     
-    // Get all users from leaderboard_scores table with their data
-    // Ensure no duplicates by grouping and getting the highest score per address
+    // Compute unique scores by normalized address, then join to a unique user row by normalized address.
     const allUsersResult = await client.execute(`
-      SELECT 
-        ls.address, 
-        MAX(ls.score) as score, 
-        lu.username, 
-        lu.pfp 
-      FROM leaderboard_scores ls 
-      LEFT JOIN leaderboard_users lu ON LOWER(ls.address) = LOWER(lu.address) 
-      WHERE ls.score > 0
-      GROUP BY LOWER(ls.address), lu.username, lu.pfp
-      ORDER BY score DESC
+      WITH normalized_scores AS (
+        SELECT LOWER(address) AS address, MAX(score) AS score
+        FROM leaderboard_scores
+        WHERE score > 0
+        GROUP BY LOWER(address)
+      ),
+      normalized_users AS (
+        SELECT LOWER(address) AS address,
+               MAX(username) AS username,
+               MAX(pfp) AS pfp
+        FROM leaderboard_users
+        GROUP BY LOWER(address)
+      )
+      SELECT ns.address, ns.score, nu.username, nu.pfp
+      FROM normalized_scores ns
+      LEFT JOIN normalized_users nu ON ns.address = nu.address
+      ORDER BY ns.score DESC
       LIMIT 50
     `)
 
-    // Process leaderboard entries (don't auto-generate profiles here)
+    // Process leaderboard entries
     const leaderboard = allUsersResult.rows.map(row => ({
       address: row.address as string,
       score: row.score as number,
       username: (row.username as string) || undefined,
       pfp: (row.pfp as string) || undefined
     }))
+
+    // Best-effort: fill missing Farcaster/Basename identity into DB (scores untouched).
+    const concurrency = 5
+    for (let i = 0; i < leaderboard.length; i += concurrency) {
+      const batch = leaderboard.slice(i, i + concurrency)
+      await Promise.all(batch.map(async (entry) => {
+        let username = entry.username
+        let pfp = entry.pfp
+
+        if (username && pfp) return
+
+        const farcaster = await fetchFarcasterIdentity(entry.address)
+        if (!username && farcaster?.username) username = farcaster.username
+        if (!pfp && farcaster?.pfp) pfp = farcaster.pfp
+
+        let basename: string | null = null
+        if (!username || !pfp) {
+          basename = await fetchBasename(entry.address)
+          if (!username && basename) username = basename
+        }
+
+        if (!pfp && basename) {
+          pfp = await fetchBasenameAvatar(basename) || undefined
+        }
+
+        if (!username && !pfp) return
+
+        // Upsert only missing fields; never overwrite existing identity with null.
+        await client.execute({
+          sql: `
+            INSERT INTO leaderboard_users (address, username, pfp)
+            VALUES (?, ?, ?)
+            ON CONFLICT(address) DO UPDATE SET
+              username = COALESCE(leaderboard_users.username, excluded.username),
+              pfp = COALESCE(leaderboard_users.pfp, excluded.pfp)
+          `,
+          args: [entry.address.toLowerCase(), username || null, pfp || null]
+        })
+
+        entry.username = username
+        entry.pfp = pfp
+      }))
+    }
 
     console.log('Leaderboard fetched:', leaderboard.length, 'unique entries')
     console.log('Top 5 entries:', leaderboard.slice(0, 5).map((entry, index) => 
