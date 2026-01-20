@@ -58,6 +58,14 @@ export default function BaseboundPage() {
     }
   }, [playMusic, shareSnapshotKey])
 
+  // Ensure DB tables exist early by hitting the Basebound stats endpoint once the wallet is connected.
+  useEffect(() => {
+    if (!address) return
+    fetch(`/api/game-stats/basebound?address=${address}`).catch(() => {
+      // ignore init errors (endpoint will still run on game over submission)
+    })
+  }, [address])
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
