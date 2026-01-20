@@ -5,12 +5,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { VEHICLE_CATALOG } from '@/lib/game/vehicleCatalog'
 import {
   ensureVehicleUpgrades,
+  fetchBaseboundProfile,
   getUpgradeCost,
   getVehicleUpgrades,
   loadBaseboundProfile,
+  persistBaseboundProfile,
   saveBaseboundProfile
 } from '@/lib/game/baseboundProfile'
 import type { UpgradeLevels } from '@/lib/game/types'
+import { useAccount } from 'wagmi'
 
 const MAX_UPGRADE_LEVEL = 20
 
@@ -36,7 +39,17 @@ export function GarageContent({
   onBack: () => void
   onPlay: () => void
 }) {
+  const { address } = useAccount()
   const [profile, setProfile] = useState(() => loadBaseboundProfile())
+
+  useEffect(() => {
+    if (!address) return
+    fetchBaseboundProfile(address).then(remote => {
+      if (!remote) return
+      saveBaseboundProfile(remote)
+      setProfile(remote)
+    })
+  }, [address])
 
   const selectedVehicle = useMemo(() => {
     return VEHICLE_CATALOG.find(v => v.id === profile.selectedVehicleId) ?? VEHICLE_CATALOG[0]
@@ -59,6 +72,11 @@ export function GarageContent({
     const next = ensureVehicleUpgrades({ ...profile, selectedVehicleId: vehicleId }, vehicleId)
     saveBaseboundProfile(next)
     setProfile(next)
+    if (address) {
+      persistBaseboundProfile(address, next).catch(() => {
+        // ignore sync errors
+      })
+    }
   }
 
   const handleUpgrade = (upgradeKey: keyof UpgradeLevels) => {
@@ -83,6 +101,11 @@ export function GarageContent({
 
     saveBaseboundProfile(next)
     setProfile(next)
+    if (address) {
+      persistBaseboundProfile(address, next).catch(() => {
+        // ignore sync errors
+      })
+    }
   }
 
   return (
@@ -236,4 +259,3 @@ export function GarageContent({
     </div>
   )
 }
-

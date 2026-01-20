@@ -28,31 +28,36 @@ const DEFAULT_PROFILE: BaseboundProfile = {
   }
 }
 
+export function normalizeBaseboundProfile(input: unknown): BaseboundProfile {
+  const parsed = (input && typeof input === 'object') ? (input as Partial<BaseboundProfile>) : {}
+
+  const mergedUpgrades = {
+    ...DEFAULT_PROFILE.upgrades,
+    ...(parsed.upgrades ?? {})
+  }
+
+  const upgradesByVehicle =
+    parsed.upgradesByVehicle ??
+    ({
+      [parsed.selectedVehicleId ?? DEFAULT_PROFILE.selectedVehicleId]: mergedUpgrades
+    } as Record<number, UpgradeLevels>)
+
+  return {
+    ...DEFAULT_PROFILE,
+    ...parsed,
+    upgrades: mergedUpgrades,
+    upgradesByVehicle
+  }
+}
+
 export function loadBaseboundProfile(): BaseboundProfile {
   if (typeof window === 'undefined') return DEFAULT_PROFILE
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_PROFILE
-    const parsed = JSON.parse(raw) as Partial<BaseboundProfile>
-
-    const mergedUpgrades = {
-      ...DEFAULT_PROFILE.upgrades,
-      ...(parsed.upgrades ?? {})
-    }
-
-    const upgradesByVehicle =
-      parsed.upgradesByVehicle ??
-      ({
-        [parsed.selectedVehicleId ?? DEFAULT_PROFILE.selectedVehicleId]: mergedUpgrades
-      } as Record<number, UpgradeLevels>)
-
-    return {
-      ...DEFAULT_PROFILE,
-      ...parsed,
-      upgrades: mergedUpgrades,
-      upgradesByVehicle
-    }
+    const parsed = JSON.parse(raw) as unknown
+    return normalizeBaseboundProfile(parsed)
   } catch {
     return DEFAULT_PROFILE
   }
@@ -61,6 +66,30 @@ export function loadBaseboundProfile(): BaseboundProfile {
 export function saveBaseboundProfile(profile: BaseboundProfile): void {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(profile))
+}
+
+export async function fetchBaseboundProfile(address: string): Promise<BaseboundProfile | null> {
+  try {
+    const response = await fetch(`/api/basebound/profile?address=${address}`, { method: 'GET' })
+    if (!response.ok) return null
+    const data = await response.json()
+    return normalizeBaseboundProfile(data)
+  } catch {
+    return null
+  }
+}
+
+export async function persistBaseboundProfile(address: string, profile: BaseboundProfile): Promise<boolean> {
+  try {
+    const response = await fetch('/api/basebound/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, profile })
+    })
+    return response.ok
+  } catch {
+    return false
+  }
 }
 
 export function getUpgradeCost(upgradeKey: keyof UpgradeLevels, currentLevel: number): number {

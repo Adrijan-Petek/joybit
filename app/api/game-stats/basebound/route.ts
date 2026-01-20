@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     await ensureTables()
 
     const body = await request.json()
-    const { address, meters } = body ?? {}
+    const { address, meters, coins, crashReason, vehicleId } = body ?? {}
 
     if (!address || typeof address !== 'string') {
       return NextResponse.json({ error: 'Address required' }, { status: 400 })
@@ -78,7 +78,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Valid meters required' }, { status: 400 })
     }
 
-    const result = await recordBaseboundRun(address, meters)
+    const result = await recordBaseboundRun(address, meters, {
+      coins: typeof coins === 'number' ? coins : undefined,
+      vehicleId: typeof vehicleId === 'number' ? vehicleId : undefined,
+      crashReason: typeof crashReason === 'string' ? crashReason : undefined
+    })
     const updatedScore = await updateUserScore(address)
 
     return NextResponse.json({

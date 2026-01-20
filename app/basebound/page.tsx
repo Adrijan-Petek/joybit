@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { GameState } from '@/lib/game/types'
 import { useAudio } from '@/components/audio/AudioContext'
 import { loadBaseboundProfile, saveBaseboundProfile } from '@/lib/game/baseboundProfile'
+import { fetchBaseboundProfile, persistBaseboundProfile } from '@/lib/game/baseboundProfile'
 import { useAccount } from 'wagmi'
 import { formatEther } from 'viem'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -63,6 +64,15 @@ export default function BaseboundPage() {
     if (!address) return
     fetch(`/api/game-stats/basebound?address=${address}`).catch(() => {
       // ignore init errors (endpoint will still run on game over submission)
+    })
+  }, [address])
+
+  // Sync remote Basebound profile (garage progression) into local storage when connected.
+  useEffect(() => {
+    if (!address) return
+    fetchBaseboundProfile(address).then(remote => {
+      if (!remote) return
+      saveBaseboundProfile(remote)
     })
   }, [address])
 
@@ -207,6 +217,11 @@ export default function BaseboundPage() {
         bestDistance: Math.max(profile.bestDistance ?? 0, state.distance ?? 0)
       }
       saveBaseboundProfile(next)
+      if (address) {
+        persistBaseboundProfile(address, next).catch(() => {
+          // ignore sync errors
+        })
+      }
     } catch {
       // ignore persistence errors
     }
@@ -216,7 +231,13 @@ export default function BaseboundPage() {
       fetch('/api/game-stats/basebound', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, meters: state.distance })
+        body: JSON.stringify({
+          address,
+          meters: state.distance,
+          coins: state.coins ?? 0,
+          crashReason: state.crashReason,
+          vehicleId: loadBaseboundProfile().selectedVehicleId
+        })
       }).catch(error => {
         console.warn('Failed to persist Basebound run:', error)
       })

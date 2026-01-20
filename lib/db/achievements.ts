@@ -222,6 +222,9 @@ export async function initAchievementTables() {
           user_address TEXT NOT NULL,
           meters INTEGER NOT NULL,
           score INTEGER NOT NULL,
+          coins INTEGER DEFAULT 0,
+          vehicle_id INTEGER,
+          crash_reason TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `)
@@ -229,6 +232,44 @@ export async function initAchievementTables() {
       await client.execute(`CREATE INDEX IF NOT EXISTS idx_basebound_runs_score ON basebound_runs(score DESC)`)
       await client.execute(`CREATE INDEX IF NOT EXISTS idx_basebound_runs_created ON basebound_runs(created_at DESC)`)
       console.log('✅ Basebound runs table created')
+    } else {
+      const columnsResult = await client.execute(`PRAGMA table_info(basebound_runs)`)
+      const existingColumns = new Set(columnsResult.rows.map(row => String((row as any).name)))
+
+      const addColumn = async (sql: string) => {
+        try {
+          await client.execute(sql)
+        } catch (error) {
+          console.warn('⚠️ Failed to add column (may already exist):', sql, error)
+        }
+      }
+
+      if (!existingColumns.has('coins')) {
+        await addColumn(`ALTER TABLE basebound_runs ADD COLUMN coins INTEGER DEFAULT 0`)
+      }
+      if (!existingColumns.has('vehicle_id')) {
+        await addColumn(`ALTER TABLE basebound_runs ADD COLUMN vehicle_id INTEGER`)
+      }
+      if (!existingColumns.has('crash_reason')) {
+        await addColumn(`ALTER TABLE basebound_runs ADD COLUMN crash_reason TEXT`)
+      }
+    }
+
+    // Create basebound_profiles table (garage progression saved per wallet)
+    const baseboundProfilesCheck = await client.execute(`
+      SELECT name FROM sqlite_master
+      WHERE type='table' AND name='basebound_profiles'
+    `)
+
+    if (baseboundProfilesCheck.rows.length === 0) {
+      await client.execute(`
+        CREATE TABLE basebound_profiles (
+          user_address TEXT PRIMARY KEY,
+          data TEXT NOT NULL,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `)
+      console.log('✅ Basebound profiles table created')
     }
 
     // Create user_achievements table
@@ -1001,17 +1042,28 @@ export function baseboundMetersToLeaderboardPoints(meters: number): number {
   return Math.floor(safeMeters / 10)
 }
 
-export async function recordBaseboundRun(userAddress: string, meters: number) {
+export async function recordBaseboundRun(
+  userAddress: string,
+  meters: number,
+  extras?: {
+    coins?: number
+    vehicleId?: number
+    crashReason?: string
+  }
+) {
   const normalizedAddress = userAddress.toLowerCase()
   const metersInt = Number.isFinite(meters) ? Math.max(0, Math.floor(meters)) : 0
   const score = baseboundMetersToLeaderboardPoints(metersInt)
   const now = Date.now()
+  const coins = typeof extras?.coins === 'number' && Number.isFinite(extras.coins) ? Math.max(0, Math.floor(extras.coins)) : 0
+  const vehicleId = typeof extras?.vehicleId === 'number' && Number.isFinite(extras.vehicleId) ? Math.max(0, Math.floor(extras.vehicleId)) : null
+  const crashReason = typeof extras?.crashReason === 'string' ? extras.crashReason : null
 
   await getUserStats(normalizedAddress)
 
   await client.execute({
-    sql: `INSERT INTO basebound_runs (user_address, meters, score) VALUES (?, ?, ?)`,
-    args: [normalizedAddress, metersInt, score]
+    sql: `INSERT INTO basebound_runs (user_address, meters, score, coins, vehicle_id, crash_reason) VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [normalizedAddress, metersInt, score, coins, vehicleId, crashReason]
   })
 
   // Only update best_* if this run beats best_meters.
