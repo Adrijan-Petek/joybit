@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'docs/**'
+      - 'docs/wiki/**'
       - '.github/workflows/wiki-publish.yml'
 
   # Allow manual trigger
@@ -22,6 +22,6 @@ jobs:
       - name: Publish Documentation to Wiki
         uses: SwiftDocOrg/github-wiki-publish-action@v1
         with:
-          path: "docs"
+          path: "docs/wiki"
         env:
           GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}

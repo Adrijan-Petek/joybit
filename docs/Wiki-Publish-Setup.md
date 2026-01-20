@@ -1,7 +1,7 @@
 # GitHub Wiki Auto-Publish Setup Guide
 
 ## Overview
-This guide helps you set up automatic publishing of your `docs/` folder to GitHub Wiki whenever documentation changes are pushed to the main branch.
+This guide helps you set up automatic publishing of your `docs/wiki/` folder to GitHub Wiki whenever wiki documentation changes are pushed to the `main` branch.
 
 ## Prerequisites
 
@@ -37,9 +37,9 @@ This guide helps you set up automatic publishing of your `docs/` folder to GitHu
 ## How It Works
 
 ### Automatic Publishing
-- Triggers on pushes to `main` branch that modify `docs/` files
+- Triggers on pushes to `main` branch that modify `docs/wiki/` files
 - Can also be triggered manually via GitHub Actions UI
-- Publishes all `.md` files from `docs/` to your wiki
+- Publishes wiki pages from `docs/wiki/` to your GitHub Wiki
 
 ### Workflow File
 Located at: `.github/workflows/wiki-publish.yml`
@@ -50,7 +50,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'docs/**'  # Only runs when docs change
+      - 'docs/wiki/**'  # Only runs when wiki docs change
   workflow_dispatch:  # Manual trigger
 ```
 
@@ -65,7 +65,7 @@ on:
 ### Verify Wiki Updates
 1. Click **Wiki** tab in your repository
 2. You should see your documentation pages
-3. Check that all `docs/` files are published
+3. Check that all `docs/wiki/` pages are published
 
 ## Troubleshooting
 
@@ -86,7 +86,7 @@ on:
 
 #### ❌ Workflow doesn't trigger
 - Check that changes are pushed to `main` branch
-- Verify that `docs/` files were actually modified
+- Verify that `docs/wiki/` files were actually modified
 - Check workflow trigger paths in `.github/workflows/wiki-publish.yml`
 
 ### Debug Steps
@@ -120,4 +120,4 @@ The choice depends on whether you want the wiki interface for easier navigation 
 
 ---
 
-**Ready to test?** Push a change to any `docs/` file and watch it auto-publish to your wiki! 🚀
+**Ready to test?** Push a change to any `docs/wiki/` file and watch it auto-publish to your wiki! 🚀

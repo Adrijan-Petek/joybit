@@ -15,7 +15,7 @@
 
 *Play • Earn • Own • Secure*
 
-[🌐 Live Demo](https://joybit.vercel.app) • [📖 Documentation](docs/) • [🎯 Quick Start](#quick-start) • [🛡️ Security Dashboard](#security)
+[🌐 Live Demo](https://joybit.vercel.app) • [📖 Docs](docs/) • [📚 Wiki](docs/wiki/Home.md) • [🎯 Quick Start](#quick-start) • [🛡️ Security Dashboard](#security-system)
 
 </div>
 
@@ -40,7 +40,7 @@
 
 ---
 
-## � Documentation
+## 📚 Documentation
 
 Complete documentation for Joybit development and deployment:
 
@@ -67,7 +67,7 @@ Complete documentation for Joybit development and deployment:
 
 ---
 
-## �🚀 Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -104,7 +104,7 @@ Visit **[http://localhost:3000](http://localhost:3000)** to start playing!
 **Strategic tile-matching gameplay with progressive difficulty**
 
 - **🎯 Objective**: Match 3+ tiles to reach score targets
-- **💰 Entry Fee**: 0.001 ETH per level
+- **💰 Entry Fee**: 0.001 ETH per play (plus 1 free play every 24h)
 - **🏆 Rewards**: JOYB tokens based on performance
 - **⚡ Features**: 8x8 grid, time challenges, combo multipliers
 
@@ -119,8 +119,9 @@ Visit **[http://localhost:3000](http://localhost:3000)** to start playing!
 **Luck-based strategy with blockchain randomness**
 
 - **🎯 Objective**: Choose 1 of 3 face-down cards
-- **💰 Entry Fee**: 0.002 ETH (configurable)
+- **💰 Entry Fee**: 0.002 ETH (plus 1 free play every 24h; configurable)
 - **🏆 Win Rate**: ~33.3% with block-based randomness
+- **🎁 Win Reward**: 100 JOYB (default; configurable)
 - **⚡ Features**: Instant results, fair distribution
 
 ### 📅 Daily Claim (DailyClaim)
@@ -128,8 +129,8 @@ Visit **[http://localhost:3000](http://localhost:3000)** to start playing!
 **Build streaks for maximum rewards**
 
 - **🎯 Objective**: Claim daily rewards to build streaks
-- **💰 Base Reward**: 0.001 JOYB tokens
-- **🏆 Streak Bonus**: +0.0002 JOYB per consecutive day
+- **💰 Base Reward**: 100 JOYB (default; configurable)
+- **🏆 Streak Bonus**: +10 JOYB per consecutive day (default; configurable)
 - **⚡ Features**: Automatic tracking, NFT achievements
 
 ### 🏎️ Basebound (Basebound)
@@ -429,7 +430,7 @@ npm run start
 
 ---
 
-## �️ Security System
+## 🛡️ Security System
 
 **Enterprise-grade security with real-time threat detection and comprehensive monitoring**
 
