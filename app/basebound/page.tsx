@@ -202,7 +202,18 @@ export default function BaseboundPage() {
     } catch {
       // ignore persistence errors
     }
-  }, [shareSnapshotKey, uploadSnapshot])
+
+    // Persist distance to DB for leaderboard (best distance -> score)
+    if (address && typeof state.distance === 'number' && state.distance > 0) {
+      fetch('/api/game-stats/basebound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, meters: state.distance })
+      }).catch(error => {
+        console.warn('Failed to persist Basebound run:', error)
+      })
+    }
+  }, [address, shareSnapshotKey, uploadSnapshot])
 
   const handleRetry = useCallback(() => {
     setGameState(null)

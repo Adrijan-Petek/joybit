@@ -161,6 +161,13 @@ export async function initAchievementTables() {
           daily_longest_streak INTEGER DEFAULT 0,
           daily_last_claim INTEGER DEFAULT 0,
 
+          -- Basebound stats
+          basebound_runs INTEGER DEFAULT 0,
+          basebound_total_meters INTEGER DEFAULT 0,
+          basebound_best_meters INTEGER DEFAULT 0,
+          basebound_best_score INTEGER DEFAULT 0,
+          basebound_last_played INTEGER DEFAULT 0,
+
           -- General stats
           total_playtime INTEGER DEFAULT 0,
           login_days INTEGER DEFAULT 0,
@@ -172,6 +179,56 @@ export async function initAchievementTables() {
         )
       `)
       console.log('✅ User stats table created')
+    } else {
+      // Add missing columns for existing installs (SQLite lacks ADD COLUMN IF NOT EXISTS).
+      const columnsResult = await client.execute(`PRAGMA table_info(user_stats)`)
+      const existingColumns = new Set(columnsResult.rows.map(row => String((row as any).name)))
+
+      const addColumn = async (sql: string) => {
+        try {
+          await client.execute(sql)
+        } catch (error) {
+          console.warn('⚠️ Failed to add column (may already exist):', sql, error)
+        }
+      }
+
+      if (!existingColumns.has('basebound_runs')) {
+        await addColumn(`ALTER TABLE user_stats ADD COLUMN basebound_runs INTEGER DEFAULT 0`)
+      }
+      if (!existingColumns.has('basebound_total_meters')) {
+        await addColumn(`ALTER TABLE user_stats ADD COLUMN basebound_total_meters INTEGER DEFAULT 0`)
+      }
+      if (!existingColumns.has('basebound_best_meters')) {
+        await addColumn(`ALTER TABLE user_stats ADD COLUMN basebound_best_meters INTEGER DEFAULT 0`)
+      }
+      if (!existingColumns.has('basebound_best_score')) {
+        await addColumn(`ALTER TABLE user_stats ADD COLUMN basebound_best_score INTEGER DEFAULT 0`)
+      }
+      if (!existingColumns.has('basebound_last_played')) {
+        await addColumn(`ALTER TABLE user_stats ADD COLUMN basebound_last_played INTEGER DEFAULT 0`)
+      }
+    }
+
+    // Create basebound_runs table
+    const baseboundRunsCheck = await client.execute(`
+      SELECT name FROM sqlite_master
+      WHERE type='table' AND name='basebound_runs'
+    `)
+
+    if (baseboundRunsCheck.rows.length === 0) {
+      await client.execute(`
+        CREATE TABLE basebound_runs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_address TEXT NOT NULL,
+          meters INTEGER NOT NULL,
+          score INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `)
+      await client.execute(`CREATE INDEX IF NOT EXISTS idx_basebound_runs_user ON basebound_runs(user_address)`)
+      await client.execute(`CREATE INDEX IF NOT EXISTS idx_basebound_runs_score ON basebound_runs(score DESC)`)
+      await client.execute(`CREATE INDEX IF NOT EXISTS idx_basebound_runs_created ON basebound_runs(created_at DESC)`)
+      console.log('✅ Basebound runs table created')
     }
 
     // Create user_achievements table
@@ -289,6 +346,11 @@ export async function getUserStats(userAddress: string) {
         daily_current_streak: 0,
         daily_longest_streak: 0,
         daily_last_claim: 0,
+        basebound_runs: 0,
+        basebound_total_meters: 0,
+        basebound_best_meters: 0,
+        basebound_best_score: 0,
+        basebound_last_played: 0,
         total_playtime: 0,
         login_days: 0,
         last_login: 0,
@@ -872,7 +934,9 @@ const SCORING_SYSTEM = {
   STREAK_DAY: 20,
   MINTED_ACHIEVEMENT: 20,
   UNLOCKED_ACHIEVEMENT: 10,
-  TOKEN_HOLDER_BONUS: 500 // For holding 5M+ of Joybit or adrijan tokens
+  TOKEN_HOLDER_BONUS: 500, // For holding 5M+ of Joybit or adrijan tokens
+  // Basebound: points derived from best distance
+  BASEBOUND_POINTS_PER_10M: 1
 }
 
 // Token contract addresses
@@ -917,6 +981,10 @@ export async function calculateUserScore(userAddress: string): Promise<number> {
     const mintedCount = mintedAchievements.rows[0]?.minted_count as number || 0
     totalScore += mintedCount * SCORING_SYSTEM.MINTED_ACHIEVEMENT
 
+    // Basebound scoring (best distance -> points)
+    const bestMeters = typeof (stats as any).basebound_best_meters === 'number' ? (stats as any).basebound_best_meters : 0
+    totalScore += Math.floor(bestMeters / 10) * SCORING_SYSTEM.BASEBOUND_POINTS_PER_10M
+
     // Token holder bonuses
     const tokenBonuses = await calculateTokenHolderBonuses(userAddress)
     totalScore += tokenBonuses
@@ -925,6 +993,51 @@ export async function calculateUserScore(userAddress: string): Promise<number> {
   } catch (error) {
     console.error('Error calculating user score:', error)
     return 0
+  }
+}
+
+export function baseboundMetersToLeaderboardPoints(meters: number): number {
+  const safeMeters = Number.isFinite(meters) ? Math.max(0, Math.floor(meters)) : 0
+  return Math.floor(safeMeters / 10)
+}
+
+export async function recordBaseboundRun(userAddress: string, meters: number) {
+  const normalizedAddress = userAddress.toLowerCase()
+  const metersInt = Number.isFinite(meters) ? Math.max(0, Math.floor(meters)) : 0
+  const score = baseboundMetersToLeaderboardPoints(metersInt)
+  const now = Date.now()
+
+  await getUserStats(normalizedAddress)
+
+  await client.execute({
+    sql: `INSERT INTO basebound_runs (user_address, meters, score) VALUES (?, ?, ?)`,
+    args: [normalizedAddress, metersInt, score]
+  })
+
+  // Only update best_* if this run beats best_meters.
+  await client.execute({
+    sql: `
+      UPDATE user_stats
+      SET
+        basebound_runs = basebound_runs + 1,
+        basebound_total_meters = basebound_total_meters + ?,
+        basebound_last_played = ?,
+        basebound_best_meters = CASE WHEN ? > basebound_best_meters THEN ? ELSE basebound_best_meters END,
+        basebound_best_score = CASE WHEN ? > basebound_best_meters THEN ? ELSE basebound_best_score END,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE LOWER(user_address) = LOWER(?)
+    `,
+    args: [metersInt, now, metersInt, metersInt, metersInt, score, normalizedAddress]
+  })
+
+  const updated = await getUserStats(normalizedAddress)
+  return {
+    meters: metersInt,
+    score,
+    bestMeters: (updated as any).basebound_best_meters || 0,
+    bestScore: baseboundMetersToLeaderboardPoints((updated as any).basebound_best_meters || 0),
+    totalMeters: (updated as any).basebound_total_meters || 0,
+    runs: (updated as any).basebound_runs || 0
   }
 }
 

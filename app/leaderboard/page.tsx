@@ -96,6 +96,7 @@ export default function Leaderboard() {
             <div>• Streak Day: <span className="text-yellow-400">20 pts</span></div>
             <div>• Minted Achievement: <span className="text-purple-400">20 pts</span></div>
             <div>• Unlocked Achievement: <span className="text-purple-400">10 pts</span></div>
+            <div>• Basebound Best Distance: <span className="text-cyan-300">1 pt / 10m</span></div>
           </div>
 
           {/* Token Holder Bonus - Animated Special Section */}
