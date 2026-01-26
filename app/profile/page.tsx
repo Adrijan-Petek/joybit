@@ -77,7 +77,7 @@ export default function ProfilePage() {
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([])
   const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [userData, setUserData] = useState<{ username?: string; pfp?: string }>({})
-  const [farcasterUserData, setFarcasterUserData] = useState<{ username?: string; pfpUrl?: string }>({})
+  const [farcasterUserData, setFarcasterUserData] = useState<{ username?: string; pfpUrl?: string; fid?: number }>({})
   const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [editingUsername, setEditingUsername] = useState('')
   const [usernameError, setUsernameError] = useState('')
@@ -263,7 +263,8 @@ export default function ProfilePage() {
       if (farcasterUserData.username || farcasterUserData.pfpUrl) {
         const farcasterData = {
           username: farcasterUserData.username,
-          pfp: farcasterUserData.pfpUrl
+          pfp: farcasterUserData.pfpUrl,
+          fid: farcasterUserData.fid
         }
         
         // Store this data in database for future use
@@ -277,11 +278,12 @@ export default function ProfilePage() {
             address, 
             score: data.currentScore || 0,
             username: farcasterData.username, 
-            pfp: farcasterData.pfp 
+            pfp: farcasterData.pfp,
+            fid: farcasterData.fid
           })
         })
         
-        setUserData(farcasterData)
+        setUserData({ username: farcasterData.username, pfp: farcasterData.pfp })
         return
       }
       
@@ -366,7 +368,8 @@ export default function ProfilePage() {
         const context = await sdk.context
         setFarcasterUserData({
           username: context?.user?.username,
-          pfpUrl: context?.user?.pfpUrl
+          pfpUrl: context?.user?.pfpUrl,
+          fid: typeof context?.user?.fid === 'number' ? context.user.fid : undefined
         })
       } catch (error) {
         console.log('Not in Farcaster Mini App context')

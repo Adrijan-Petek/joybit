@@ -5,6 +5,7 @@ export type LeaderboardEntry = {
   score: number
   username?: string
   pfp?: string
+  fid?: number
 }
 
 export function useLeaderboard() {

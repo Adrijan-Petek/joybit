@@ -20,7 +20,8 @@ async function initTables() {
     CREATE TABLE IF NOT EXISTS leaderboard_users (
       address TEXT PRIMARY KEY,
       username TEXT,
-      pfp TEXT
+      pfp TEXT,
+      fid INTEGER
     )
   `)
   await client.execute(`
@@ -33,10 +34,16 @@ async function initTables() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `)
+
+  const leaderboardUserColumns = await client.execute(`PRAGMA table_info(leaderboard_users)`)
+  const hasFidColumn = leaderboardUserColumns.rows.some((row) => row.name === 'fid')
+  if (!hasFidColumn) {
+    await client.execute(`ALTER TABLE leaderboard_users ADD COLUMN fid INTEGER`)
+  }
 }
 
-// Call init on module load
-initTables().catch(console.error)
+// Call init on module load (await in handlers to avoid race conditions)
+const initPromise = initTables().catch(console.error)
 
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
   const controller = new AbortController()
@@ -52,7 +59,16 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
   }
 }
 
-async function fetchFarcasterIdentity(address: string): Promise<{ username?: string; pfp?: string } | null> {
+function normalizeFid(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return undefined
+}
+
+async function fetchFarcasterIdentity(address: string): Promise<{ username?: string; pfp?: string; fid?: number } | null> {
   try {
     const response = await fetchWithTimeout(
       `https://api.farcaster.xyz/v2/user-by-verification?address=${address}`,
@@ -62,9 +78,11 @@ async function fetchFarcasterIdentity(address: string): Promise<{ username?: str
     const data = await response.json()
     const user = data?.result?.user
     if (!user) return null
+    const fid = normalizeFid(user.fid)
     return {
       username: typeof user.username === 'string' ? user.username : undefined,
-      pfp: typeof user.pfp?.url === 'string' ? user.pfp.url : undefined
+      pfp: typeof user.pfp?.url === 'string' ? user.pfp.url : undefined,
+      fid
     }
   } catch {
     return null
@@ -98,6 +116,7 @@ async function fetchBasenameAvatar(basename: string): Promise<string | null> {
 // GET leaderboard
 export async function GET(request: NextRequest) {
   try {
+    await initPromise
     const { searchParams } = new URL(request.url)
     const address = searchParams.get('address')
     
@@ -107,18 +126,20 @@ export async function GET(request: NextRequest) {
       const normalizedAddress = address.toLowerCase()
       
       const result = await client.execute({
-        sql: 'SELECT ls.score, lu.username, lu.pfp FROM leaderboard_scores ls LEFT JOIN leaderboard_users lu ON ls.address = lu.address WHERE LOWER(ls.address) = ?',
+        sql: 'SELECT ls.score, lu.username, lu.pfp, lu.fid FROM leaderboard_scores ls LEFT JOIN leaderboard_users lu ON ls.address = lu.address WHERE LOWER(ls.address) = ?',
         args: [normalizedAddress]
       })
       
       const currentScore = result.rows.length > 0 ? result.rows[0].score as number : 0
       const username = result.rows.length > 0 ? result.rows[0].username as string : null
       const pfp = result.rows.length > 0 ? result.rows[0].pfp as string : null
+      const fid = result.rows.length > 0 ? normalizeFid(result.rows[0].fid) : undefined
       
       return NextResponse.json({ 
         currentScore,
         username: username || undefined,
-        pfp: pfp || undefined
+        pfp: pfp || undefined,
+        fid
       })
     }
 
@@ -137,11 +158,12 @@ export async function GET(request: NextRequest) {
       normalized_users AS (
         SELECT LOWER(address) AS address,
                MAX(username) AS username,
-               MAX(pfp) AS pfp
+               MAX(pfp) AS pfp,
+               MAX(fid) AS fid
         FROM leaderboard_users
         GROUP BY LOWER(address)
       )
-      SELECT ns.address, ns.score, nu.username, nu.pfp
+      SELECT ns.address, ns.score, nu.username, nu.pfp, nu.fid
       FROM normalized_scores ns
       LEFT JOIN normalized_users nu ON ns.address = nu.address
       ORDER BY ns.score DESC
@@ -153,7 +175,8 @@ export async function GET(request: NextRequest) {
       address: row.address as string,
       score: row.score as number,
       username: (row.username as string) || undefined,
-      pfp: (row.pfp as string) || undefined
+      pfp: (row.pfp as string) || undefined,
+      fid: normalizeFid(row.fid)
     }))
 
     // Best-effort: fill missing Farcaster/Basename identity into DB (scores untouched).
@@ -164,11 +187,12 @@ export async function GET(request: NextRequest) {
         let username = entry.username
         let pfp = entry.pfp
 
-        if (username && pfp) return
+        if (username && pfp && entry.fid) return
 
         const farcaster = await fetchFarcasterIdentity(entry.address)
         if (!username && farcaster?.username) username = farcaster.username
         if (!pfp && farcaster?.pfp) pfp = farcaster.pfp
+        const fid = entry.fid ?? farcaster?.fid
 
         let basename: string | null = null
         if (!username || !pfp) {
@@ -180,22 +204,24 @@ export async function GET(request: NextRequest) {
           pfp = await fetchBasenameAvatar(basename) || undefined
         }
 
-        if (!username && !pfp) return
+        if (!username && !pfp && !fid) return
 
         // Upsert only missing fields; never overwrite existing identity with null.
         await client.execute({
           sql: `
-            INSERT INTO leaderboard_users (address, username, pfp)
-            VALUES (?, ?, ?)
+            INSERT INTO leaderboard_users (address, username, pfp, fid)
+            VALUES (?, ?, ?, ?)
             ON CONFLICT(address) DO UPDATE SET
               username = COALESCE(leaderboard_users.username, excluded.username),
-              pfp = COALESCE(leaderboard_users.pfp, excluded.pfp)
+              pfp = COALESCE(leaderboard_users.pfp, excluded.pfp),
+              fid = COALESCE(leaderboard_users.fid, excluded.fid)
           `,
-          args: [entry.address.toLowerCase(), username || null, pfp || null]
+          args: [entry.address.toLowerCase(), username || null, pfp || null, normalizeFid(fid) ?? null]
         })
 
         entry.username = username
         entry.pfp = pfp
+        entry.fid = normalizeFid(fid)
       }))
     }
 
@@ -218,8 +244,9 @@ export async function GET(request: NextRequest) {
 // POST update score or recalculate all scores
 export async function POST(request: NextRequest) {
   try {
+    await initPromise
     const body = await request.json()
-    const { address, score, username, pfp, action } = body
+    const { address, score, username, pfp, fid, action } = body
 
     // Handle recalculate action
     if (action === 'recalculate') {
@@ -279,7 +306,7 @@ export async function POST(request: NextRequest) {
     })
     
     // Always store user data if provided (also normalized)
-    if (username !== undefined || pfp !== undefined) {
+    if (username !== undefined || pfp !== undefined || fid !== undefined) {
       // Clean up any existing duplicate user entries
       await client.execute({
         sql: 'DELETE FROM leaderboard_users WHERE LOWER(address) = ? AND address != ?',
@@ -287,8 +314,15 @@ export async function POST(request: NextRequest) {
       })
       
       await client.execute({
-        sql: 'INSERT OR REPLACE INTO leaderboard_users (address, username, pfp) VALUES (?, ?, ?)',
-        args: [normalizedAddress, username || null, pfp || null]
+        sql: `
+          INSERT INTO leaderboard_users (address, username, pfp, fid)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(address) DO UPDATE SET
+            username = COALESCE(excluded.username, leaderboard_users.username),
+            pfp = COALESCE(excluded.pfp, leaderboard_users.pfp),
+            fid = COALESCE(excluded.fid, leaderboard_users.fid)
+        `,
+        args: [normalizedAddress, username || null, pfp || null, normalizeFid(fid) ?? null]
       })
     }
 
