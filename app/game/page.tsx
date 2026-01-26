@@ -103,6 +103,8 @@ export default function Match3Game() {
   const [activeBooster, setActiveBooster] = useState<'hammer' | 'colorBomb' | null>(null)
   const [userData, setUserData] = useState<{ username?: string; pfpUrl?: string }>({})
   const [allLevelRewards, setAllLevelRewards] = useState<Array<{level: number, amount: string}>>([])
+  const [showBased, setShowBased] = useState(false)
+  const basedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -128,6 +130,21 @@ export default function Match3Game() {
     
     initSDK()
   }, [playMusic])
+
+  useEffect(() => {
+    return () => {
+      if (basedTimerRef.current) clearTimeout(basedTimerRef.current)
+    }
+  }, [])
+
+  const triggerBased = useCallback(() => {
+    if (basedTimerRef.current) clearTimeout(basedTimerRef.current)
+    setShowBased(true)
+    playSound?.('based')
+    basedTimerRef.current = setTimeout(() => {
+      setShowBased(false)
+    }, 900)
+  }, [playSound])
 
   // Get last played level from contract
   const lastPlayedLevel = playerData && Array.isArray(playerData) ? Number(playerData[2]) || 1 : 1
@@ -299,6 +316,7 @@ export default function Match3Game() {
     let cascadeCount = 0
     const maxCascades = 10 // Prevent infinite cascades
     const { tileTypes } = getLevelConfig(gameState.level)
+    let comboTriggered = false
 
     while (hasMatches && cascadeCount < maxCascades) {
       const matches = findAllMatches(currentGrid)
@@ -306,6 +324,11 @@ export default function Match3Game() {
       if (matches.length === 0) {
         hasMatches = false
         break
+      }
+
+      if (!comboTriggered && cascadeCount >= 1) {
+        comboTriggered = true
+        triggerBased()
       }
 
       // Mark all matched tiles
@@ -382,7 +405,7 @@ export default function Match3Game() {
     setAnimating(false)
     processingRef.current = false
     return currentGrid
-  }, [playSound, gameState.score, gameState.targetScore, gameState.level])
+  }, [playSound, gameState.score, gameState.targetScore, gameState.level, triggerBased])
 
   // Auto-shuffle when no valid moves
   const checkAndShuffle = useCallback(async (grid: Tile[][]) => {
@@ -867,39 +890,55 @@ export default function Match3Game() {
         {/* Game Stats - Old removed, Level Selector removed */}
 
         {/* Game Grid */}
-        <div className="bg-gray-900/50 backdrop-blur-lg rounded-lg p-1.5 border border-gray-800">
-          <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}>
-            {gameState.grid.map((row, y) =>
-              row.map((tile, x) => (
-                <motion.button
-                  key={tile.id}
-                  onClick={() => handleTileClick(x, y)}
-                  disabled={!gameState.isPlaying || animating}
-                  className={`
-                    aspect-square rounded flex items-center justify-center overflow-hidden
-                    ${tile.isMatched ? 'opacity-0' : 'opacity-100'}
-                    ${gameState.selectedTile?.x === x && gameState.selectedTile?.y === y ? 'ring-2 ring-white' : ''}
-                    disabled:cursor-not-allowed
-                  `}
-                  initial={false}
-                  animate={{
-                    scale: tile.isMatched ? 0 : 1,
-                    opacity: tile.isMatched ? 0 : 1,
-                  }}
-                  transition={{ 
-                    duration: 0.2,
-                    ease: "easeOut"
-                  }}
-                >
-                  <img 
-                    src={getTileImage(tile.type)} 
-                    alt={`Tile ${tile.type}`}
-                    className="w-full h-full object-cover"
-                  />
-                </motion.button>
-              ))
-            )}
+        <div className="relative">
+          <div className="bg-gray-900/50 backdrop-blur-lg rounded-lg p-1.5 border border-gray-800">
+            <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}>
+              {gameState.grid.map((row, y) =>
+                row.map((tile, x) => (
+                  <motion.button
+                    key={tile.id}
+                    onClick={() => handleTileClick(x, y)}
+                    disabled={!gameState.isPlaying || animating}
+                    className={`
+                      aspect-square rounded flex items-center justify-center overflow-hidden
+                      ${tile.isMatched ? 'opacity-0' : 'opacity-100'}
+                      ${gameState.selectedTile?.x === x && gameState.selectedTile?.y === y ? 'ring-2 ring-white' : ''}
+                      disabled:cursor-not-allowed
+                    `}
+                    initial={false}
+                    animate={{
+                      scale: tile.isMatched ? 0 : 1,
+                      opacity: tile.isMatched ? 0 : 1,
+                    }}
+                    transition={{ 
+                      duration: 0.2,
+                      ease: "easeOut"
+                    }}
+                  >
+                    <img 
+                      src={getTileImage(tile.type)} 
+                      alt={`Tile ${tile.type}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </motion.button>
+                ))
+              )}
+            </div>
           </div>
+          <AnimatePresence>
+            {showBased && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              >
+                <div className="text-4xl md:text-5xl font-black text-blue-400 drop-shadow-[0_0_12px_rgba(59,130,246,0.8)]">
+                  BASED
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Shuffle Message */}

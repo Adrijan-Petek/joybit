@@ -78,7 +78,8 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       'card-flip',
       'card-click',
       'reward',
-      'click'
+      'click',
+      'based'
     ]
 
     const currentSoundRefs = soundRefs.current

@@ -26,6 +26,7 @@ export interface GameState {
 export const GRID_SIZE = 8
 export const TILE_TYPES = 8
 export const TIME_TILE_TYPE = 7
+export const TIME_TILE_CHANCE = 0.05
 export const MAX_LEVEL = 150
 
 // Level configuration with progressive difficulty curve
@@ -84,17 +85,11 @@ export const getLevelConfig = (level: number) => {
 }
 
 // Generate a random tile type
-const getTilePool = (baseTypes = TILE_TYPES): number[] => {
-  const clamped = Math.max(1, Math.min(baseTypes, TILE_TYPES - 1))
-  const pool = Array.from({ length: clamped }, (_, i) => i)
-  if (!pool.includes(TIME_TILE_TYPE)) pool.push(TIME_TILE_TYPE)
-  return pool
-}
-
-// Generate a random tile type (always includes time tile)
+// Generate a random tile type (time tile is rarer)
 export const getRandomTileType = (baseTypes = TILE_TYPES): number => {
-  const pool = getTilePool(baseTypes)
-  return pool[Math.floor(Math.random() * pool.length)]
+  const baseCount = Math.max(1, Math.min(baseTypes, TIME_TILE_TYPE))
+  if (Math.random() < TIME_TILE_CHANCE) return TIME_TILE_TYPE
+  return Math.floor(Math.random() * baseCount)
 }
 
 // Create a unique tile ID
@@ -144,8 +139,8 @@ export const initializeGrid = (tileTypes = TILE_TYPES): Tile[][] => {
       if (grid[y][x].type === TIME_TILE_TYPE) timeTiles.push(grid[y][x])
     }
   }
-  if (timeTiles.length < 3) {
-    const needed = 3 - timeTiles.length
+  if (timeTiles.length < 2) {
+    const needed = 2 - timeTiles.length
     let placed = 0
     let attempts = 0
     const maxAttempts = 200
@@ -218,7 +213,9 @@ export const shuffleGrid = (grid: Tile[][], tileTypes = TILE_TYPES): Tile[][] =>
       for (let x = 0; x < GRID_SIZE; x++) {
         const matches = findMatches(newGrid, x, y)
         if (matches.length >= 3) {
-          const availableTypes = getTilePool(tileTypes).filter(t => t !== newGrid[y][x].type)
+          const baseCount = Math.max(1, Math.min(tileTypes, TIME_TILE_TYPE))
+          const availableTypes = Array.from({ length: baseCount }, (_, i) => i)
+            .filter(t => t !== newGrid[y][x].type)
           newGrid[y][x].type = availableTypes[Math.floor(Math.random() * availableTypes.length)]
           hasMatches = true
         }
