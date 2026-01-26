@@ -41,6 +41,12 @@ const TILE_COLORS = [
   'bg-cyan-500',
 ]
 
+const TILE_IMAGE_MAP = [1, 2, 3, 4, 5, 6, 7, 18] as const
+const getTileImage = (type: number) => {
+  const index = Math.max(0, Math.min(type, TILE_IMAGE_MAP.length - 1))
+  return `/tiles/${TILE_IMAGE_MAP[index]}.png`
+}
+
 export default function Match3Game() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -881,7 +887,7 @@ export default function Match3Game() {
                   }}
                 >
                   <img 
-                    src={`/tiles/tile-${tile.type}.png`} 
+                    src={getTileImage(tile.type)} 
                     alt={`Tile ${tile.type}`}
                     className="w-full h-full object-cover"
                   />
