@@ -326,7 +326,7 @@ export default function Match3Game() {
         break
       }
 
-      if (!comboTriggered && cascadeCount >= 1) {
+      if (!comboTriggered && cascadeCount >= 1 && matches.length >= 5) {
         comboTriggered = true
         triggerBased()
       }

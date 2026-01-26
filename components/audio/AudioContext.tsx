@@ -35,6 +35,10 @@ interface AudioProviderProps {
   children: ReactNode
 }
 
+const SOUND_GAINS: Record<string, number> = {
+  based: 1.6,
+}
+
 export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const [isMuted, setIsMuted] = useState(false)
   const [isMusicMuted, setIsMusicMuted] = useState(false)
@@ -86,7 +90,8 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
 
     sounds.forEach(sound => {
       const audio = new Audio(`/audio/sfx/${sound}.mp3`)
-      audio.volume = volume
+      const gain = SOUND_GAINS[sound] ?? 1
+      audio.volume = Math.min(1, volume * gain)
       currentSoundRefs.set(sound, audio)
     })
 
@@ -103,8 +108,9 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
     if (musicRef.current) {
       musicRef.current.volume = (isMuted || isMusicMuted) ? 0 : musicVolume
     }
-    soundRefs.current.forEach(audio => {
-      audio.volume = (isMuted || isSoundMuted) ? 0 : soundVolume
+    soundRefs.current.forEach((audio, key) => {
+      const gain = SOUND_GAINS[key] ?? 1
+      audio.volume = (isMuted || isSoundMuted) ? 0 : Math.min(1, soundVolume * gain)
     })
   }, [isMuted, isMusicMuted, isSoundMuted, musicVolume, soundVolume])
 
