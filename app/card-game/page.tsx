@@ -5,12 +5,18 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAccount } from 'wagmi'
 import { formatEther } from 'viem'
+import { Space_Grotesk } from 'next/font/google'
 import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
 import { useCardGame, useCardGameData } from '@/lib/hooks/useCardGame'
 import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700']
+})
 
 interface Card {
   id: number
@@ -190,87 +196,87 @@ export default function CardGame() {
   const totalPlays = userStats?.card_games_played || 0
   const wins = userStats?.card_games_won || 0
   const winRate = totalPlays > 0 ? ((wins / totalPlays) * 100).toFixed(1) : '0.0'
+  const pointsPerPlay = calculateLeaderboardPoints('card_game')
+  const pointsPerWin = calculateLeaderboardPoints('card_win')
+  const isBusy = isPlaying || isPlayingTx
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-4">
+    <div className={`${spaceGrotesk.className} min-h-screen bg-[#05070a] text-white`}>
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <AudioButtons />
         <SettingsButton />
         <WalletButton />
       </div>
-      <div className="container mx-auto max-w-md pt-16 pb-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={() => router.push('/')}
-            className="bg-cyan-500 hover:bg-cyan-600 px-4 py-2 rounded-lg transition-all text-sm"
-          >
-            ← Back
-          </button>
-          <h1 className="text-2xl font-bold">🎴 Card Game</h1>
-          <div className="w-16"></div>
+      <div className="relative isolate min-h-screen overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-40 left-1/2 h-[420px] w-[520px] -translate-x-1/2 rounded-full bg-emerald-500/20 blur-[120px]" />
+          <div className="absolute bottom-[-160px] right-[-120px] h-[420px] w-[420px] rounded-full bg-amber-500/20 blur-[130px]" />
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 20% 20%, rgba(16,185,129,0.12), transparent 45%), radial-gradient(circle at 85% 10%, rgba(251,191,36,0.10), transparent 50%), radial-gradient(circle at 50% 80%, rgba(59,130,246,0.10), transparent 55%)'
+            }}
+          />
         </div>
+        <div className="container relative z-10 mx-auto max-w-5xl px-4 pb-12 pt-16">
+          {/* Header */}
+          <div className="mb-6 flex items-center justify-between">
+            <button
+              onClick={() => router.push('/')}
+              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 transition hover:border-emerald-300/40 hover:text-white"
+            >
+              Back
+            </button>
+            <div className="text-center">
+              <div className="text-xs uppercase tracking-[0.4em] text-emerald-200/70">Joybit Casino</div>
+              <h1 className="text-2xl md:text-4xl font-bold">🎴 Shadow Draw</h1>
+            </div>
+            <div className="hidden sm:flex w-24 justify-end text-xs text-white/40">
+              {isConnected ? 'Wallet linked' : 'Guest'}
+            </div>
+          </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-blue-500 rounded-lg p-2 md:p-3 text-center"
-          >
-            <div className="text-[10px] md:text-xs text-blue-200 mb-0.5">Total Plays</div>
-            <div className="text-lg md:text-2xl font-bold">{totalPlays}</div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-green-500 rounded-lg p-2 md:p-3 text-center"
-          >
-            <div className="text-[10px] md:text-xs text-green-200 mb-0.5">Wins</div>
-            <div className="text-lg md:text-2xl font-bold">{wins}</div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-purple-500 rounded-lg p-2 md:p-3 text-center"
-          >
-            <div className="text-[10px] md:text-xs text-purple-200 mb-0.5">Win Rate</div>
-            <div className="text-lg md:text-2xl font-bold">{winRate}%</div>
-          </motion.div>
-        </div>
+          <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+            {/* Table + Cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-emerald-950/60 via-[#07150f]/80 to-black/80 p-4 md:p-6 shadow-[0_30px_120px_rgba(0,0,0,0.6)]"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-emerald-200/60">Choose your fate</div>
+                  <h2 className="text-lg md:text-2xl font-semibold">Pick a card</h2>
+                </div>
+                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+                  {isBusy ? 'Shuffling on-chain…' : canPlayFree ? 'Free play' : `${formatEther(playFee || 0n)} ETH`}
+                </div>
+              </div>
 
-        {/* Game Info */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 md:p-4 mb-3 md:mb-4 text-center border border-gray-800"
-        >
-          <h2 className="text-base md:text-lg font-bold mb-1 md:mb-2">🎯 How to Play</h2>
-          <p className="text-xs md:text-sm text-gray-400 mb-2">
-            Pick one of the three cards. If you guess correctly, you win <span className="text-green-400 font-bold">{formatEther(winReward || 0n)} JOYB</span>!
-          </p>
-          <p className="text-xs md:text-sm text-blue-400">
-            {canPlayFree ? '✅ Free play available!' : `Cost: ${formatEther(playFee || 0n)} ETH`}
-          </p>
-        </motion.div>
-
-        {/* Cards */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
+              <div className="grid grid-cols-3 gap-4 md:gap-5">
           {cards.map((card) => (
             <motion.button
               key={card.id}
               onClick={() => !isPlaying && !isPlayingTx && handlePlayGame(card.id)}
               disabled={isPlaying || isPlayingTx || !isConnected || gameResult !== null}
-              className="relative"
-              whileHover={{ scale: !isPlaying && !isPlayingTx ? 1.05 : 1 }}
+              className={`group relative ${selectedCard === card.id ? 'z-10' : ''}`}
+              whileHover={{ scale: !isBusy ? 1.05 : 1 }}
               whileTap={{ scale: 0.95 }}
             >
+              <div
+                className={`absolute -inset-1 rounded-3xl blur-xl transition opacity-0 group-hover:opacity-70 ${selectedCard === card.id ? 'opacity-90' : ''}`}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(16,185,129,0.15))'
+                }}
+              />
               <div className="aspect-[2/3] relative" style={{ perspective: '1000px' }}>
                 <motion.div
-                  className="w-full h-full rounded-lg shadow-2xl cursor-pointer"
+                  className={`w-full h-full rounded-2xl shadow-2xl cursor-pointer border ${
+                    selectedCard === card.id
+                      ? 'border-amber-300/80 shadow-[0_0_25px_rgba(251,191,36,0.35)]'
+                      : 'border-white/10'
+                  }`}
                   animate={{
                     rotateY: card.isFlipped ? 180 : 0,
                   }}
@@ -279,19 +285,26 @@ export default function CardGame() {
                 >
                   {/* Card Back */}
                   <div
-                    className="absolute inset-0 rounded-lg overflow-hidden"
+                    className="absolute inset-0 rounded-2xl overflow-hidden"
                     style={{ backfaceVisibility: 'hidden' }}
                   >
                     <img 
                       src="/backgrounds/card-back.png" 
                       alt="Card Back"
-                      className="w-full h-full object-cover rounded-lg"
+                      className="w-full h-full object-cover rounded-2xl"
+                    />
+                    <div
+                      className="absolute inset-0 opacity-60"
+                      style={{
+                        backgroundImage:
+                          'linear-gradient(120deg, rgba(255,255,255,0.12), rgba(255,255,255,0) 45%), radial-gradient(circle at 30% 20%, rgba(251,191,36,0.25), transparent 45%)'
+                      }}
                     />
                   </div>
 
                   {/* Card Front */}
                   <div
-                    className="absolute inset-0 rounded-lg overflow-hidden"
+                    className="absolute inset-0 rounded-2xl overflow-hidden"
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
@@ -300,7 +313,7 @@ export default function CardGame() {
                     <img 
                       src={card.isWinner ? '/backgrounds/card-win.png' : '/backgrounds/card-lose.png'}
                       alt={card.isWinner ? 'Winner' : 'Lose'}
-                      className="w-full h-full object-cover rounded-lg"
+                      className="w-full h-full object-cover rounded-2xl"
                     />
                   </div>
                 </motion.div>
@@ -308,16 +321,101 @@ export default function CardGame() {
 
               {selectedCard === card.id && !card.isFlipped && (
                 <motion.div
-                  className="absolute -top-2 -right-2 bg-yellow-500 rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center text-sm md:text-base"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-black"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                 >
-                  ⭐
+                  Your pick
                 </motion.div>
               )}
             </motion.button>
           ))}
-        </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-xs md:text-sm text-white/70">
+                <div>
+                  {isConnected
+                    ? isBusy
+                      ? 'Processing your draw…'
+                      : 'Pick any card to reveal your fate.'
+                    : 'Connect wallet to shuffle the deck.'}
+                </div>
+                <div className="text-emerald-200/80">
+                  +{pointsPerPlay} pts play · +{pointsPerWin} pts win
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Side Panel */}
+            <div className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5"
+              >
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50 mb-3">Your record</div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-2xl bg-white/5 p-3 text-center">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/50">Plays</div>
+                    <div className="text-lg md:text-2xl font-semibold">{totalPlays}</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 p-3 text-center">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/50">Wins</div>
+                    <div className="text-lg md:text-2xl font-semibold">{wins}</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 p-3 text-center">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/50">Win %</div>
+                    <div className="text-lg md:text-2xl font-semibold">{winRate}%</div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="rounded-3xl border border-amber-300/20 bg-gradient-to-br from-amber-500/10 via-transparent to-emerald-500/10 p-4 md:p-5"
+              >
+                <div className="text-sm font-semibold mb-3">🎯 How it works</div>
+                <div className="space-y-2 text-xs md:text-sm text-white/70">
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span>Choose one of the three sealed cards.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span>Outcome is determined on-chain, then revealed.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span>
+                      Win reward: <span className="text-emerald-200 font-semibold">{formatEther(winReward || 0n)} JOYB</span>.
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="rounded-3xl border border-white/10 bg-black/50 p-4 md:p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.3em] text-white/50">Entry</div>
+                    <div className="text-base font-semibold">
+                      {canPlayFree ? 'Free play available' : `${formatEther(playFee || 0n)} ETH`}
+                    </div>
+                  </div>
+                  <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-white/60">
+                    {isConnected ? 'Ready' : 'Locked'}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
 
         {/* Result Popup */}
         {gameResult && (
@@ -359,7 +457,7 @@ export default function CardGame() {
                 </button>
                 <button
                   onClick={() => router.push('/profile')}
-                  className="w-full bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-xl font-bold transition-all"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-xl font-bold transition-all"
                 >
                   👤 Go to Profile
                 </button>
@@ -373,13 +471,12 @@ export default function CardGame() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center"
+            className="mt-6 text-center text-xs text-white/50"
           >
-            <p className="text-sm text-gray-400">
-              {isConnected ? 'Click any card to play!' : 'Connect wallet to play'}
-            </p>
+            {isConnected ? 'Tap a card to play. Wins can be claimed in Profile.' : 'Connect your wallet to start playing.'}
           </motion.div>
         )}
+        </div>
       </div>
     </div>
   )
