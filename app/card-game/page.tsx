@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAccount } from 'wagmi'
 import { formatEther } from 'viem'
-import { Space_Grotesk } from 'next/font/google'
 import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
@@ -13,10 +12,6 @@ import { SettingsButton } from '@/components/SettingsButton'
 import { useCardGame, useCardGameData } from '@/lib/hooks/useCardGame'
 import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700']
-})
 
 interface Card {
   id: number
@@ -203,7 +198,14 @@ export default function CardGame() {
   const playFeeDisplay = playFee === undefined ? '...' : formatEther(playFee)
 
   return (
-    <div className={`${spaceGrotesk.className} min-h-screen bg-[#05070a] text-white`}>
+    <div
+      className="min-h-screen"
+      style={{
+        backgroundColor: 'var(--theme-background)',
+        color: 'var(--theme-text)',
+        fontFamily: 'var(--theme-font-family)',
+      }}
+    >
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <AudioButtons />
         <SettingsButton />
@@ -211,13 +213,19 @@ export default function CardGame() {
       </div>
       <div className="relative isolate min-h-screen overflow-hidden">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-40 left-1/2 h-[420px] w-[520px] -translate-x-1/2 rounded-full bg-emerald-500/20 blur-[120px]" />
-          <div className="absolute bottom-[-160px] right-[-120px] h-[420px] w-[420px] rounded-full bg-amber-500/20 blur-[130px]" />
+          <div
+            className="absolute -top-40 left-1/2 h-[420px] w-[520px] -translate-x-1/2 rounded-full blur-[120px] opacity-30"
+            style={{ backgroundColor: 'var(--theme-primary)' }}
+          />
+          <div
+            className="absolute bottom-[-160px] right-[-120px] h-[420px] w-[420px] rounded-full blur-[130px] opacity-25"
+            style={{ backgroundColor: 'var(--theme-accent)' }}
+          />
           <div
             className="absolute inset-0 opacity-40"
             style={{
               backgroundImage:
-                'radial-gradient(circle at 20% 20%, rgba(16,185,129,0.12), transparent 45%), radial-gradient(circle at 85% 10%, rgba(251,191,36,0.10), transparent 50%), radial-gradient(circle at 50% 80%, rgba(59,130,246,0.10), transparent 55%)'
+                'radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--theme-primary) 25%, transparent), transparent 45%), radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--theme-accent) 20%, transparent), transparent 50%), radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--theme-secondary) 18%, transparent), transparent 55%)'
             }}
           />
         </div>
@@ -226,15 +234,25 @@ export default function CardGame() {
           <div className="mb-6 flex items-center justify-between">
             <button
               onClick={() => router.push('/')}
-              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 transition hover:border-emerald-300/40 hover:text-white"
+              className="rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition hover:opacity-90"
+              style={{
+                borderColor: 'var(--theme-border)',
+                backgroundColor: 'var(--theme-surface)',
+                color: 'var(--theme-text-secondary)'
+              }}
             >
               Back
             </button>
             <div className="text-center">
-              <div className="text-xs uppercase tracking-[0.4em] text-emerald-200/70">Joybit Casino</div>
+              <div
+                className="text-xs uppercase tracking-[0.4em]"
+                style={{ color: 'var(--theme-text-secondary)' }}
+              >
+                Joybit Casino
+              </div>
               <h1 className="text-2xl md:text-4xl font-bold">🎴 Shadow Draw</h1>
             </div>
-            <div className="hidden sm:flex w-24 justify-end text-xs text-white/40">
+            <div className="hidden sm:flex w-24 justify-end text-xs" style={{ color: 'var(--theme-text-secondary)' }}>
               {isConnected ? 'Wallet linked' : 'Guest'}
             </div>
           </div>
@@ -244,14 +262,31 @@ export default function CardGame() {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-emerald-950/60 via-[#07150f]/80 to-black/80 p-4 md:p-6 shadow-[0_30px_120px_rgba(0,0,0,0.6)]"
+              className="rounded-3xl border p-4 md:p-6 shadow-[0_30px_120px_rgba(0,0,0,0.6)]"
+              style={{
+                borderColor: 'var(--theme-border)',
+                background:
+                  'linear-gradient(180deg, color-mix(in srgb, var(--theme-primary) 18%, var(--theme-surface)) 0%, var(--theme-surface) 65%, var(--theme-background) 100%)'
+              }}
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="text-xs uppercase tracking-[0.3em] text-emerald-200/60">Choose your fate</div>
+                  <div
+                    className="text-xs uppercase tracking-[0.3em]"
+                    style={{ color: 'var(--theme-text-secondary)' }}
+                  >
+                    Choose your fate
+                  </div>
                   <h2 className="text-lg md:text-2xl font-semibold">Pick a card</h2>
                 </div>
-                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+                <div
+                  className="rounded-full border px-3 py-1 text-xs"
+                  style={{
+                    borderColor: 'var(--theme-border)',
+                    backgroundColor: 'var(--theme-surface)',
+                    color: 'var(--theme-text-secondary)'
+                  }}
+                >
                   {isBusy ? 'Shuffling on-chain…' : canPlayFree ? 'Free play' : `${playFeeDisplay} ETH`}
                 </div>
               </div>
@@ -269,21 +304,25 @@ export default function CardGame() {
               <div
                 className={`absolute -inset-1 rounded-3xl blur-xl transition opacity-0 group-hover:opacity-70 ${selectedCard === card.id ? 'opacity-90' : ''}`}
                 style={{
-                  background: 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(16,185,129,0.15))'
+                  background:
+                    'linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 35%, transparent), color-mix(in srgb, var(--theme-primary) 25%, transparent))'
                 }}
               />
               <div className="aspect-[2/3] relative" style={{ perspective: '1000px' }}>
                 <motion.div
-                  className={`w-full h-full rounded-2xl shadow-2xl cursor-pointer border ${
-                    selectedCard === card.id
-                      ? 'border-amber-300/80 shadow-[0_0_25px_rgba(251,191,36,0.35)]'
-                      : 'border-white/10'
-                  }`}
+                  className="w-full h-full rounded-2xl shadow-2xl cursor-pointer border"
                   animate={{
                     rotateY: card.isFlipped ? 180 : 0,
                   }}
                   transition={{ duration: 0.6 }}
-                  style={{ transformStyle: 'preserve-3d', position: 'relative' }}
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    position: 'relative',
+                    borderColor: selectedCard === card.id ? 'var(--theme-accent)' : 'var(--theme-border)',
+                    boxShadow: selectedCard === card.id
+                      ? '0 0 25px color-mix(in srgb, var(--theme-accent) 45%, transparent)'
+                      : undefined
+                  }}
                 >
                   {/* Card Back */}
                   <div
@@ -323,9 +362,13 @@ export default function CardGame() {
 
               {selectedCard === card.id && !card.isFlipped && (
                 <motion.div
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-black"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em]"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
+                  style={{
+                    backgroundColor: 'var(--theme-accent)',
+                    color: 'var(--theme-background)'
+                  }}
                 >
                   Your pick
                 </motion.div>
@@ -334,7 +377,14 @@ export default function CardGame() {
           ))}
               </div>
 
-              <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-xs md:text-sm text-white/70">
+              <div
+                className="mt-4 flex items-center justify-between rounded-2xl border px-4 py-3 text-xs md:text-sm"
+                style={{
+                  borderColor: 'var(--theme-border)',
+                  backgroundColor: 'var(--theme-surface)',
+                  color: 'var(--theme-text-secondary)'
+                }}
+              >
                 <div>
                   {isConnected
                     ? isBusy
@@ -342,7 +392,7 @@ export default function CardGame() {
                       : 'Pick any card to reveal your fate.'
                     : 'Connect wallet to shuffle the deck.'}
                 </div>
-                <div className="text-emerald-200/80">
+                <div style={{ color: 'var(--theme-primary)' }}>
                   +{pointsPerPlay} pts play · +{pointsPerWin} pts win
                 </div>
               </div>
@@ -354,20 +404,26 @@ export default function CardGame() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5"
+                className="rounded-3xl border p-4 md:p-5"
+                style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-surface)' }}
               >
-                <div className="text-xs uppercase tracking-[0.3em] text-white/50 mb-3">Your record</div>
+                <div
+                  className="text-xs uppercase tracking-[0.3em] mb-3"
+                  style={{ color: 'var(--theme-text-secondary)' }}
+                >
+                  Your record
+                </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-2xl bg-white/5 p-3 text-center">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/50">Plays</div>
+                  <div className="rounded-2xl p-3 text-center" style={{ backgroundColor: 'var(--theme-background)' }}>
+                    <div className="text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--theme-text-secondary)' }}>Plays</div>
                     <div className="text-lg md:text-2xl font-semibold">{totalPlays}</div>
                   </div>
-                  <div className="rounded-2xl bg-white/5 p-3 text-center">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/50">Wins</div>
+                  <div className="rounded-2xl p-3 text-center" style={{ backgroundColor: 'var(--theme-background)' }}>
+                    <div className="text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--theme-text-secondary)' }}>Wins</div>
                     <div className="text-lg md:text-2xl font-semibold">{wins}</div>
                   </div>
-                  <div className="rounded-2xl bg-white/5 p-3 text-center">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/50">Win %</div>
+                  <div className="rounded-2xl p-3 text-center" style={{ backgroundColor: 'var(--theme-background)' }}>
+                    <div className="text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--theme-text-secondary)' }}>Win %</div>
                     <div className="text-lg md:text-2xl font-semibold">{winRate}%</div>
                   </div>
                 </div>
@@ -377,22 +433,27 @@ export default function CardGame() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="rounded-3xl border border-amber-300/20 bg-gradient-to-br from-amber-500/10 via-transparent to-emerald-500/10 p-4 md:p-5"
+                className="rounded-3xl border p-4 md:p-5"
+                style={{
+                  borderColor: 'var(--theme-border)',
+                  background:
+                    'linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 16%, transparent), color-mix(in srgb, var(--theme-primary) 12%, transparent))'
+                }}
               >
                 <div className="text-sm font-semibold mb-3">🎯 How it works</div>
-                <div className="space-y-2 text-xs md:text-sm text-white/70">
+                <div className="space-y-2 text-xs md:text-sm" style={{ color: 'var(--theme-text-secondary)' }}>
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--theme-primary)' }} />
                     <span>Choose one of the three sealed cards.</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--theme-primary)' }} />
                     <span>Outcome is determined on-chain, then revealed.</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--theme-primary)' }} />
                     <span>
-                      Win reward: <span className="text-emerald-200 font-semibold">{winRewardDisplay} JOYB</span>.
+                      Win reward: <span className="font-semibold" style={{ color: 'var(--theme-primary)' }}>{winRewardDisplay} JOYB</span>.
                     </span>
                   </div>
                 </div>
@@ -402,16 +463,24 @@ export default function CardGame() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="rounded-3xl border border-white/10 bg-black/50 p-4 md:p-5"
+                className="rounded-3xl border p-4 md:p-5"
+                style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-surface)' }}
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-xs uppercase tracking-[0.3em] text-white/50">Entry</div>
+                    <div className="text-xs uppercase tracking-[0.3em]" style={{ color: 'var(--theme-text-secondary)' }}>Entry</div>
                     <div className="text-base font-semibold">
                       {canPlayFree ? 'Free play available' : `${playFeeDisplay} ETH`}
                     </div>
                   </div>
-                  <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-white/60">
+                  <div
+                    className="rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.2em]"
+                    style={{
+                      borderColor: 'var(--theme-border)',
+                      backgroundColor: 'var(--theme-background)',
+                      color: 'var(--theme-text-secondary)'
+                    }}
+                  >
                     {isConnected ? 'Ready' : 'Locked'}
                   </div>
                 </div>
@@ -429,14 +498,14 @@ export default function CardGame() {
             <motion.div
               initial={{ scale: 0.8, y: 50 }}
               animate={{ scale: 1, y: 0 }}
-              className={`
-                rounded-2xl p-6 max-w-sm w-full border-2 shadow-2xl
-                ${
+              className="rounded-2xl p-6 max-w-sm w-full border-2 shadow-2xl"
+              style={{
+                borderColor: gameResult === 'win' ? 'var(--theme-success)' : 'var(--theme-error)',
+                background:
                   gameResult === 'win'
-                    ? 'bg-gradient-to-br from-green-600 to-emerald-700 border-green-400'
-                    : 'bg-gradient-to-br from-red-600 to-pink-700 border-red-400'
-                }
-              `}
+                    ? 'linear-gradient(135deg, color-mix(in srgb, var(--theme-success) 70%, transparent), color-mix(in srgb, var(--theme-primary) 40%, transparent))'
+                    : 'linear-gradient(135deg, color-mix(in srgb, var(--theme-error) 70%, transparent), color-mix(in srgb, var(--theme-accent) 35%, transparent))'
+              }}
             >
               <div className="text-center">
                 <div className="text-6xl mb-4">{gameResult === 'win' ? '🎉' : '😢'}</div>
@@ -453,13 +522,15 @@ export default function CardGame() {
                 )}
                 <button
                   onClick={resetGame}
-                  className="w-full bg-white text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all mb-2"
+                  className="w-full px-6 py-3 rounded-xl font-bold transition-all mb-2 border hover:opacity-90"
+                  style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                 >
                   🎮 Play Again
                 </button>
                 <button
                   onClick={() => router.push('/profile')}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-xl font-bold transition-all"
+                  className="w-full px-6 py-3 rounded-xl font-bold transition-all hover:opacity-90"
+                  style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-text)' }}
                 >
                   👤 Go to Profile
                 </button>
@@ -473,7 +544,8 @@ export default function CardGame() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-6 text-center text-xs text-white/50"
+            className="mt-6 text-center text-xs"
+            style={{ color: 'var(--theme-text-secondary)' }}
           >
             {isConnected ? 'Tap a card to play. Wins can be claimed in Profile.' : 'Connect your wallet to start playing.'}
           </motion.div>

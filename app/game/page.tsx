@@ -30,17 +30,6 @@ import {
   GRID_SIZE,
 } from '@/components/game-engine/match3Engine'
 
-const TILE_COLORS = [
-  'bg-red-500',
-  'bg-blue-500',
-  'bg-green-500',
-  'bg-yellow-500',
-  'bg-purple-500',
-  'bg-pink-500',
-  'bg-orange-500',
-  'bg-cyan-500',
-]
-
 const TILE_IMAGE_MAP = [1, 2, 3, 4, 5, 6, 7, 18] as const
 const getTileImage = (type: number) => {
   const index = Math.max(0, Math.min(type, TILE_IMAGE_MAP.length - 1))
@@ -737,60 +726,102 @@ export default function Match3Game() {
   if (!mounted) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-2">
+    <div
+      className="min-h-screen"
+      style={{
+        backgroundColor: 'var(--theme-background)',
+        color: 'var(--theme-text)',
+        fontFamily: 'var(--theme-font-family)'
+      }}
+    >
       <div className="fixed top-2 right-2 z-50 flex items-center gap-2">
         <AudioButtons />
         <SettingsButton />
         <WalletButton />
       </div>
 
-      <div className="container mx-auto max-w-md pt-14 pb-4 px-2">
+      <div className="relative isolate min-h-screen overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <div
+            className="absolute -top-40 left-1/2 h-[420px] w-[520px] -translate-x-1/2 rounded-full blur-[120px] opacity-30"
+            style={{ backgroundColor: 'var(--theme-primary)' }}
+          />
+          <div
+            className="absolute bottom-[-160px] right-[-120px] h-[420px] w-[420px] rounded-full blur-[130px] opacity-25"
+            style={{ backgroundColor: 'var(--theme-accent)' }}
+          />
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--theme-primary) 25%, transparent), transparent 45%), radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--theme-accent) 20%, transparent), transparent 50%), radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--theme-secondary) 18%, transparent), transparent 55%)'
+            }}
+          />
+        </div>
+
+        <div className="container relative z-10 mx-auto max-w-md pt-14 pb-4 px-2">
         {/* Header */}
         <div className="flex justify-between items-center mb-2">
           <button
             onClick={() => router.push('/')}
-            className="bg-cyan-500 hover:bg-cyan-600 px-3 py-1.5 rounded-lg transition-all text-xs"
+            className="px-3 py-1.5 rounded-lg transition-all text-xs border hover:opacity-90"
+            style={{
+              backgroundColor: 'var(--theme-surface)',
+              borderColor: 'var(--theme-border)',
+              color: 'var(--theme-text)'
+            }}
           >
             ← Back
           </button>
           <h1 className="text-base font-bold">🎮 Match-3</h1>
           <button
             onClick={() => setShowBoosterShop(!showBoosterShop)}
-            className="bg-purple-500 hover:bg-purple-600 px-3 py-1.5 rounded-lg transition-all text-xs"
+            className="px-3 py-1.5 rounded-lg transition-all text-xs hover:opacity-90"
+            style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-text)' }}
           >
             🛒 Shop
           </button>
         </div>
 
         {/* Game Info Panel */}
-        <div className="bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur rounded-xl p-2 mb-2 border border-gray-700/50 shadow-lg">
+        <div
+          className="backdrop-blur rounded-xl p-2 mb-2 border shadow-lg"
+          style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
+        >
           {/* Single Row: All Game Stats */}
           <div className="flex items-center justify-between gap-1 text-center">
             <div className="flex flex-col items-center">
-              <div className="text-[8px] text-blue-300 font-medium">Level</div>
-              <div className="text-xs font-bold text-blue-400">{gameState.level}</div>
+              <div className="text-[8px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>Level</div>
+              <div className="text-xs font-bold" style={{ color: 'var(--theme-primary)' }}>{gameState.level}</div>
             </div>
             <div className="flex flex-col items-center">
-              <div className="text-[8px] text-green-300 font-medium">Score</div>
-              <div className="text-xs font-bold text-green-400">{gameState.score.toLocaleString()}</div>
+              <div className="text-[8px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>Score</div>
+              <div className="text-xs font-bold" style={{ color: 'var(--theme-success)' }}>{gameState.score.toLocaleString()}</div>
             </div>
             <div className="flex flex-col items-center">
-              <div className="text-[8px] text-purple-300 font-medium">Moves</div>
-              <div className="text-xs font-bold text-purple-400">{gameState.moves}</div>
+              <div className="text-[8px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>Moves</div>
+              <div className="text-xs font-bold" style={{ color: 'var(--theme-secondary)' }}>{gameState.moves}</div>
             </div>
             <div className="flex flex-col items-center">
-              <div className="text-[8px] text-orange-300 font-medium">Time</div>
-              <div className="text-xs font-bold text-orange-400">{gameState.timeLeft}s</div>
+              <div className="text-[8px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>Time</div>
+              <div className="text-xs font-bold" style={{ color: 'var(--theme-warning)' }}>{gameState.timeLeft}s</div>
             </div>
             <div className="flex flex-col items-center">
-              <div className="text-[8px] text-cyan-300 font-medium">Target</div>
-              <div className="text-xs font-bold text-cyan-400">{gameState.targetScore.toLocaleString()}</div>
+              <div className="text-[8px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>Target</div>
+              <div className="text-xs font-bold" style={{ color: 'var(--theme-accent)' }}>{gameState.targetScore.toLocaleString()}</div>
             </div>
           </div>
 
           {/* Bottom Row: Level Rewards */}
-          <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-3">
-            <div className="text-center text-[10px] font-bold text-yellow-400 mb-2">
+          <div
+            className="rounded-lg p-3 border"
+            style={{
+              borderColor: 'var(--theme-accent)',
+              background:
+                'linear-gradient(90deg, color-mix(in srgb, var(--theme-accent) 18%, transparent), color-mix(in srgb, var(--theme-warning) 12%, transparent))'
+            }}
+          >
+            <div className="text-center text-[10px] font-bold mb-2" style={{ color: 'var(--theme-accent)' }}>
               🎁 Level Rewards
             </div>
             {/* Progress Bar */}
@@ -800,10 +831,16 @@ export default function Match3Game() {
               const progressPercent = maxLevel > 0 ? Math.min((gameState.level / maxLevel) * 100, 100) : 0
               
               return (
-                <div className="relative w-full h-2 bg-gray-600 rounded-full mb-2">
+                <div
+                  className="relative w-full h-2 rounded-full mb-2"
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--theme-border) 60%, transparent)' }}
+                >
                   <div 
-                    className="h-full bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full transition-all duration-300"
-                    style={{ width: `${progressPercent}%` }}
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${progressPercent}%`,
+                      background: 'linear-gradient(90deg, var(--theme-accent), var(--theme-primary))'
+                    }}
                   ></div>
                   {/* Milestones */}
                   {configuredRewards.map((reward) => {
@@ -814,10 +851,24 @@ export default function Match3Game() {
                       <div
                         key={reward.level}
                         className="absolute top-1/2 transform -translate-y-1/2 w-3 h-3 rounded-full border-2 cursor-pointer"
-                        style={{ left: `${position}%`, transform: 'translate(-50%, -50%)' }}
+                        style={{ left: `${position}%`, transform: 'translate(-50%, -50%)', borderColor: 'var(--theme-border)' }}
                         title={`Level ${reward.level}\nReward: ${reward.amount} JOYB`}
                       >
-                        <div className={`w-full h-full rounded-full ${isClaimed ? 'bg-green-500 border-green-300' : isUnlocked ? 'bg-yellow-400 border-yellow-300' : 'bg-gray-500 border-gray-400'}`}>
+                        <div
+                          className="w-full h-full rounded-full"
+                          style={{
+                            backgroundColor: isClaimed
+                              ? 'var(--theme-success)'
+                              : isUnlocked
+                                ? 'var(--theme-accent)'
+                                : 'color-mix(in srgb, var(--theme-border) 70%, transparent)',
+                            borderColor: isClaimed
+                              ? 'var(--theme-success)'
+                              : isUnlocked
+                                ? 'var(--theme-accent)'
+                                : 'var(--theme-border)'
+                          }}
+                        >
                           {isClaimed && <span className="absolute inset-0 flex items-center justify-center text-white text-[8px]">✔</span>}
                         </div>
                       </div>
@@ -835,8 +886,12 @@ export default function Match3Game() {
                 return (
                   <div
                     key={`label-${reward.level}`}
-                    className="absolute top-0 text-[8px] text-gray-400 font-medium"
-                    style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
+                    className="absolute top-0 text-[8px] font-medium"
+                    style={{
+                      color: 'var(--theme-text-secondary)',
+                      left: `${position}%`,
+                      transform: 'translateX(-50%)'
+                    }}
                   >
                     Lv.{reward.level}
                   </div>
@@ -852,25 +907,43 @@ export default function Match3Game() {
             <button
               onClick={() => handleBooster('hammer')}
               disabled={gameState.boosters.hammer <= 0}
-              className={`flex-1 hover:bg-orange-600 disabled:bg-gray-600 disabled:opacity-50 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeBooster === 'hammer' ? 'bg-orange-600 ring-2 ring-yellow-400 animate-pulse' : 'bg-orange-500'
-              }`}
+              className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${activeBooster === 'hammer' ? 'animate-pulse' : ''}`}
+              style={{
+                backgroundColor: activeBooster === 'hammer'
+                  ? 'var(--theme-warning)'
+                  : 'color-mix(in srgb, var(--theme-warning) 75%, var(--theme-surface))',
+                color: 'var(--theme-text)',
+                boxShadow: activeBooster === 'hammer'
+                  ? '0 0 0 2px color-mix(in srgb, var(--theme-accent) 70%, transparent)'
+                  : undefined
+              }}
             >
               🔨 {gameState.boosters.hammer}
             </button>
             <button
               onClick={() => handleBooster('shuffle')}
               disabled={gameState.boosters.shuffle <= 0}
-              className="flex-1 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 disabled:opacity-50 px-2 py-1.5 rounded-lg text-xs font-bold"
+              className="flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: 'var(--theme-secondary)',
+                color: 'var(--theme-text)'
+              }}
             >
               🔀 {gameState.boosters.shuffle}
             </button>
             <button
               onClick={() => handleBooster('colorBomb')}
               disabled={gameState.boosters.colorBomb <= 0}
-              className={`flex-1 hover:bg-red-600 disabled:bg-gray-600 disabled:opacity-50 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeBooster === 'colorBomb' ? 'bg-red-600 ring-2 ring-yellow-400 animate-pulse' : 'bg-red-500'
-              }`}
+              className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${activeBooster === 'colorBomb' ? 'animate-pulse' : ''}`}
+              style={{
+                backgroundColor: activeBooster === 'colorBomb'
+                  ? 'var(--theme-error)'
+                  : 'color-mix(in srgb, var(--theme-error) 80%, var(--theme-surface))',
+                color: 'var(--theme-text)',
+                boxShadow: activeBooster === 'colorBomb'
+                  ? '0 0 0 2px color-mix(in srgb, var(--theme-accent) 70%, transparent)'
+                  : undefined
+              }}
             >
               💣 {gameState.boosters.colorBomb}
             </button>
@@ -880,7 +953,14 @@ export default function Match3Game() {
         {/* Active Booster Indicator */}
         {activeBooster && (
           <div className="mb-2 text-center">
-            <div className="bg-yellow-500/20 border border-yellow-500 rounded-lg px-3 py-2 text-xs font-bold text-yellow-300 animate-pulse">
+            <div
+              className="rounded-lg px-3 py-2 text-xs font-bold animate-pulse border"
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--theme-accent) 18%, transparent)',
+                borderColor: 'var(--theme-accent)',
+                color: 'var(--theme-accent)'
+              }}
+            >
               {activeBooster === 'hammer' && '🔨 Click any tile to destroy it!'}
               {activeBooster === 'colorBomb' && '💣 Click a tile to destroy all tiles of that color!'}
             </div>
@@ -891,7 +971,10 @@ export default function Match3Game() {
 
         {/* Game Grid */}
         <div className="relative">
-          <div className="bg-gray-900/50 backdrop-blur-lg rounded-lg p-1.5 border border-gray-800">
+        <div
+          className="backdrop-blur-lg rounded-lg p-1.5 border"
+          style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
+        >
             <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}>
               {gameState.grid.map((row, y) =>
                 row.map((tile, x) => (
@@ -933,7 +1016,13 @@ export default function Match3Game() {
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="absolute inset-0 flex items-center justify-center pointer-events-none"
               >
-                <div className="text-4xl md:text-5xl font-black text-blue-400 drop-shadow-[0_0_12px_rgba(59,130,246,0.8)]">
+                <div
+                  className="text-4xl md:text-5xl font-black"
+                  style={{
+                    color: 'var(--theme-primary)',
+                    textShadow: '0 0 12px color-mix(in srgb, var(--theme-primary) 70%, transparent)'
+                  }}
+                >
                   BASED
                 </div>
               </motion.div>
@@ -950,7 +1039,10 @@ export default function Match3Game() {
               exit={{ opacity: 0, scale: 0.8 }}
               className="fixed inset-0 flex items-center justify-center z-50 bg-black/50"
             >
-              <div className="bg-cyan-500 text-white px-8 py-4 rounded-xl text-xl font-bold shadow-2xl">
+              <div
+                className="px-8 py-4 rounded-xl text-xl font-bold shadow-2xl"
+                style={{ backgroundColor: 'var(--theme-secondary)', color: 'var(--theme-text)' }}
+              >
                 🔀 Shuffling Board...
               </div>
             </motion.div>
@@ -970,39 +1062,53 @@ export default function Match3Game() {
               initial={{ scale: 0.8, y: 50 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, y: 50 }}
-              className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-4 md:p-6 max-w-sm w-full border-2 border-purple-500 shadow-2xl"
+              className="rounded-2xl p-4 md:p-6 max-w-sm w-full border-2 shadow-2xl"
+              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-primary)' }}
             >
-              <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-center" style={{ color: 'var(--theme-primary)' }}>
                 🎮 Match-3 Game
               </h2>
               
               <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
-                <div className="bg-gray-800/50 rounded-lg p-2 md:p-3 text-xs md:text-sm">
+                <div className="rounded-lg p-2 md:p-3 text-xs md:text-sm border" style={{ backgroundColor: 'var(--theme-background)', borderColor: 'var(--theme-border)' }}>
                   <div className="flex justify-between mb-1">
-                    <span className="text-gray-400">Your Progress:</span>
-                    <span className="text-purple-400 font-bold">Level {lastPlayedLevel}</span>
+                    <span style={{ color: 'var(--theme-text-secondary)' }}>Your Progress:</span>
+                    <span style={{ color: 'var(--theme-primary)' }} className="font-bold">Level {lastPlayedLevel}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Free Play:</span>
-                    <span className={canPlayFree ? 'text-green-400' : 'text-red-400'}>
+                    <span style={{ color: 'var(--theme-text-secondary)' }}>Free Play:</span>
+                    <span style={{ color: canPlayFree ? 'var(--theme-success)' : 'var(--theme-error)' }}>
                       {canPlayFree ? '✅ Available' : '❌ Not Available'}
                     </span>
                   </div>
                 </div>
 
                 {/* Level Rewards Preview */}
-                <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-2 md:p-3">
-                  <div className="text-center text-yellow-400 font-bold text-xs md:text-sm mb-2">
+                <div
+                  className="rounded-lg p-2 md:p-3 border"
+                  style={{
+                    borderColor: 'var(--theme-accent)',
+                    background:
+                      'linear-gradient(90deg, color-mix(in srgb, var(--theme-accent) 16%, transparent), color-mix(in srgb, var(--theme-warning) 10%, transparent))'
+                  }}
+                >
+                  <div className="text-center font-bold text-xs md:text-sm mb-2" style={{ color: 'var(--theme-accent)' }}>
                     🎁 Level Rewards
                   </div>
                   <div className="flex flex-wrap gap-2 justify-center text-center">
                     {allLevelRewards.filter(reward => reward.level >= 1 && reward.level <= 100).map((reward) => {
                       return (
                         <div key={reward.level} className="flex flex-col items-center min-w-[40px]">
-                          <div className={`text-[10px] font-bold ${lastPlayedLevel >= reward.level ? 'text-green-400' : 'text-gray-400'}`}>
+                          <div
+                            className="text-[10px] font-bold"
+                            style={{ color: lastPlayedLevel >= reward.level ? 'var(--theme-success)' : 'var(--theme-text-secondary)' }}
+                          >
                             Lv.{reward.level}
                           </div>
-                          <div className={`text-[9px] ${lastPlayedLevel >= reward.level ? 'text-green-300' : 'text-gray-500'}`}>
+                          <div
+                            className="text-[9px]"
+                            style={{ color: lastPlayedLevel >= reward.level ? 'var(--theme-success)' : 'var(--theme-text-secondary)' }}
+                          >
                             {reward.amount !== '0' && reward.amount !== '' ? (
                               parseFloat(reward.amount) >= 1000 ? `${(parseFloat(reward.amount) / 1000).toFixed(1)}K` : reward.amount
                             ) : '-'}
@@ -1011,7 +1117,7 @@ export default function Match3Game() {
                       )
                     })}
                   </div>
-                  <div className="text-center text-[9px] text-gray-400 mt-1">
+                  <div className="text-center text-[9px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
                     Complete levels to earn JOYB rewards!
                   </div>
                 </div>
@@ -1019,14 +1125,15 @@ export default function Match3Game() {
 
               {!isConnected ? (
                 <div className="space-y-3">
-                  <p className="text-yellow-400 text-center text-sm">⚠️ Please connect wallet to play</p>
+                  <p className="text-center text-sm" style={{ color: 'var(--theme-warning)' }}>⚠️ Please connect wallet to play</p>
                   
                   <div className="flex flex-col gap-2">
                     <WalletButton />
                     
                     <button
                       onClick={() => router.push('/')}
-                      className="w-full bg-gray-700 hover:bg-gray-600 px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base"
+                      className="w-full px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base border hover:opacity-90"
+                      style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                     >
                       ← Back to Home
                     </button>
@@ -1038,7 +1145,11 @@ export default function Match3Game() {
                   <button
                     onClick={() => startGame(1, false)}
                     disabled={isStarting}
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base"
+                    className="w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
+                    style={{
+                      background: 'linear-gradient(90deg, var(--theme-success), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-success)))',
+                      color: 'var(--theme-text)'
+                    }}
                   >
                     <div className="text-base md:text-lg mb-1">🆕 Start from Level 1</div>
                     <div className="text-xs opacity-90">
@@ -1051,7 +1162,11 @@ export default function Match3Game() {
                     <button
                       onClick={() => startGame(lastPlayedLevel, true)}
                       disabled={isStarting}
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base"
+                      className="w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
+                      style={{
+                        background: 'linear-gradient(90deg, var(--theme-primary), var(--theme-secondary))',
+                        color: 'var(--theme-text)'
+                      }}
                     >
                       <div className="text-base md:text-lg mb-1">▶️ Continue from Level {lastPlayedLevel}</div>
                       <div className="text-xs opacity-90">
@@ -1062,7 +1177,8 @@ export default function Match3Game() {
 
                   <button
                     onClick={() => router.push('/')}
-                    className="w-full bg-gray-700 hover:bg-gray-600 px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base"
+                    className="w-full px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base border hover:opacity-90"
+                    style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                   >
                     ← Back to Home
                   </button>
@@ -1086,13 +1202,14 @@ export default function Match3Game() {
               initial={{ scale: 0.8, y: 50 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, y: 50 }}
-              className={`
-                rounded-2xl p-4 md:p-6 max-w-sm w-full border-2 shadow-2xl
-                ${gameResult === 'win' 
-                  ? 'bg-gradient-to-br from-green-600 to-emerald-700 border-green-400' 
-                  : 'bg-gradient-to-br from-red-600 to-pink-700 border-red-400'
-                }
-              `}
+              className="rounded-2xl p-4 md:p-6 max-w-sm w-full border-2 shadow-2xl"
+              style={{
+                borderColor: gameResult === 'win' ? 'var(--theme-success)' : 'var(--theme-error)',
+                background:
+                  gameResult === 'win'
+                    ? 'linear-gradient(135deg, color-mix(in srgb, var(--theme-success) 70%, transparent), color-mix(in srgb, var(--theme-primary) 40%, transparent))'
+                    : 'linear-gradient(135deg, color-mix(in srgb, var(--theme-error) 70%, transparent), color-mix(in srgb, var(--theme-accent) 35%, transparent))'
+              }}
             >
               <div className="text-center">
                 <div className="text-5xl md:text-6xl mb-3 md:mb-4">
@@ -1101,7 +1218,10 @@ export default function Match3Game() {
                 <h2 className="text-2xl md:text-3xl font-bold mb-2">
                   {gameResult === 'win' ? 'You Won!' : 'Game Over'}
                 </h2>
-                <div className="bg-black/20 rounded-lg p-3 md:p-4 mb-3 md:mb-4">
+                <div
+                  className="rounded-lg p-3 md:p-4 mb-3 md:mb-4"
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--theme-background) 70%, transparent)' }}
+                >
                   <div className="text-xs md:text-sm opacity-90 mb-1">Final Score</div>
                   <div className="text-3xl md:text-4xl font-bold">{gameState.score}</div>
                   <div className="text-xs md:text-sm opacity-75 mt-1">Target: {gameState.targetScore}</div>
@@ -1116,7 +1236,11 @@ export default function Match3Game() {
                   {gameResult === 'win' && (
                     <button
                       onClick={handleNextLevel}
-                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base"
+                      className="w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base hover:opacity-90"
+                      style={{
+                        background: 'linear-gradient(90deg, var(--theme-success), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-success)))',
+                        color: 'var(--theme-text)'
+                      }}
                     >
                       ▶️ Next Level ({gameState.level + 1})
                     </button>
@@ -1124,7 +1248,11 @@ export default function Match3Game() {
                   {gameResult === 'lose' && (
                     <button
                       onClick={handleContinueLevel}
-                      className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base"
+                      className="w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base hover:opacity-90"
+                      style={{
+                        background: 'linear-gradient(90deg, var(--theme-secondary), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-secondary)))',
+                        color: 'var(--theme-text)'
+                      }}
                     >
                       🔄 Continue Level ({formatEther(playFee || parseEther('0.001'))} ETH)
                     </button>
@@ -1132,34 +1260,39 @@ export default function Match3Game() {
                   {gameResult === 'lose' && (
                     <button
                       onClick={handlePlayAgain}
-                      className="w-full bg-white text-gray-900 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold hover:bg-gray-100 transition-all text-sm md:text-base"
+                      className="w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base border hover:opacity-90"
+                      style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                     >
                       🎮 Play Again
                     </button>
                   )}
                   <button
                     onClick={() => router.push('/profile')}
-                    className="w-full bg-purple-600 hover:bg-purple-700 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base"
+                    className="w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base hover:opacity-90"
+                    style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-text)' }}
                   >
                     👤 Go to Profile
                   </button>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => handleShareResult()}
-                      className="bg-black/30 hover:bg-black/40 px-4 py-2 rounded-xl font-bold transition-all text-xs md:text-sm"
+                      className="px-4 py-2 rounded-xl font-bold transition-all text-xs md:text-sm border hover:opacity-90"
+                      style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                     >
                       🔁 Recast (Farcaster)
                     </button>
                     <button
                       onClick={() => handleShareResult('base')}
-                      className="bg-black/30 hover:bg-black/40 px-4 py-2 rounded-xl font-bold transition-all text-xs md:text-sm"
+                      className="px-4 py-2 rounded-xl font-bold transition-all text-xs md:text-sm border hover:opacity-90"
+                      style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                     >
                       🔁 Recast (Base)
                     </button>
                   </div>
                   <button
                     onClick={() => router.push('/')}
-                    className="w-full bg-gray-700 hover:bg-gray-600 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base"
+                    className="w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base border hover:opacity-90"
+                    style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                   >
                     ← Back to Home
                   </button>
@@ -1182,86 +1315,93 @@ export default function Match3Game() {
             <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
-              className="bg-gray-900 rounded-lg p-4 max-w-md w-full border border-purple-500"
+              className="rounded-lg p-4 max-w-md w-full border"
+              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-primary)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-xl font-bold mb-4 text-purple-400">🛒 Booster Shop</h2>
+              <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--theme-primary)' }}>🛒 Booster Shop</h2>
               <div className="space-y-2">
-                <div className="bg-gray-800 rounded-lg p-3">
+                <div className="rounded-lg p-3 border" style={{ backgroundColor: 'var(--theme-background)', borderColor: 'var(--theme-border)' }}>
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-bold">🔨 Hammer</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <div className="text-orange-400 text-xs mb-1">{formatEther(boosterPrices?.hammer || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-warning)' }}>{formatEther(boosterPrices?.hammer || 0n)} ETH</div>
                       <button 
                         onClick={() => handleBuyBooster('hammer', false)}
                         disabled={!!buyingBooster}
-                        className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed py-2 rounded text-sm font-bold transition-all"
+                        className="w-full py-2 rounded text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                        style={{ backgroundColor: 'var(--theme-warning)', color: 'var(--theme-text)' }}
                       >
                         {buyingBooster === 'hammer' ? 'Buying...' : 'Buy 1x'}
                       </button>
                     </div>
                     <div>
-                      <div className="text-orange-400 text-xs mb-1">{formatEther(boosterPrices?.hammerPack || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-warning)' }}>{formatEther(boosterPrices?.hammerPack || 0n)} ETH</div>
                       <button 
                         onClick={() => handleBuyBooster('hammer', true)}
                         disabled={!!buyingBooster}
-                        className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed py-2 rounded text-sm font-bold transition-all"
+                        className="w-full py-2 rounded text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                        style={{ backgroundColor: 'var(--theme-warning)', color: 'var(--theme-text)' }}
                       >
                         {buyingBooster === 'hammer-pack' ? 'Buying...' : 'Buy 5x'}
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-3">
+                <div className="rounded-lg p-3 border" style={{ backgroundColor: 'var(--theme-background)', borderColor: 'var(--theme-border)' }}>
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-bold">🔀 Shuffle</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <div className="text-cyan-400 text-xs mb-1">{formatEther(boosterPrices?.shuffle || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-secondary)' }}>{formatEther(boosterPrices?.shuffle || 0n)} ETH</div>
                       <button 
                         onClick={() => handleBuyBooster('shuffle', false)}
                         disabled={!!buyingBooster}
-                        className="w-full bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed py-2 rounded text-sm font-bold transition-all"
+                        className="w-full py-2 rounded text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                        style={{ backgroundColor: 'var(--theme-secondary)', color: 'var(--theme-text)' }}
                       >
                         {buyingBooster === 'shuffle' ? 'Buying...' : 'Buy 1x'}
                       </button>
                     </div>
                     <div>
-                      <div className="text-cyan-400 text-xs mb-1">{formatEther(boosterPrices?.shufflePack || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-secondary)' }}>{formatEther(boosterPrices?.shufflePack || 0n)} ETH</div>
                       <button 
                         onClick={() => handleBuyBooster('shuffle', true)}
                         disabled={!!buyingBooster}
-                        className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed py-2 rounded text-sm font-bold transition-all"
+                        className="w-full py-2 rounded text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                        style={{ backgroundColor: 'var(--theme-secondary)', color: 'var(--theme-text)' }}
                       >
                         {buyingBooster === 'shuffle-pack' ? 'Buying...' : 'Buy 5x'}
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-3">
+                <div className="rounded-lg p-3 border" style={{ backgroundColor: 'var(--theme-background)', borderColor: 'var(--theme-border)' }}>
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-bold">💣 Color Bomb</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <div className="text-red-400 text-xs mb-1">{formatEther(boosterPrices?.colorBomb || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-error)' }}>{formatEther(boosterPrices?.colorBomb || 0n)} ETH</div>
                       <button 
                         onClick={() => handleBuyBooster('colorBomb', false)}
                         disabled={!!buyingBooster}
-                        className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-2 rounded text-sm font-bold transition-all"
+                        className="w-full py-2 rounded text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                        style={{ backgroundColor: 'var(--theme-error)', color: 'var(--theme-text)' }}
                       >
                         {buyingBooster === 'colorBomb' ? 'Buying...' : 'Buy 1x'}
                       </button>
                     </div>
                     <div>
-                      <div className="text-red-400 text-xs mb-1">{formatEther(boosterPrices?.colorBombPack || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-error)' }}>{formatEther(boosterPrices?.colorBombPack || 0n)} ETH</div>
                       <button 
                         onClick={() => handleBuyBooster('colorBomb', true)}
                         disabled={!!buyingBooster}
-                        className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed py-2 rounded text-sm font-bold transition-all"
+                        className="w-full py-2 rounded text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                        style={{ backgroundColor: 'var(--theme-error)', color: 'var(--theme-text)' }}
                       >
                         {buyingBooster === 'colorBomb-pack' ? 'Buying...' : 'Buy 5x'}
                       </button>
@@ -1271,7 +1411,8 @@ export default function Match3Game() {
               </div>
               <button
                 onClick={() => setShowBoosterShop(false)}
-                className="mt-4 w-full bg-gray-700 hover:bg-gray-600 py-2 rounded text-sm"
+                className="mt-4 w-full py-2 rounded text-sm border hover:opacity-90"
+                style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
               >
                 Close
               </button>
@@ -1279,6 +1420,7 @@ export default function Match3Game() {
           </motion.div>
           )}
         </AnimatePresence>
+      </div>
       </div>
     </div>
   )
