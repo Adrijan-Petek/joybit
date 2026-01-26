@@ -25,6 +25,7 @@ export interface GameState {
 
 export const GRID_SIZE = 8
 export const TILE_TYPES = 8
+export const TIME_TILE_TYPE = 7
 export const MAX_LEVEL = 150
 
 // Level configuration with progressive difficulty curve
@@ -51,29 +52,27 @@ export const getLevelConfig = (level: number) => {
     difficultyFactor = 0.7 + ((clampedLevel - 100) / 50) * 0.3
   }
 
-  // Target Score: Increases exponentially but more gradually
-  const baseScore = 1000
+  // Target Score: Easier progression
+  const baseScore = 900
   const scoreMultiplier = clampedLevel <= 10
-    ? 1 + (clampedLevel - 1) * 0.2  // Very slow increase for levels 1-10
-    : 1 + (clampedLevel - 1) * 0.4  // Moderate increase after level 10
+    ? 1 + (clampedLevel - 1) * 0.15  // Slower increase for levels 1-10
+    : 1 + (clampedLevel - 1) * 0.3  // Easier scaling after level 10
   const targetScore = Math.floor(baseScore * scoreMultiplier)
 
-  // Moves: Start generous, decrease gradually
+  // Moves: More generous and slower reduction
   const baseMoves = clampedLevel <= 10
-    ? 40  // Very generous for levels 1-10
-    : 35  // Base for others
+    ? 45  // More generous for levels 1-10
+    : 40  // Higher base for others
   const moveReduction = clampedLevel <= 10
-    ? clampedLevel * 0.5  // Minimal reduction for levels 1-10
-    : 5 + (clampedLevel - 10) * 0.3  // Gradual reduction after level 10
-  const moves = Math.max(15, Math.floor(baseMoves - moveReduction))
+    ? clampedLevel * 0.3  // Very small reduction for levels 1-10
+    : 3 + (clampedLevel - 10) * 0.2  // Slower reduction after level 10
+  const moves = Math.max(20, Math.floor(baseMoves - moveReduction))
 
   // Time Limit: Fixed at 100 seconds for all levels
   const timeLimit = 100
 
-  // Tile Types: More types = harder matching, but gradual
-  const tileTypes = clampedLevel <= 10
-    ? Math.min(5, 4 + Math.floor(clampedLevel / 3))  // Max 5 types for levels 1-10
-    : Math.min(8, 4 + Math.floor(clampedLevel / 8))  // Up to 8 types for harder levels
+  // Tile Types: Keep fewer base types per level, time tile added separately
+  const tileTypes = Math.min(7, 4 + Math.floor((clampedLevel - 1) / 10))  // 4 -> 7 over time
 
   return {
     targetScore,
@@ -85,8 +84,17 @@ export const getLevelConfig = (level: number) => {
 }
 
 // Generate a random tile type
-export const getRandomTileType = (maxTypes = TILE_TYPES): number => {
-  return Math.floor(Math.random() * maxTypes)
+const getTilePool = (baseTypes = TILE_TYPES): number[] => {
+  const clamped = Math.max(1, Math.min(baseTypes, TILE_TYPES - 1))
+  const pool = Array.from({ length: clamped }, (_, i) => i)
+  if (!pool.includes(TIME_TILE_TYPE)) pool.push(TIME_TILE_TYPE)
+  return pool
+}
+
+// Generate a random tile type (always includes time tile)
+export const getRandomTileType = (baseTypes = TILE_TYPES): number => {
+  const pool = getTilePool(baseTypes)
+  return pool[Math.floor(Math.random() * pool.length)]
 }
 
 // Create a unique tile ID
@@ -129,11 +137,54 @@ export const initializeGrid = (tileTypes = TILE_TYPES): Tile[][] => {
     iterations++
   }
 
+  // Ensure time tiles appear every level (at least 3 tiles) without creating matches
+  const timeTiles: Tile[] = []
+  for (let y = 0; y < GRID_SIZE; y++) {
+    for (let x = 0; x < GRID_SIZE; x++) {
+      if (grid[y][x].type === TIME_TILE_TYPE) timeTiles.push(grid[y][x])
+    }
+  }
+  if (timeTiles.length < 3) {
+    const needed = 3 - timeTiles.length
+    let placed = 0
+    let attempts = 0
+    const maxAttempts = 200
+
+    const wouldCreateMatch = (x: number, y: number) => {
+      const left1 = x > 0 ? grid[y][x - 1].type === TIME_TILE_TYPE : false
+      const left2 = x > 1 ? grid[y][x - 2].type === TIME_TILE_TYPE : false
+      const right1 = x < GRID_SIZE - 1 ? grid[y][x + 1].type === TIME_TILE_TYPE : false
+      const right2 = x < GRID_SIZE - 2 ? grid[y][x + 2].type === TIME_TILE_TYPE : false
+      const up1 = y > 0 ? grid[y - 1][x].type === TIME_TILE_TYPE : false
+      const up2 = y > 1 ? grid[y - 2][x].type === TIME_TILE_TYPE : false
+      const down1 = y < GRID_SIZE - 1 ? grid[y + 1][x].type === TIME_TILE_TYPE : false
+      const down2 = y < GRID_SIZE - 2 ? grid[y + 2][x].type === TIME_TILE_TYPE : false
+
+      if (left1 && left2) return true
+      if (right1 && right2) return true
+      if (left1 && right1) return true
+      if (up1 && up2) return true
+      if (down1 && down2) return true
+      if (up1 && down1) return true
+      return false
+    }
+
+    while (placed < needed && attempts < maxAttempts) {
+      const x = Math.floor(Math.random() * GRID_SIZE)
+      const y = Math.floor(Math.random() * GRID_SIZE)
+      if (grid[y][x].type !== TIME_TILE_TYPE && !wouldCreateMatch(x, y)) {
+        grid[y][x].type = TIME_TILE_TYPE
+        placed++
+      }
+      attempts++
+    }
+  }
+
   return grid
 }
 
 // Shuffle the grid when no moves available
-export const shuffleGrid = (grid: Tile[][]): Tile[][] => {
+export const shuffleGrid = (grid: Tile[][], tileTypes = TILE_TYPES): Tile[][] => {
   const flatTiles = grid.flat()
   const types = flatTiles.map(tile => tile.type)
   
@@ -167,8 +218,7 @@ export const shuffleGrid = (grid: Tile[][]): Tile[][] => {
       for (let x = 0; x < GRID_SIZE; x++) {
         const matches = findMatches(newGrid, x, y)
         if (matches.length >= 3) {
-          const availableTypes = Array.from({ length: TILE_TYPES }, (_, i) => i)
-            .filter(t => t !== newGrid[y][x].type)
+          const availableTypes = getTilePool(tileTypes).filter(t => t !== newGrid[y][x].type)
           newGrid[y][x].type = availableTypes[Math.floor(Math.random() * availableTypes.length)]
           hasMatches = true
         }

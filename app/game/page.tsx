@@ -298,6 +298,7 @@ export default function Match3Game() {
     let hasMatches = true
     let cascadeCount = 0
     const maxCascades = 10 // Prevent infinite cascades
+    const { tileTypes } = getLevelConfig(gameState.level)
 
     while (hasMatches && cascadeCount < maxCascades) {
       const matches = findAllMatches(currentGrid)
@@ -343,7 +344,7 @@ export default function Match3Game() {
       await new Promise(resolve => setTimeout(resolve, 150))
 
       // Apply gravity with falling animation
-      currentGrid = applyGravity(currentGrid)
+      currentGrid = applyGravity(currentGrid, tileTypes)
 
       setGameState(prev => ({
         ...prev,
@@ -375,13 +376,13 @@ export default function Match3Game() {
       remainingMatches.forEach(tile => {
         currentGrid[tile.y][tile.x].isMatched = true
       })
-      currentGrid = applyGravity(currentGrid)
+      currentGrid = applyGravity(currentGrid, tileTypes)
     }
 
     setAnimating(false)
     processingRef.current = false
     return currentGrid
-  }, [playSound, gameState.score, gameState.targetScore])
+  }, [playSound, gameState.score, gameState.targetScore, gameState.level])
 
   // Auto-shuffle when no valid moves
   const checkAndShuffle = useCallback(async (grid: Tile[][]) => {
@@ -389,12 +390,13 @@ export default function Match3Game() {
       setShowShuffleMessage(true)
       playSound?.('shuffle')
       await new Promise(resolve => setTimeout(resolve, 1000))
-      const shuffled = shuffleGrid(grid)
+      const { tileTypes } = getLevelConfig(gameState.level)
+      const shuffled = shuffleGrid(grid, tileTypes)
       setShowShuffleMessage(false)
       return shuffled
     }
     return grid
-  }, [playSound])
+  }, [playSound, gameState.level])
 
   // Use booster - activates booster mode
   const handleBooster = useCallback(async (type: 'hammer' | 'shuffle' | 'colorBomb') => {
@@ -419,7 +421,8 @@ export default function Match3Game() {
       })
       
       playSound?.('shuffle')
-      const shuffled = shuffleGrid(gameState.grid)
+      const { tileTypes } = getLevelConfig(gameState.level)
+      const shuffled = shuffleGrid(gameState.grid, tileTypes)
       setGameState(prev => ({ ...prev, grid: shuffled }))
     } else {
       // Hammer and colorBomb require tile selection - activate mode
@@ -457,7 +460,8 @@ export default function Match3Game() {
       
       // Apply gravity after short delay
       await new Promise(resolve => setTimeout(resolve, 250))
-      newGrid = applyGravity(newGrid)
+      const { tileTypes } = getLevelConfig(gameState.level)
+      newGrid = applyGravity(newGrid, tileTypes)
       setGameState(prev => ({ ...prev, grid: newGrid }))
       
       // Process any new matches
@@ -480,7 +484,8 @@ export default function Match3Game() {
       
       // Apply gravity after short delay
       await new Promise(resolve => setTimeout(resolve, 300))
-      newGrid = applyGravity(newGrid)
+      const { tileTypes } = getLevelConfig(gameState.level)
+      newGrid = applyGravity(newGrid, tileTypes)
       setGameState(prev => ({ ...prev, grid: newGrid }))
       
       // Process any new matches
