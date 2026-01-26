@@ -1,5 +1,5 @@
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
-import { CONTRACT_ADDRESSES } from '../contracts/addresses'
+import { CHAIN_CONFIG, CONTRACT_ADDRESSES } from '../contracts/addresses'
 import { CARD_GAME_ABI } from '../contracts/abis'
 import { useState } from 'react'
 
@@ -41,8 +41,9 @@ export function useCardGameData(address?: string) {
     abi: CARD_GAME_ABI,
     functionName: 'players',
     args: address ? [address as `0x${string}`] : undefined,
+    chainId: CHAIN_CONFIG.chainId,
     query: {
-      enabled: !!address,
+      enabled: !!address && Boolean(CONTRACT_ADDRESSES.cardGame),
     },
   })
 
@@ -51,8 +52,9 @@ export function useCardGameData(address?: string) {
     abi: CARD_GAME_ABI,
     functionName: 'canPlayFree',
     args: address ? [address as `0x${string}`] : undefined,
+    chainId: CHAIN_CONFIG.chainId,
     query: {
-      enabled: !!address,
+      enabled: !!address && Boolean(CONTRACT_ADDRESSES.cardGame),
     },
   })
 
@@ -60,12 +62,20 @@ export function useCardGameData(address?: string) {
     address: CONTRACT_ADDRESSES.cardGame as `0x${string}`,
     abi: CARD_GAME_ABI,
     functionName: 'playFee',
+    chainId: CHAIN_CONFIG.chainId,
+    query: {
+      enabled: Boolean(CONTRACT_ADDRESSES.cardGame),
+    },
   })
 
   const { data: winReward } = useReadContract({
     address: CONTRACT_ADDRESSES.cardGame as `0x${string}`,
     abi: CARD_GAME_ABI,
     functionName: 'winReward',
+    chainId: CHAIN_CONFIG.chainId,
+    query: {
+      enabled: Boolean(CONTRACT_ADDRESSES.cardGame),
+    },
   })
 
   return {

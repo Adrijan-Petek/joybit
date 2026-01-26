@@ -199,6 +199,8 @@ export default function CardGame() {
   const pointsPerPlay = calculateLeaderboardPoints('card_game')
   const pointsPerWin = calculateLeaderboardPoints('card_win')
   const isBusy = isPlaying || isPlayingTx
+  const winRewardDisplay = winReward === undefined ? '...' : formatEther(winReward)
+  const playFeeDisplay = playFee === undefined ? '...' : formatEther(playFee)
 
   return (
     <div className={`${spaceGrotesk.className} min-h-screen bg-[#05070a] text-white`}>
@@ -250,7 +252,7 @@ export default function CardGame() {
                   <h2 className="text-lg md:text-2xl font-semibold">Pick a card</h2>
                 </div>
                 <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
-                  {isBusy ? 'Shuffling on-chain…' : canPlayFree ? 'Free play' : `${formatEther(playFee || 0n)} ETH`}
+                  {isBusy ? 'Shuffling on-chain…' : canPlayFree ? 'Free play' : `${playFeeDisplay} ETH`}
                 </div>
               </div>
 
@@ -390,7 +392,7 @@ export default function CardGame() {
                   <div className="flex items-start gap-2">
                     <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
                     <span>
-                      Win reward: <span className="text-emerald-200 font-semibold">{formatEther(winReward || 0n)} JOYB</span>.
+                      Win reward: <span className="text-emerald-200 font-semibold">{winRewardDisplay} JOYB</span>.
                     </span>
                   </div>
                 </div>
@@ -406,7 +408,7 @@ export default function CardGame() {
                   <div>
                     <div className="text-xs uppercase tracking-[0.3em] text-white/50">Entry</div>
                     <div className="text-base font-semibold">
-                      {canPlayFree ? 'Free play available' : `${formatEther(playFee || 0n)} ETH`}
+                      {canPlayFree ? 'Free play available' : `${playFeeDisplay} ETH`}
                     </div>
                   </div>
                   <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-white/60">
@@ -444,7 +446,7 @@ export default function CardGame() {
                 {gameResult === 'win' && (
                   <div className="bg-black/20 rounded-lg p-4 mb-4">
                     <p className="text-lg mb-1">
-                      You won <span className="font-bold text-2xl">{formatEther(winReward || 0n)} JOYB</span>!
+                      You won <span className="font-bold text-2xl">{winRewardDisplay} JOYB</span>!
                     </p>
                     <p className="text-sm opacity-90">Claim in Profile</p>
                   </div>
