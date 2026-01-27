@@ -75,64 +75,65 @@ export async function GET(request: NextRequest) {
     console.log('✅ API: Settings retrieved:', settings)
     console.log('✅ API: Version:', latestUpdate)
     
-    // Different cache headers for meta vs data requests
-    const cacheHeaders = isMetaRequest 
-      ? { 'Cache-Control': 'no-store' } // Meta requests bypass cache
-      : { 'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=3600' } // Data requests use edge cache
-    
-    const response = NextResponse.json(
-      isMetaRequest 
-        ? { version: latestUpdate } // Meta requests: version only
-        : { // Data requests: full response
-            version: latestUpdate,
-            announcements,
-            settings: {
-              animationType: settings.animation_type,
-              colorTheme: settings.color_theme,
-              glowIntensity: settings.glow_intensity,
-              speed: settings.speed,
-              fontStyle: settings.font_style
-            }
-          })
-    
-    // Set cache headers explicitly
     if (isMetaRequest) {
-      response.headers.set('Cache-Control', 'no-store')
-    } else {
-      response.headers.set('Cache-Control', 'public, s-maxage=1296000, stale-while-revalidate=3600')
+      return NextResponse.json(
+        { version: latestUpdate },
+        { headers: { "Cache-Control": "no-store" } }
+      )
     }
-    
-    return response
+
+    // Data requests: full response with edge caching
+    const payload = {
+      version: latestUpdate,
+      announcements,
+      settings: {
+        animationType: settings.animation_type,
+        colorTheme: settings.color_theme,
+        glowIntensity: settings.glow_intensity,
+        speed: settings.speed,
+        fontStyle: settings.font_style
+      }
+    }
+
+    return NextResponse.json(payload, {
+      headers: {
+        "Cache-Control": "public, s-maxage=1296000, stale-while-revalidate=3600",
+      },
+    })
   } catch (error) {
     console.error('❌ API: Error fetching announcements:', error)
     const { searchParams } = new URL(request.url)
     const isMetaRequest = searchParams.has('meta')
     
-    const errorResponse = NextResponse.json(
-      isMetaRequest 
-        ? { version: new Date().toISOString() } // Meta error: version only
-        : { // Data error: full error response
-            version: new Date().toISOString(),
-            announcements: [],
-            settings: {
-              animationType: 'scroll',
-              colorTheme: 'yellow',
-              glowIntensity: 'medium',
-              speed: 'normal',
-              fontStyle: 'mono'
-            }
-          }, { 
-      status: 500
-    })
-    
-    // Set cache headers explicitly on error response
     if (isMetaRequest) {
-      errorResponse.headers.set('Cache-Control', 'no-store')
-    } else {
-      errorResponse.headers.set('Cache-Control', 'public, s-maxage=1296000, stale-while-revalidate=3600')
+      return NextResponse.json(
+        { version: new Date().toISOString() },
+        { 
+          status: 500,
+          headers: { "Cache-Control": "no-store" }
+        }
+      )
     }
-    
-    return errorResponse
+
+    // Data error response with edge caching
+    const errorPayload = {
+      version: new Date().toISOString(),
+      announcements: [],
+      settings: {
+        animationType: 'scroll',
+        colorTheme: 'yellow',
+        glowIntensity: 'medium',
+        speed: 'normal',
+        fontStyle: 'mono'
+      }
+    }
+
+    return NextResponse.json(errorPayload, {
+      status: 500,
+      headers: {
+        "Cache-Control": "public, s-maxage=1296000, stale-while-revalidate=3600",
+      },
+    })
   }
 }
 
