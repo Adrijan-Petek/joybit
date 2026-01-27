@@ -510,9 +510,15 @@ npm run start
 
 **Version-Based Cache Busting:**
 - API returns `version` field with latest update timestamp
-- Frontend uses `?v=${version}` query parameter for cache busting
+- Meta requests (`?meta=1`) bypass cache to get current version
+- Data requests use `?v=${version}` for cache busting with Edge caching
 - New announcements appear instantly for all users
 - Combines caching efficiency with real-time update capability
+
+**API Endpoints:**
+- `GET /api/announcements?meta=1` → Version only, no cache
+- `GET /api/announcements?v=${version}` → Full data, 15-day Edge cache
+- `GET /api/announcements` → Full data, 15-day Edge cache
 
 **Benefits:**
 - 99.9% reduction in function invocations

@@ -123,14 +123,14 @@ export default function Home() {
     // Load announcements from database with cache busting
     const loadAnnouncements = async () => {
       try {
-        // First get the current version
-        const versionResponse = await fetch('/api/announcements', { cache: 'no-store' })
+        // First get the current version (meta request bypasses cache)
+        const versionResponse = await fetch('/api/announcements?meta=1')
         if (versionResponse.ok) {
           const versionData = await versionResponse.json()
           const currentVersion = versionData.version
 
-          // Now fetch with version for cache busting
-          const response = await fetch(`/api/announcements?v=${currentVersion}`, { cache: 'no-store' })
+          // Now fetch with version for cache busting (allows edge caching)
+          const response = await fetch(`/api/announcements?v=${currentVersion}`)
           if (response.ok) {
             const data = await response.json()
             if (data.announcements && data.announcements.length > 0) {
@@ -186,14 +186,14 @@ export default function Home() {
     // Poll for settings updates every 6 hours with cache busting
     const pollInterval = setInterval(async () => {
       try {
-        // First get the current version to use for cache busting
-        const versionResponse = await fetch('/api/announcements', { cache: 'no-store' })
+        // First get the current version (meta request bypasses cache)
+        const versionResponse = await fetch('/api/announcements?meta=1')
         if (versionResponse.ok) {
           const versionData = await versionResponse.json()
           const currentVersion = versionData.version
 
-          // Now fetch with version for cache busting
-          const response = await fetch(`/api/announcements?v=${currentVersion}`, { cache: 'no-store' })
+          // Now fetch with version for cache busting (allows edge caching)
+          const response = await fetch(`/api/announcements?v=${currentVersion}`)
           if (response.ok) {
             const data = await response.json()
             if (data.settings) {

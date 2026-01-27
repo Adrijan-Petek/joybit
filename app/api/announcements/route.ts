@@ -40,8 +40,11 @@ async function initTable() {
 // Call init on module load
 initTable().catch(console.error)
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const isMetaRequest = searchParams.has('meta')
+
     console.log('🔍 API: Getting announcements from Turso...')
     const result = await client.execute('SELECT message FROM announcements ORDER BY position')
 
@@ -72,10 +75,15 @@ export async function GET() {
     console.log('✅ API: Settings retrieved:', settings)
     console.log('✅ API: Version:', latestUpdate)
     
+    // Different cache headers for meta vs data requests
+    const cacheHeaders = isMetaRequest 
+      ? { 'Cache-Control': 'no-store' } // Meta requests bypass cache
+      : { 'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=1296000' } // Data requests use edge cache
+    
     return NextResponse.json({
       version: latestUpdate,
-      announcements,
-      settings: {
+      announcements: isMetaRequest ? [] : announcements, // Meta requests only need version
+      settings: isMetaRequest ? null : {
         animationType: settings.animation_type,
         colorTheme: settings.color_theme,
         glowIntensity: settings.glow_intensity,
@@ -83,23 +91,27 @@ export async function GET() {
         fontStyle: settings.font_style
       }
     }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=1296000'
-      }
+      headers: cacheHeaders
     })
   } catch (error) {
     console.error('❌ API: Error fetching announcements:', error)
+    const { searchParams } = new URL(request.url)
+    const isMetaRequest = searchParams.has('meta')
+    
     return NextResponse.json({
       version: new Date().toISOString(),
       announcements: [],
-      settings: {
+      settings: isMetaRequest ? null : {
         animationType: 'scroll',
         colorTheme: 'yellow',
         glowIntensity: 'medium',
         speed: 'normal',
         fontStyle: 'mono'
       }
-    }, { status: 500 })
+    }, { 
+      status: 500,
+      headers: isMetaRequest ? { 'Cache-Control': 'no-store' } : { 'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=1296000' }
+    })
   }
 }
 
