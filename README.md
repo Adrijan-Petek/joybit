@@ -561,7 +561,19 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-## 📞 Support
+## � Recent Updates
+
+### v1.2.0 - UI/UX Improvements (January 2026)
+- **🎨 Consistent Color Scheme**: All windows, modals, and UI elements now use unified theme colors
+- **🏦 Staking Window**: Added "Coming Soon" staking feature window to main page
+- **🎯 Logo Redesign**: JOYBIT logo now features "JOY" in gold and "BIT" in custom blue (#1652F0)
+- **🔘 Button Standardization**: All buttons updated to use consistent blue color (#1652F0)
+- **💳 Wallet Button**: Wallet connect button color fixed to match theme
+- **📱 Responsive Grid**: Main page features grid updated for better mobile layout
+
+---
+
+## �📞 Support
 
 - **🐛 Issues**: [GitHub Issues](https://github.com/Adrijan-Petek/joybit/issues)
 - **💬 Discussions**: [GitHub Discussions](https://github.com/Adrijan-Petek/joybit/discussions)
