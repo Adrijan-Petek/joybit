@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       ? { 'Cache-Control': 'no-store' } // Meta requests bypass cache
       : { 'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=3600' } // Data requests use edge cache
     
-    return NextResponse.json(
+    const response = NextResponse.json(
       isMetaRequest 
         ? { version: latestUpdate } // Meta requests: version only
         : { // Data requests: full response
@@ -93,15 +93,22 @@ export async function GET(request: NextRequest) {
               speed: settings.speed,
               fontStyle: settings.font_style
             }
-          }, {
-      headers: cacheHeaders
-    })
+          })
+    
+    // Set cache headers explicitly
+    if (isMetaRequest) {
+      response.headers.set('Cache-Control', 'no-store')
+    } else {
+      response.headers.set('Cache-Control', 'public, s-maxage=1296000, stale-while-revalidate=3600')
+    }
+    
+    return response
   } catch (error) {
     console.error('❌ API: Error fetching announcements:', error)
     const { searchParams } = new URL(request.url)
     const isMetaRequest = searchParams.has('meta')
     
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       isMetaRequest 
         ? { version: new Date().toISOString() } // Meta error: version only
         : { // Data error: full error response
@@ -115,9 +122,17 @@ export async function GET(request: NextRequest) {
               fontStyle: 'mono'
             }
           }, { 
-      status: 500,
-      headers: isMetaRequest ? { 'Cache-Control': 'no-store' } : { 'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=3600' }
+      status: 500
     })
+    
+    // Set cache headers explicitly on error response
+    if (isMetaRequest) {
+      errorResponse.headers.set('Cache-Control', 'no-store')
+    } else {
+      errorResponse.headers.set('Cache-Control', 'public, s-maxage=1296000, stale-while-revalidate=3600')
+    }
+    
+    return errorResponse
   }
 }
 

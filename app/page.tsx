@@ -186,6 +186,7 @@ export default function Home() {
     // Visibility-based polling for announcements
     let pollInterval: NodeJS.Timeout
     let currentPollInterval = 300000 // 5 minutes when visible
+    let lastKnownVersion: string | null = null
 
     const pollForUpdates = async () => {
       try {
@@ -195,41 +196,49 @@ export default function Home() {
           const versionData = await versionResponse.json()
           const currentVersion = versionData.version
 
-          // Now fetch with version for cache busting (allows edge caching)
-          const response = await fetch(`/api/announcements?v=${currentVersion}`)
-          if (response.ok) {
-            const data = await response.json()
-            if (data.settings) {
-              setAnnouncementSettings(prevSettings => {
-                // Only update if settings have actually changed
-                if (JSON.stringify(prevSettings) !== JSON.stringify(data.settings)) {
-                  console.log('🔄 Announcement settings updated:', data.settings)
-                  return data.settings
-                }
-                return prevSettings
-              })
+          // Only fetch data if version has changed or is first check
+          if (lastKnownVersion === null || lastKnownVersion !== currentVersion) {
+            lastKnownVersion = currentVersion
+            console.log('🔄 Version changed, fetching announcements:', currentVersion)
+
+            // Now fetch with version for cache busting (allows edge caching)
+            const response = await fetch(`/api/announcements?v=${currentVersion}`)
+            if (response.ok) {
+              const data = await response.json()
+              if (data.settings) {
+                setAnnouncementSettings(prevSettings => {
+                  // Only update if settings have actually changed
+                  if (JSON.stringify(prevSettings) !== JSON.stringify(data.settings)) {
+                    console.log('🔄 Announcement settings updated:', data.settings)
+                    return data.settings
+                  }
+                  return prevSettings
+                })
+              }
+              // Also update announcements if they changed
+              if (data.announcements) {
+                setAnnouncements(prevAnnouncements => {
+                  const newAnnouncements = data.announcements.filter((a: string) => a.trim())
+                  if (newAnnouncements.length === 0) {
+                    // Database is empty, show default announcements
+                    const defaultAnnouncements = [
+                      '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
+                      '🏆 Compete for leaderboard positions and earn rewards!',
+                      '💎 Collect achievements and unlock special NFTs!',
+                      '🎮 Play daily for bonus rewards and claim your earnings!'
+                    ]
+                    console.log('🔄 Database empty, showing default announcements:', defaultAnnouncements)
+                    return defaultAnnouncements
+                  } else if (JSON.stringify(prevAnnouncements) !== JSON.stringify(newAnnouncements)) {
+                    console.log('🔄 Announcements updated:', newAnnouncements)
+                    return newAnnouncements
+                  }
+                  return prevAnnouncements
+                })
+              }
             }
-            // Also update announcements if they changed
-            if (data.announcements) {
-              setAnnouncements(prevAnnouncements => {
-                const newAnnouncements = data.announcements.filter((a: string) => a.trim())
-                if (newAnnouncements.length === 0) {
-                  // Database is empty, show default announcements
-                  const defaultAnnouncements = [
-                    '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
-                    '🏆 Compete for leaderboard positions and earn rewards!',
-                    '💎 Collect achievements and unlock special NFTs!',
-                    '🎮 Play daily for bonus rewards and claim your earnings!'
-                  ]
-                  console.log('🔄 Database empty, showing default announcements:', defaultAnnouncements)
-                  return defaultAnnouncements
-                } else if (JSON.stringify(prevAnnouncements) !== JSON.stringify(newAnnouncements)) {
-                  console.log('🔄 Announcements updated:', newAnnouncements)
-                  return newAnnouncements
-                }
-                return prevAnnouncements
-              })
-            }
+          } else {
+            console.log('✅ Version unchanged, skipping data fetch:', currentVersion)
           }
         }
       } catch (error) {
@@ -242,15 +251,21 @@ export default function Home() {
       if (document.visibilityState === 'visible') {
         // Tab became visible - check for updates immediately
         pollForUpdates()
-        // Switch to frequent polling
-        currentPollInterval = 300000 // 5 minutes
+        // Switch to frequent polling with jitter (±30s)
+        const baseInterval = 300000 // 5 minutes
+        const jitter = (Math.random() - 0.5) * 60000 // ±30 seconds
+        currentPollInterval = Math.max(60000, baseInterval + jitter) // Minimum 1 minute
         clearInterval(pollInterval)
         pollInterval = setInterval(pollForUpdates, currentPollInterval)
+        console.log('👁️ Tab visible, polling every', Math.round(currentPollInterval / 1000), 'seconds')
       } else {
-        // Tab became hidden - reduce polling frequency
-        currentPollInterval = 1800000 // 30 minutes
+        // Tab became hidden - reduce polling frequency with jitter (±2min)
+        const baseInterval = 1800000 // 30 minutes
+        const jitter = (Math.random() - 0.5) * 240000 // ±2 minutes
+        currentPollInterval = Math.max(300000, baseInterval + jitter) // Minimum 5 minutes
         clearInterval(pollInterval)
         pollInterval = setInterval(pollForUpdates, currentPollInterval)
+        console.log('🙈 Tab hidden, polling every', Math.round(currentPollInterval / 60000), 'minutes')
       }
     }
 
