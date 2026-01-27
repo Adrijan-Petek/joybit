@@ -124,7 +124,7 @@ export default function Home() {
     const loadAnnouncements = async () => {
       try {
         // First get the current version (meta request bypasses cache)
-        const versionResponse = await fetch('/api/announcements?meta=1')
+        const versionResponse = await fetch('/api/announcements?meta=1', { cache: 'no-store' })
         if (versionResponse.ok) {
           const versionData = await versionResponse.json()
           const currentVersion = versionData.version
@@ -187,7 +187,7 @@ export default function Home() {
     const pollInterval = setInterval(async () => {
       try {
         // First get the current version (meta request bypasses cache)
-        const versionResponse = await fetch('/api/announcements?meta=1')
+        const versionResponse = await fetch('/api/announcements?meta=1', { cache: 'no-store' })
         if (versionResponse.ok) {
           const versionData = await versionResponse.json()
           const currentVersion = versionData.version
