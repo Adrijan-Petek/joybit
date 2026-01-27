@@ -499,7 +499,23 @@ npm run start
 - XSS protection
 - Suspicious pattern detection
 
+### ⚡ API Performance & Caching
+
+**Announcements API Optimization:**
+- **Edge Caching**: 15-day fresh cache with 15-day stale-while-revalidate
+- **Reduced Polling**: Frontend polls every 6 hours instead of every 3 seconds
+- **Monthly Updates**: Optimized for monthly announcement changes
+- **Cache Headers**: `Cache-Control: public, s-maxage=1296000, stale-while-revalidate=1296000`
+
+**Benefits:**
+- 99.9% reduction in function invocations
+- Improved response times for users
+- Reduced server load and costs
+- Maintains data freshness for monthly updates
+
 ---
+
+## 📊 Analytics & Monitoring
 
 ## 📊 Analytics & Monitoring
 

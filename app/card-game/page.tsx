@@ -254,7 +254,7 @@ export default function CardGame() {
                   >
                     Choose your fate
                   </div>
-                  <h2 className="text-[10px] md:text-xs font-bold">🎴 Shadow Draw</h2>
+                  <h3 className="text-base md:text-lg font-bold">🎴 Shadow Draw</h3>
                 </div>
                 <div
                   className="rounded-full border px-3 py-1 text-xs"

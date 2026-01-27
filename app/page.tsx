@@ -216,7 +216,7 @@ export default function Home() {
       } catch (error) {
         console.error('Failed to poll announcement settings:', error)
       }
-    }, 3000) // Poll every 3 seconds
+    }, 21600000) // Poll every 6 hours (for monthly updates)
 
     // Send periodic play encouragement notifications
     const sendPlayNotification = async () => {

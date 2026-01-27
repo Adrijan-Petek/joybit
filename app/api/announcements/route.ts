@@ -69,6 +69,10 @@ export async function GET() {
         speed: settings.speed,
         fontStyle: settings.font_style
       }
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=1296000'
+      }
     })
   } catch (error) {
     console.error('❌ API: Error fetching announcements:', error)
