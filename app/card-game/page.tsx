@@ -493,7 +493,8 @@ export default function CardGame() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="fixed inset-0 flex items-center justify-center z-50 bg-black/80 p-4"
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-background) 80%, transparent)' }}
           >
             <motion.div
               initial={{ scale: 0.8, y: 50 }}
@@ -529,7 +530,7 @@ export default function CardGame() {
                 </button>
                 <button
                   onClick={() => router.push('/profile')}
-                  className="w-full px-6 py-3 rounded-xl font-bold transition-all hover:opacity-90"
+                  className="theme-button-primary w-full px-6 py-3 rounded-xl font-bold transition-all hover:opacity-90"
                   style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-text)' }}
                 >
                   👤 Go to Profile

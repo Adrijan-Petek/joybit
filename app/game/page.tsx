@@ -776,7 +776,7 @@ export default function Match3Game() {
           <h1 className="text-base font-bold">🎮 Match-3</h1>
           <button
             onClick={() => setShowBoosterShop(!showBoosterShop)}
-            className="px-3 py-1.5 rounded-lg transition-all text-xs hover:opacity-90"
+            className="theme-button-primary px-3 py-1.5 rounded-lg transition-all text-xs hover:opacity-90"
             style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-text)' }}
           >
             🛒 Shop
@@ -869,7 +869,14 @@ export default function Match3Game() {
                                 : 'var(--theme-border)'
                           }}
                         >
-                          {isClaimed && <span className="absolute inset-0 flex items-center justify-center text-white text-[8px]">✔</span>}
+                          {isClaimed && (
+                            <span
+                              className="absolute inset-0 flex items-center justify-center text-[8px]"
+                              style={{ color: 'var(--theme-text)' }}
+                            >
+                              ✔
+                            </span>
+                          )}
                         </div>
                       </div>
                     )
@@ -1037,7 +1044,8 @@ export default function Match3Game() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="fixed inset-0 flex items-center justify-center z-50 bg-black/50"
+              className="fixed inset-0 flex items-center justify-center z-50"
+              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-background) 70%, transparent)' }}
             >
               <div
                 className="px-8 py-4 rounded-xl text-xl font-bold shadow-2xl"
@@ -1056,7 +1064,8 @@ export default function Match3Game() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-50 bg-black/80 p-4"
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-background) 80%, transparent)' }}
           >
             <motion.div
               initial={{ scale: 0.8, y: 50 }}
@@ -1145,7 +1154,7 @@ export default function Match3Game() {
                   <button
                     onClick={() => startGame(1, false)}
                     disabled={isStarting}
-                    className="w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
+                    className="theme-button-primary w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
                     style={{
                       background: 'linear-gradient(90deg, var(--theme-success), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-success)))',
                       color: 'var(--theme-text)'
@@ -1162,7 +1171,7 @@ export default function Match3Game() {
                     <button
                       onClick={() => startGame(lastPlayedLevel, true)}
                       disabled={isStarting}
-                      className="w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
+                      className="theme-button-secondary w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
                       style={{
                         background: 'linear-gradient(90deg, var(--theme-primary), var(--theme-secondary))',
                         color: 'var(--theme-text)'
@@ -1196,7 +1205,8 @@ export default function Match3Game() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-50 bg-black/80 p-4"
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-background) 80%, transparent)' }}
           >
             <motion.div
               initial={{ scale: 0.8, y: 50 }}
@@ -1236,7 +1246,7 @@ export default function Match3Game() {
                   {gameResult === 'win' && (
                     <button
                       onClick={handleNextLevel}
-                      className="w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base hover:opacity-90"
+                      className="theme-button-primary w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base hover:opacity-90"
                       style={{
                         background: 'linear-gradient(90deg, var(--theme-success), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-success)))',
                         color: 'var(--theme-text)'
@@ -1248,7 +1258,7 @@ export default function Match3Game() {
                   {gameResult === 'lose' && (
                     <button
                       onClick={handleContinueLevel}
-                      className="w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base hover:opacity-90"
+                      className="theme-button-secondary w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base hover:opacity-90"
                       style={{
                         background: 'linear-gradient(90deg, var(--theme-secondary), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-secondary)))',
                         color: 'var(--theme-text)'
@@ -1268,7 +1278,7 @@ export default function Match3Game() {
                   )}
                   <button
                     onClick={() => router.push('/profile')}
-                    className="w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base hover:opacity-90"
+                    className="theme-button-primary w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all text-sm md:text-base hover:opacity-90"
                     style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-text)' }}
                   >
                     👤 Go to Profile
@@ -1309,7 +1319,8 @@ export default function Match3Game() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="fixed inset-0 flex items-center justify-center z-50 bg-black/70 p-4"
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-background) 75%, transparent)' }}
             onClick={() => setShowBoosterShop(false)}
           >
             <motion.div

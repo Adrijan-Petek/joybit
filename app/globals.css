@@ -8,6 +8,8 @@
   --theme-accent: #f59e0b;
   --theme-background: #000000;
   --theme-surface: #1a1a1a;
+  --theme-surface-elevated: color-mix(in srgb, var(--theme-surface) 85%, var(--theme-background));
+  --theme-overlay: color-mix(in srgb, var(--theme-background) 80%, transparent);
   --theme-text: #ffffff;
   --theme-text-secondary: #9ca3af;
   --theme-border: #374151;
@@ -49,6 +51,68 @@ h1, h2, h3, h4, h5, h6 {
 
 .shadow-theme {
   box-shadow: var(--theme-shadow);
+}
+
+button,
+.theme-button {
+  background-color: var(--theme-surface) !important;
+  color: var(--theme-text) !important;
+  border: 1px solid var(--theme-border) !important;
+  box-shadow: var(--theme-shadow);
+  transition: background-color var(--theme-animation-duration) ease,
+    color var(--theme-animation-duration) ease,
+    border-color var(--theme-animation-duration) ease,
+    filter var(--theme-animation-duration) ease;
+}
+
+button:hover:not(:disabled),
+.theme-button:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+button:focus-visible,
+.theme-button:focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 2px;
+}
+
+button:disabled,
+.theme-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.theme-button-primary {
+  background-color: var(--theme-primary) !important;
+  border-color: color-mix(in srgb, var(--theme-primary) 70%, var(--theme-border)) !important;
+}
+
+.theme-button-secondary {
+  background-color: var(--theme-secondary) !important;
+  border-color: color-mix(in srgb, var(--theme-secondary) 70%, var(--theme-border)) !important;
+}
+
+.theme-panel {
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--theme-shadow);
+}
+
+.theme-overlay {
+  background-color: var(--theme-overlay);
+}
+
+input,
+select,
+textarea {
+  background-color: var(--theme-surface) !important;
+  color: var(--theme-text) !important;
+  border: 1px solid var(--theme-border) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--theme-text-secondary);
 }
 
 ::-webkit-scrollbar {
