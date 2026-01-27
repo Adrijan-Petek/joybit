@@ -212,34 +212,12 @@ export default function CardGame() {
         <WalletButton />
       </div>
       <div className="relative isolate min-h-screen overflow-hidden">
-        <div className="pointer-events-none absolute inset-0">
-          <div
-            className="absolute -top-40 left-1/2 h-[420px] w-[520px] -translate-x-1/2 rounded-full blur-[120px] opacity-30"
-            style={{ backgroundColor: 'var(--theme-primary)' }}
-          />
-          <div
-            className="absolute bottom-[-160px] right-[-120px] h-[420px] w-[420px] rounded-full blur-[130px] opacity-25"
-            style={{ backgroundColor: 'var(--theme-accent)' }}
-          />
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--theme-primary) 25%, transparent), transparent 45%), radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--theme-accent) 20%, transparent), transparent 50%), radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--theme-secondary) 18%, transparent), transparent 55%)'
-            }}
-          />
-        </div>
         <div className="container relative z-10 mx-auto max-w-5xl px-4 pb-12 pt-16">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <button
               onClick={() => router.push('/')}
-              className="rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition hover:opacity-90"
-              style={{
-                borderColor: 'var(--theme-border)',
-                backgroundColor: 'var(--theme-surface)',
-                color: 'var(--theme-text-secondary)'
-              }}
+              className="bg-[#1652F0] hover:bg-[#1652F0]/90 text-white font-bold py-2 px-3 md:px-6 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-xs md:text-base"
             >
               Back
             </button>
@@ -265,8 +243,7 @@ export default function CardGame() {
               className="rounded-3xl border p-4 md:p-6 shadow-[0_30px_120px_rgba(0,0,0,0.6)]"
               style={{
                 borderColor: 'var(--theme-border)',
-                background:
-                  'linear-gradient(180deg, color-mix(in srgb, var(--theme-primary) 18%, var(--theme-surface)) 0%, var(--theme-surface) 65%, var(--theme-background) 100%)'
+                backgroundColor: 'var(--theme-surface)'
               }}
             >
               <div className="flex items-center justify-between mb-4">
@@ -277,7 +254,7 @@ export default function CardGame() {
                   >
                     Choose your fate
                   </div>
-                  <h2 className="text-lg md:text-2xl font-semibold">Pick a card</h2>
+                  <h2 className="text-[10px] md:text-xs font-bold">🎴 Shadow Draw</h2>
                 </div>
                 <div
                   className="rounded-full border px-3 py-1 text-xs"
@@ -436,8 +413,7 @@ export default function CardGame() {
                 className="rounded-3xl border p-4 md:p-5"
                 style={{
                   borderColor: 'var(--theme-border)',
-                  background:
-                    'linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 16%, transparent), color-mix(in srgb, var(--theme-primary) 12%, transparent))'
+                  backgroundColor: 'var(--theme-surface)'
                 }}
               >
                 <div className="text-sm font-semibold mb-3">🎯 How it works</div>
@@ -502,10 +478,7 @@ export default function CardGame() {
               className="rounded-2xl p-6 max-w-sm w-full border-2 shadow-2xl"
               style={{
                 borderColor: gameResult === 'win' ? 'var(--theme-success)' : 'var(--theme-error)',
-                background:
-                  gameResult === 'win'
-                    ? 'linear-gradient(135deg, color-mix(in srgb, var(--theme-success) 70%, transparent), color-mix(in srgb, var(--theme-primary) 40%, transparent))'
-                    : 'linear-gradient(135deg, color-mix(in srgb, var(--theme-error) 70%, transparent), color-mix(in srgb, var(--theme-accent) 35%, transparent))'
+                backgroundColor: 'var(--theme-surface)'
               }}
             >
               <div className="text-center">

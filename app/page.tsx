@@ -277,6 +277,15 @@ export default function Home() {
         if (saved) {
           tokenImages = JSON.parse(saved)
           console.log('📦 Token metadata from localStorage:', tokenImages)
+          
+          // Set initial reward tokens from localStorage immediately
+          const initialTokens = Object.keys(tokenImages).map(address => ({
+            address,
+            image: tokenImages[address].image || '',
+            symbol: tokenImages[address].symbol || 'TOKEN'
+          }))
+          setRewardTokens(initialTokens)
+          console.log('✅ Initial reward tokens from localStorage:', initialTokens)
         }
         
         // Also load from API and merge (API data takes precedence)
@@ -310,7 +319,14 @@ export default function Home() {
           console.log('✅ Final reward tokens:', tokens)
           setRewardTokens(tokens)
         } else {
-          console.log('❌ No supported tokens from blockchain')
+          // If no blockchain data, update with merged metadata
+          const tokens = Object.keys(tokenImages).map(address => ({
+            address,
+            image: tokenImages[address].image || '',
+            symbol: tokenImages[address].symbol || 'TOKEN'
+          }))
+          setRewardTokens(tokens)
+          console.log('✅ Reward tokens from metadata (no blockchain):', tokens)
         }
       } catch (error) {
         console.error('❌ Error loading tokens:', error)

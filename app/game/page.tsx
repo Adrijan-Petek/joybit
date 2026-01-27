@@ -741,23 +741,6 @@ export default function Match3Game() {
       </div>
 
       <div className="relative isolate min-h-screen overflow-hidden">
-        <div className="pointer-events-none absolute inset-0">
-          <div
-            className="absolute -top-40 left-1/2 h-[420px] w-[520px] -translate-x-1/2 rounded-full blur-[120px] opacity-30"
-            style={{ backgroundColor: 'var(--theme-primary)' }}
-          />
-          <div
-            className="absolute bottom-[-160px] right-[-120px] h-[420px] w-[420px] rounded-full blur-[130px] opacity-25"
-            style={{ backgroundColor: 'var(--theme-accent)' }}
-          />
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--theme-primary) 25%, transparent), transparent 45%), radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--theme-accent) 20%, transparent), transparent 50%), radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--theme-secondary) 18%, transparent), transparent 55%)'
-            }}
-          />
-        </div>
 
         <div className="container relative z-10 mx-auto max-w-md pt-14 pb-4 px-2">
         {/* Header */}
@@ -1015,26 +998,7 @@ export default function Match3Game() {
               )}
             </div>
           </div>
-          <AnimatePresence>
-            {showBased && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
-              >
-                <div
-                  className="text-4xl md:text-5xl font-black"
-                  style={{
-                    color: 'var(--theme-primary)',
-                    textShadow: '0 0 12px color-mix(in srgb, var(--theme-primary) 70%, transparent)'
-                  }}
-                >
-                  BASED
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+
         </div>
 
         {/* Shuffle Message */}
