@@ -460,10 +460,10 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.22 }}
-              className="rounded-xl border shadow-xl overflow-hidden bg-gray-900/50"
-              style={{ borderColor: 'var(--theme-border)' }}
+              className="rounded-xl border shadow-xl overflow-hidden"
+              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
             >
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
+              <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: 'var(--theme-border)' }}>
                 <span className="h-2 w-2 rounded-full bg-red-400" />
                 <span className="h-2 w-2 rounded-full bg-yellow-400" />
                 <span className="h-2 w-2 rounded-full bg-green-400" />
@@ -487,10 +487,10 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.26 }}
-              className="rounded-xl border shadow-xl overflow-hidden bg-gray-900/50"
-              style={{ borderColor: 'var(--theme-border)' }}
+              className="rounded-xl border shadow-xl overflow-hidden"
+              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
             >
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
+              <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: 'var(--theme-border)' }}>
                 <span className="h-2 w-2 rounded-full bg-red-400" />
                 <span className="h-2 w-2 rounded-full bg-yellow-400" />
                 <span className="h-2 w-2 rounded-full bg-green-400" />
@@ -518,7 +518,8 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               onClick={() => router.push('/daily-claim')}
-              className="bg-gray-900/50 backdrop-blur-lg rounded-xl p-4 md:p-5 hover:bg-gray-800/50 transition-all border border-gray-800"
+              className="backdrop-blur-lg rounded-xl p-4 md:p-5 hover:bg-gray-800/50 transition-all border"
+              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
             >
               <div className="text-2xl md:text-3xl mb-1 md:mb-2">🎁</div>
               <h3 className="font-bold text-sm md:text-base">Daily Claim</h3>
@@ -625,7 +626,8 @@ export default function Home() {
               {rewardTokens.length > 0 && rewardTokens.map((token, index) => (
                 <div
                   key={token.address}
-                  className="bg-purple-500/20 backdrop-blur-lg border border-purple-400/50 rounded-xl p-5 md:p-6"
+                  className="backdrop-blur-lg border rounded-xl p-5 md:p-6"
+                  style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
                 >
                   <div className="flex flex-col items-center justify-between gap-4 h-full">
                     <div className="flex-1 text-center w-full">
@@ -702,7 +704,7 @@ export default function Home() {
             transition={{ delay: 0.75 }}
             className="mt-8 md:mt-12"
           >
-            <div className="bg-blue-500/20 backdrop-blur-lg border border-blue-400/50 rounded-xl p-5 md:p-6">
+            <div className="backdrop-blur-lg border rounded-xl p-5 md:p-6" style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}>
               <h3 className="text-xl md:text-2xl font-bold mb-4 text-center">🏦 Rewards Tokens Balances</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* JOYB Balance */}
