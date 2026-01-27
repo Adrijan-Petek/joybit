@@ -44,8 +44,9 @@ export function Logo({ size = 'medium', clickable = false, showText = true }: Lo
         priority
       />
       {showText && (
-        <span className={`${textSizes[size]} font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500`}>
-          JOYBIT
+        <span className={`${textSizes[size]} font-bold`}>
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-yellow-500">JOY</span>
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500">BIT</span>
         </span>
       )}
     </div>

@@ -401,7 +401,10 @@ export default function Home() {
             whileTap={{ scale: 0.98 }}
           >
             <Logo size="large" clickable={false} showText={true} />
-            <p className="text-sm md:text-base text-gray-400 mt-2 ml-1">Match-3 Fun on Base</p>
+            <p className="text-sm md:text-base mt-2 ml-1">
+              <span className="text-yellow-500">Match-3 Fun</span>
+              <span className="text-gray-400"> on Base</span>
+            </p>
           </motion.div>
         </motion.header>
 
@@ -512,7 +515,7 @@ export default function Home() {
           </div>
 
           {/* Additional Features */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-6">
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -551,6 +554,18 @@ export default function Home() {
               <h3 className="font-bold text-sm md:text-base">Profile</h3>
               <p className="text-xs md:text-sm text-gray-400">Claim your rewards</p>
             </motion.button>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="backdrop-blur-lg rounded-xl p-4 md:p-5 border"
+              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
+            >
+              <div className="text-2xl md:text-3xl mb-1 md:mb-2">🏦</div>
+              <h3 className="font-bold text-sm md:text-base">Staking</h3>
+              <p className="text-xs md:text-sm text-gray-400">Coming Soon</p>
+            </motion.div>
           </div>
 
           {/* Token Info Grid */}
