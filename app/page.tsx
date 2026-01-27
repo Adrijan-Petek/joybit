@@ -452,7 +452,7 @@ export default function Home() {
                 </p>
                 <button
                   onClick={() => router.push('/game')}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm"
+                  className="w-full bg-[#1652F0] hover:bg-[#1652F0]/90 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm"
                 >
                   Play Now
                 </button>
@@ -479,7 +479,7 @@ export default function Home() {
                 </p>
                 <button
                   onClick={() => router.push('/card-game')}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm"
+                  className="w-full bg-[#1652F0] hover:bg-[#1652F0]/90 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm"
                 >
                   Play Now
                 </button>
@@ -506,7 +506,7 @@ export default function Home() {
                 </p>
                 <button
                   onClick={() => router.push('/basebound')}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm"
+                  className="w-full bg-[#1652F0] hover:bg-[#1652F0]/90 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm"
                 >
                   Play Now
                 </button>
@@ -613,7 +613,7 @@ export default function Home() {
                       href="https://app.uniswap.org/#/swap?outputCurrency=0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07&chain=base"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-center text-sm md:text-base whitespace-nowrap"
+                      className="bg-[#1652F0] hover:bg-[#1652F0]/90 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-center text-sm md:text-base whitespace-nowrap"
                     >
                       🦄 Buy on Uniswap
                     </a>
@@ -685,7 +685,7 @@ export default function Home() {
                         href={`https://app.uniswap.org/#/swap?outputCurrency=${token.address}&chain=base`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-center text-sm md:text-base whitespace-nowrap"
+                        className="bg-[#1652F0] hover:bg-[#1652F0]/90 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-center text-sm md:text-base whitespace-nowrap"
                       >
                         🦄 Buy on Uniswap
                       </a>

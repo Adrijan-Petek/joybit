@@ -127,7 +127,7 @@ export function WalletButton() {
     
     return (
       <div className="relative group">
-        <button className="theme-button-primary text-white font-bold py-2 px-3 md:px-6 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-xs md:text-base flex items-center gap-2">
+        <button className="bg-[#1652F0] hover:bg-[#1652F0]/90 text-white font-bold py-2 px-3 md:px-6 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-xs md:text-base flex items-center gap-2">
           {context?.user?.pfpUrl ? (
             <img 
               src={context.user.pfpUrl} 
@@ -183,7 +183,7 @@ export function WalletButton() {
   return (
     <button
       onClick={openConnectModal}
-      className="theme-button-primary text-white font-bold py-2 px-3 md:px-6 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-xs md:text-base"
+      className="bg-[#1652F0] hover:bg-[#1652F0]/90 text-white font-bold py-2 px-3 md:px-6 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-xs md:text-base"
     >
       <span className="hidden sm:inline">Connect Wallet</span>
       <span className="sm:hidden">Connect</span>
