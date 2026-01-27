@@ -78,19 +78,22 @@ export async function GET(request: NextRequest) {
     // Different cache headers for meta vs data requests
     const cacheHeaders = isMetaRequest 
       ? { 'Cache-Control': 'no-store' } // Meta requests bypass cache
-      : { 'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=1296000' } // Data requests use edge cache
+      : { 'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=3600' } // Data requests use edge cache
     
-    return NextResponse.json({
-      version: latestUpdate,
-      announcements: isMetaRequest ? [] : announcements, // Meta requests only need version
-      settings: isMetaRequest ? null : {
-        animationType: settings.animation_type,
-        colorTheme: settings.color_theme,
-        glowIntensity: settings.glow_intensity,
-        speed: settings.speed,
-        fontStyle: settings.font_style
-      }
-    }, {
+    return NextResponse.json(
+      isMetaRequest 
+        ? { version: latestUpdate } // Meta requests: version only
+        : { // Data requests: full response
+            version: latestUpdate,
+            announcements,
+            settings: {
+              animationType: settings.animation_type,
+              colorTheme: settings.color_theme,
+              glowIntensity: settings.glow_intensity,
+              speed: settings.speed,
+              fontStyle: settings.font_style
+            }
+          }, {
       headers: cacheHeaders
     })
   } catch (error) {
@@ -98,19 +101,22 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const isMetaRequest = searchParams.has('meta')
     
-    return NextResponse.json({
-      version: new Date().toISOString(),
-      announcements: [],
-      settings: isMetaRequest ? null : {
-        animationType: 'scroll',
-        colorTheme: 'yellow',
-        glowIntensity: 'medium',
-        speed: 'normal',
-        fontStyle: 'mono'
-      }
-    }, { 
+    return NextResponse.json(
+      isMetaRequest 
+        ? { version: new Date().toISOString() } // Meta error: version only
+        : { // Data error: full error response
+            version: new Date().toISOString(),
+            announcements: [],
+            settings: {
+              animationType: 'scroll',
+              colorTheme: 'yellow',
+              glowIntensity: 'medium',
+              speed: 'normal',
+              fontStyle: 'mono'
+            }
+          }, { 
       status: 500,
-      headers: isMetaRequest ? { 'Cache-Control': 'no-store' } : { 'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=1296000' }
+      headers: isMetaRequest ? { 'Cache-Control': 'no-store' } : { 'Cache-Control': 'public, s-maxage=1296000, stale-while-revalidate=3600' }
     })
   }
 }

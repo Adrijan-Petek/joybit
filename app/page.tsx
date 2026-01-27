@@ -183,8 +183,11 @@ export default function Home() {
 
     loadAnnouncements()
 
-    // Poll for settings updates every 6 hours with cache busting
-    const pollInterval = setInterval(async () => {
+    // Visibility-based polling for announcements
+    let pollInterval: NodeJS.Timeout
+    let currentPollInterval = 300000 // 5 minutes when visible
+
+    const pollForUpdates = async () => {
       try {
         // First get the current version (meta request bypasses cache)
         const versionResponse = await fetch('/api/announcements?meta=1', { cache: 'no-store' })
@@ -232,7 +235,28 @@ export default function Home() {
       } catch (error) {
         console.error('Failed to poll announcement settings:', error)
       }
-    }, 21600000) // Poll every 6 hours (for monthly updates)
+    }
+
+    // Set up visibility change listener for responsive updates
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Tab became visible - check for updates immediately
+        pollForUpdates()
+        // Switch to frequent polling
+        currentPollInterval = 300000 // 5 minutes
+        clearInterval(pollInterval)
+        pollInterval = setInterval(pollForUpdates, currentPollInterval)
+      } else {
+        // Tab became hidden - reduce polling frequency
+        currentPollInterval = 1800000 // 30 minutes
+        clearInterval(pollInterval)
+        pollInterval = setInterval(pollForUpdates, currentPollInterval)
+      }
+    }
+
+    // Initial poll setup
+    pollInterval = setInterval(pollForUpdates, currentPollInterval)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     // Send periodic play encouragement notifications
     const sendPlayNotification = async () => {

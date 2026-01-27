@@ -516,9 +516,15 @@ npm run start
 - Combines caching efficiency with real-time update capability
 
 **API Endpoints:**
-- `GET /api/announcements?meta=1` → Version only, no cache
+- `GET /api/announcements?meta=1` → `{version}` only, no cache
 - `GET /api/announcements?v=${version}` → Full data, 15-day Edge cache
 - `GET /api/announcements` → Full data, 15-day Edge cache
+
+**Smart Polling:**
+- 5-minute intervals when tab is visible
+- 30-minute intervals when tab is hidden
+- Immediate check when tab becomes visible
+- Balances responsiveness with resource efficiency
 
 **Benefits:**
 - 99.9% reduction in function invocations
