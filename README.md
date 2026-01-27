@@ -503,12 +503,20 @@ npm run start
 
 **Announcements API Optimization:**
 - **Edge Caching**: 15-day fresh cache with 15-day stale-while-revalidate
+- **Cache Busting**: Version-based cache invalidation for instant updates
 - **Reduced Polling**: Frontend polls every 6 hours instead of every 3 seconds
 - **Monthly Updates**: Optimized for monthly announcement changes
 - **Cache Headers**: `Cache-Control: public, s-maxage=1296000, stale-while-revalidate=1296000`
 
+**Version-Based Cache Busting:**
+- API returns `version` field with latest update timestamp
+- Frontend uses `?v=${version}` query parameter for cache busting
+- New announcements appear instantly for all users
+- Combines caching efficiency with real-time update capability
+
 **Benefits:**
 - 99.9% reduction in function invocations
+- Instant announcement updates when published
 - Improved response times for users
 - Reduced server load and costs
 - Maintains data freshness for monthly updates

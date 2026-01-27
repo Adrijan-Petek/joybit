@@ -120,18 +120,34 @@ export default function Home() {
     playMusic('main-menu')
     sdk.actions.ready()
     
-    // Load announcements from database
+    // Load announcements from database with cache busting
     const loadAnnouncements = async () => {
       try {
-        const response = await fetch('/api/announcements')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.announcements && data.announcements.length > 0) {
-            const filteredAnnouncements = data.announcements.filter((a: string) => a.trim())
-            if (filteredAnnouncements.length > 0) {
-              setAnnouncements(filteredAnnouncements)
+        // First get the current version
+        const versionResponse = await fetch('/api/announcements', { cache: 'no-store' })
+        if (versionResponse.ok) {
+          const versionData = await versionResponse.json()
+          const currentVersion = versionData.version
+
+          // Now fetch with version for cache busting
+          const response = await fetch(`/api/announcements?v=${currentVersion}`, { cache: 'no-store' })
+          if (response.ok) {
+            const data = await response.json()
+            if (data.announcements && data.announcements.length > 0) {
+              const filteredAnnouncements = data.announcements.filter((a: string) => a.trim())
+              if (filteredAnnouncements.length > 0) {
+                setAnnouncements(filteredAnnouncements)
+              } else {
+                // All announcements were empty/whitespace, show defaults
+                setAnnouncements([
+                  '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
+                  '🏆 Compete for leaderboard positions and earn rewards!',
+                  '💎 Collect achievements and unlock special NFTs!',
+                  '🎮 Play daily for bonus rewards and claim your earnings!'
+                ])
+              }
             } else {
-              // All announcements were empty/whitespace, show defaults
+              // Database is empty or no announcements array, show defaults
               setAnnouncements([
                 '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
                 '🏆 Compete for leaderboard positions and earn rewards!',
@@ -139,8 +155,12 @@ export default function Home() {
                 '🎮 Play daily for bonus rewards and claim your earnings!'
               ])
             }
+            // Load settings
+            if (data.settings) {
+              setAnnouncementSettings(data.settings)
+            }
           } else {
-            // Database is empty or no announcements array, show defaults
+            // Fallback to default announcements
             setAnnouncements([
               '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
               '🏆 Compete for leaderboard positions and earn rewards!',
@@ -148,18 +168,6 @@ export default function Home() {
               '🎮 Play daily for bonus rewards and claim your earnings!'
             ])
           }
-          // Load settings
-          if (data.settings) {
-            setAnnouncementSettings(data.settings)
-          }
-        } else {
-          // Fallback to default announcements
-          setAnnouncements([
-            '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
-            '🏆 Compete for leaderboard positions and earn rewards!',
-            '💎 Collect achievements and unlock special NFTs!',
-            '🎮 Play daily for bonus rewards and claim your earnings!'
-          ])
         }
       } catch (error) {
         console.error('Failed to load announcements:', error)
@@ -175,42 +183,50 @@ export default function Home() {
 
     loadAnnouncements()
 
-    // Poll for settings updates every 3 seconds
+    // Poll for settings updates every 6 hours with cache busting
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch('/api/announcements')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.settings) {
-            setAnnouncementSettings(prevSettings => {
-              // Only update if settings have actually changed
-              if (JSON.stringify(prevSettings) !== JSON.stringify(data.settings)) {
-                console.log('🔄 Announcement settings updated:', data.settings)
-                return data.settings
-              }
-              return prevSettings
-            })
-          }
-          // Also update announcements if they changed
-          if (data.announcements) {
-            setAnnouncements(prevAnnouncements => {
-              const newAnnouncements = data.announcements.filter((a: string) => a.trim())
-              if (newAnnouncements.length === 0) {
-                // Database is empty, show default announcements
-                const defaultAnnouncements = [
-                  '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
-                  '🏆 Compete for leaderboard positions and earn rewards!',
-                  '💎 Collect achievements and unlock special NFTs!',
-                  '🎮 Play daily for bonus rewards and claim your earnings!'
-                ]
-                console.log('🔄 Database empty, showing default announcements:', defaultAnnouncements)
-                return defaultAnnouncements
-              } else if (JSON.stringify(prevAnnouncements) !== JSON.stringify(newAnnouncements)) {
-                console.log('🔄 Announcements updated:', newAnnouncements)
-                return newAnnouncements
-              }
-              return prevAnnouncements
-            })
+        // First get the current version to use for cache busting
+        const versionResponse = await fetch('/api/announcements', { cache: 'no-store' })
+        if (versionResponse.ok) {
+          const versionData = await versionResponse.json()
+          const currentVersion = versionData.version
+
+          // Now fetch with version for cache busting
+          const response = await fetch(`/api/announcements?v=${currentVersion}`, { cache: 'no-store' })
+          if (response.ok) {
+            const data = await response.json()
+            if (data.settings) {
+              setAnnouncementSettings(prevSettings => {
+                // Only update if settings have actually changed
+                if (JSON.stringify(prevSettings) !== JSON.stringify(data.settings)) {
+                  console.log('🔄 Announcement settings updated:', data.settings)
+                  return data.settings
+                }
+                return prevSettings
+              })
+            }
+            // Also update announcements if they changed
+            if (data.announcements) {
+              setAnnouncements(prevAnnouncements => {
+                const newAnnouncements = data.announcements.filter((a: string) => a.trim())
+                if (newAnnouncements.length === 0) {
+                  // Database is empty, show default announcements
+                  const defaultAnnouncements = [
+                    '🎉 Welcome to Joybit - Match 3 & Card Games on Base!',
+                    '🏆 Compete for leaderboard positions and earn rewards!',
+                    '💎 Collect achievements and unlock special NFTs!',
+                    '🎮 Play daily for bonus rewards and claim your earnings!'
+                  ]
+                  console.log('🔄 Database empty, showing default announcements:', defaultAnnouncements)
+                  return defaultAnnouncements
+                } else if (JSON.stringify(prevAnnouncements) !== JSON.stringify(newAnnouncements)) {
+                  console.log('🔄 Announcements updated:', newAnnouncements)
+                  return newAnnouncements
+                }
+                return prevAnnouncements
+              })
+            }
           }
         }
       } catch (error) {

@@ -47,6 +47,17 @@ export async function GET() {
 
     const announcements = result.rows.map(row => row.message as string)
 
+    // Get the latest update timestamp for versioning
+    const versionResult = await client.execute(`
+      SELECT MAX(updated_at) as latest_update 
+      FROM (
+        SELECT updated_at FROM announcements 
+        UNION 
+        SELECT updated_at FROM announcement_settings WHERE id = 1
+      )
+    `)
+    const latestUpdate = versionResult.rows[0]?.latest_update as string || new Date().toISOString()
+
     // Get settings
     const settingsResult = await client.execute('SELECT * FROM announcement_settings WHERE id = 1')
     const settings = settingsResult.rows[0] || {
@@ -59,8 +70,10 @@ export async function GET() {
 
     console.log('✅ API: Announcements retrieved:', announcements)
     console.log('✅ API: Settings retrieved:', settings)
+    console.log('✅ API: Version:', latestUpdate)
     
     return NextResponse.json({
+      version: latestUpdate,
       announcements,
       settings: {
         animationType: settings.animation_type,
@@ -77,6 +90,7 @@ export async function GET() {
   } catch (error) {
     console.error('❌ API: Error fetching announcements:', error)
     return NextResponse.json({
+      version: new Date().toISOString(),
       announcements: [],
       settings: {
         animationType: 'scroll',
