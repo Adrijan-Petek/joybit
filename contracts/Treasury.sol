@@ -39,8 +39,6 @@ contract Treasury is Ownable, ReentrancyGuard {
     event RewardClaimed(address indexed player, address indexed token, uint256 amount);
     event BatchRewardsDistributed(address indexed token, uint256 playerCount, uint256 totalAmount);
     event MinimumBalanceUpdated(address indexed token, uint256 newMinimum);
-    event TokenWithdrawn(address indexed token, address indexed to, uint256 amount);
-
     
     modifier onlyAdminOrOwner() {
         require(msg.sender == owner() || isAdmin[msg.sender], "Not admin or owner");
@@ -239,7 +237,6 @@ contract Treasury is Ownable, ReentrancyGuard {
         require(IERC20(token).balanceOf(address(this)) >= amount, "Insufficient tokens");
         
         require(IERC20(token).transfer(owner(), amount), "Transfer failed");
-        emit TokenWithdrawn(token, owner(), amount);
     }
     
     /**
@@ -296,4 +293,3 @@ contract Treasury is Ownable, ReentrancyGuard {
         emit ETHReceived(msg.sender, msg.value);
     }
 }
-
