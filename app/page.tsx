@@ -147,7 +147,7 @@ export default function Home() {
         i
       </button>
 
-      <section className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 pb-28 pt-28 md:pb-10 md:pt-24">
+      <section className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 pb-28 pt-16 md:pb-10 md:pt-16">
         <div className="max-w-xl md:mx-auto md:text-center">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-blue-300">
             Joybit Mini App

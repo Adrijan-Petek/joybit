@@ -963,7 +963,7 @@ export default function Match3Game() {
                         scale: tile.isMatched
                           ? 0
                           : isSelected
-                            ? 1.22
+                            ? 1.1
                             : 1,
                         opacity: tile.isMatched ? 0 : 1,
                         y: 0,
@@ -979,7 +979,7 @@ export default function Match3Game() {
                         opacity: { duration: 0.15 },
                         filter: { duration: 0.15 },
                       }}
-                      whileHover={!tile.isMatched && !animating ? { scale: isSelected ? 1.22 : 1.1 } : {}}
+                      whileHover={!tile.isMatched && !animating ? { scale: isSelected ? 1.1 : 1.06 } : {}}
                       whileTap={!tile.isMatched ? { scale: 0.88 } : {}}
                     >
                       {isSelected && (

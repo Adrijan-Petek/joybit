@@ -75,11 +75,6 @@ export default function ProfilePage() {
           </section>
         ) : (
           <div className="space-y-4">
-            <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-blue-300">Wallet</p>
-              <p className="mt-2 break-all font-mono text-sm text-gray-200">{address}</p>
-            </section>
-
             <section className="grid gap-3 sm:grid-cols-3">
               <Stat label="Games Played" value={stats?.gamesPlayed ?? 0} />
               <Stat label="High Score" value={stats?.highScore ?? 0} />
@@ -119,7 +114,7 @@ export default function ProfilePage() {
                       key={reward.token}
                       className="flex items-center justify-between rounded-lg bg-black/30 px-3 py-2 text-sm"
                     >
-                      <span className="font-mono text-xs text-gray-400">{reward.token}</span>
+                      <span className="text-gray-400">JOYB Rewards</span>
                       <span className="font-bold">{formatTokenBalance(reward.amount)}</span>
                     </div>
                   ))}
