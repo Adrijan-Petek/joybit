@@ -59,6 +59,30 @@ jobs:
 
       - name: Publish Documentation to Wiki
         if: env.HAS_WIKI_SOURCE == 'true' && env.GH_PERSONAL_ACCESS_TOKEN != ''
-        uses: SwiftDocOrg/github-wiki-publish-action@v1
-        with:
-          path: ".wiki-publish"
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          WIKI_REPO="https://x-access-token:${GH_PERSONAL_ACCESS_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          WIKI_WORKDIR="$(mktemp -d)"
+
+          git clone "$WIKI_REPO" "$WIKI_WORKDIR"
+
+          find "$WIKI_WORKDIR" -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            -exec rm -rf {} +
+
+          cp -R "$WIKI_SOURCE_PATH"/. "$WIKI_WORKDIR"/
+
+          cd "$WIKI_WORKDIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No wiki changes to publish"
+            exit 0
+          fi
+
+          git add -A
+          git commit -m "Automatically publish wiki"
+          git push origin HEAD:master
