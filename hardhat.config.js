@@ -1,6 +1,4 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("@openzeppelin/hardhat-upgrades");
-require("@nomicfoundation/hardhat-verify");
+/* eslint-disable @typescript-eslint/no-require-imports */
 require("dotenv").config({ path: ".env.local" });
 
 /** @type import('hardhat/config').HardhatUserConfig */

@@ -35,9 +35,7 @@ interface AudioProviderProps {
   children: ReactNode
 }
 
-const SOUND_GAINS: Record<string, number> = {
-  based: 1.6,
-}
+const SOUND_GAINS: Record<string, number> = {}
 
 export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const [isMuted, setIsMuted] = useState(false)
@@ -79,11 +77,8 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       'win',
       'lose',
       'game-over',
-      'card-flip',
-      'card-click',
       'reward',
-      'click',
-      'based'
+      'click'
     ]
 
     const currentSoundRefs = soundRefs.current
@@ -136,7 +131,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
     const playPromise = musicRef.current.play()
     
     if (playPromise !== undefined) {
-      playPromise.catch(err => {
+      playPromise.catch(() => {
         // Auto-play was prevented, try to enable on first user interaction
         const startPlayback = () => {
           musicRef.current?.play().catch(e => console.warn('Music playback failed:', e))

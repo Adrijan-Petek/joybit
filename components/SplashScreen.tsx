@@ -23,7 +23,8 @@ export function SplashScreen() {
         initial={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black"
+        className="fixed inset-0 z-[9999] flex items-center justify-center"
+        style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}
       >
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
@@ -69,7 +70,8 @@ export function SplashScreen() {
                   repeat: Infinity,
                   delay: i * 0.2,
                 }}
-                className="w-3 h-3 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full"
+                className="h-3 w-3 rounded-full"
+                style={{ backgroundColor: 'var(--theme-primary)' }}
               />
             ))}
           </motion.div>

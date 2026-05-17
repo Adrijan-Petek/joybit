@@ -11,25 +11,78 @@ interface UserData {
   avatar: string | null
 }
 
+interface BaseIdentityData {
+  username: string | null
+  avatar: string | null
+}
+
+interface MiniAppUser {
+  username: string | null
+  displayName: string | null
+  fid: number | null
+  pfpUrl: string | null
+}
+
+const parseMiniAppUser = (rawContext: any): MiniAppUser | null => {
+  const user = rawContext?.user
+  if (!user) return null
+
+  const fidValue = user.fid ?? user.userFid ?? user.id
+  const parsedFid = Number(fidValue)
+  const fid = Number.isFinite(parsedFid) && parsedFid > 0 ? parsedFid : null
+
+  const pfpUrl =
+    user.pfpUrl ||
+    user.pfp ||
+    user?.pfp?.url ||
+    user.avatar ||
+    user.avatarUrl ||
+    null
+
+  return {
+    username: user.username || user.userName || null,
+    displayName: user.displayName || user.display_name || null,
+    fid,
+    pfpUrl,
+  }
+}
+
 export function WalletButton() {
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
   const { openConnectModal } = useConnectModal()
-  const { connect, connectors } = useConnect()
-  const [context, setContext] = useState<{ user?: { username?: string; fid?: number; pfpUrl?: string } } | null>(null)
+  const { connectAsync, connectors, isPending: isConnectPending } = useConnect()
+  const [context, setContext] = useState<{ user?: MiniAppUser } | null>(null)
   const [isInMiniApp, setIsInMiniApp] = useState(false)
   const [ready, setReady] = useState(false)
   const [basename, setBasename] = useState<string | null>(null)
+  const [baseAvatar, setBaseAvatar] = useState<string | null>(null)
   const [userData, setUserData] = useState<UserData | null>(null)
+  const [autoConnectAttempted, setAutoConnectAttempted] = useState(false)
+  const [autoConnectRetried, setAutoConnectRetried] = useState(false)
 
   // Initialize SDK context and check if in MiniApp
   useEffect(() => {
     const init = async () => {
       try {
-        const ctx = await sdk.context
-        setContext(ctx)
-        const inMiniApp = await sdk.isInMiniApp()
+        const [ctxResult, inMiniAppResult] = await Promise.allSettled([sdk.context, sdk.isInMiniApp()])
+        const rawCtx = ctxResult.status === 'fulfilled' ? ctxResult.value : null
+        const inMiniApp = inMiniAppResult.status === 'fulfilled' ? inMiniAppResult.value : false
+
+        setContext({ user: parseMiniAppUser(rawCtx) || undefined })
         setIsInMiniApp(inMiniApp)
+
+        // Retry once in Mini App because context user fields can hydrate slightly later.
+        if (inMiniApp && !parseMiniAppUser(rawCtx)) {
+          setTimeout(async () => {
+            try {
+              const retriedCtx = await sdk.context
+              setContext({ user: parseMiniAppUser(retriedCtx) || undefined })
+            } catch {
+              // Ignore retry failures.
+            }
+          }, 700)
+        }
         
         if (inMiniApp) {
           console.log('Running in Farcaster MiniApp context')
@@ -42,31 +95,32 @@ export function WalletButton() {
     init()
   }, [])
 
-  // Fetch Basename for external wallets
+  // Fetch Base identity (name + avatar) as fallback when Mini App profile data is absent.
   useEffect(() => {
-    if (!address || isInMiniApp || context?.user?.username) return
+    if (!address) return
 
-    const fetchBasename = async () => {
+    const fetchBaseIdentity = async () => {
       try {
-        console.log('🔍 Fetching Basename for external wallet...')
-        const response = await fetch(`/api/get-basename?address=${address}`)
-        const data = await response.json()
+        const response = await fetch(`/api/get-basename?address=${address}`, { cache: 'no-store' })
+        if (!response.ok) return
+        const data = (await response.json()) as BaseIdentityData & { basename?: string | null }
         
-        if (data.username) {
-          console.log(`✅ Found Basename: ${data.username}`)
-          setBasename(data.username)
+        const resolvedName = data.username || data.basename || null
+        if (resolvedName) setBasename(resolvedName)
+        if (data.avatar) {
+          setBaseAvatar(data.avatar)
         }
       } catch (error) {
-        console.log('❌ Could not fetch Basename:', error)
+        console.log('Could not fetch Base identity:', error)
       }
     }
 
-    fetchBasename()
-  }, [address, isInMiniApp, context])
+    fetchBaseIdentity()
+  }, [address])
 
-  // Fetch user profile data (only for users without ENS/Farcaster)
+  // Fetch persisted user profile (username/pfp) as additional fallback.
   useEffect(() => {
-    if (!address || context?.user?.username || basename) return
+    if (!address) return
 
     const fetchUserData = async () => {
       try {
@@ -81,7 +135,7 @@ export function WalletButton() {
     }
 
     fetchUserData()
-  }, [address, context?.user?.username, basename])
+  }, [address])
 
   // Auto-connect to Farcaster Wallet when in MiniApp
   useEffect(() => {
@@ -97,55 +151,55 @@ export function WalletButton() {
     
     // Wait for connectors to be available
     if (connectors.length === 0) return
+    if (isConnectPending) return
+    if (autoConnectAttempted && autoConnectRetried) return
 
     const farcasterConnector = connectors.find(c => c.name === 'Farcaster Wallet')
-    if (farcasterConnector && !isConnected) {
-      console.log('Auto-connecting to Farcaster Wallet...')
-      
-      // Small delay to ensure wagmi is fully initialized
-      const timer = setTimeout(async () => {
-        try {
-          await connect({ connector: farcasterConnector })
-          // Signal ready after connection
-          await sdk.actions.ready()
-          setReady(true)
-        } catch (error) {
-          console.error('Failed to auto-connect:', error)
+    if (!farcasterConnector || isConnected) return
+
+    // Small delay to ensure wagmi is fully initialized
+    const timer = setTimeout(async () => {
+      try {
+        setAutoConnectAttempted(true)
+        await connectAsync({ connector: farcasterConnector })
+        await sdk.actions.ready()
+        setReady(true)
+      } catch (error) {
+        const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+
+        // Some clients occasionally reset the request once; retry once silently.
+        if (message.includes('connection request reset') && !autoConnectRetried) {
+          setAutoConnectRetried(true)
+          return
         }
-      }, 150)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [isInMiniApp, isConnected, connectors, connect, ready])
+
+        console.log('Auto-connect skipped:', error)
+      }
+    }, 200)
+
+    return () => clearTimeout(timer)
+  }, [isInMiniApp, isConnected, connectors, connectAsync, ready, isConnectPending, autoConnectAttempted, autoConnectRetried])
 
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
 
   if (isConnected && address) {
-    const displayName = context?.user?.username || basename || userData?.username || formatAddress(address)
+    const farcasterName = context?.user?.displayName || context?.user?.username || (context?.user?.fid ? `fid:${context.user.fid}` : null)
+    const displayName = farcasterName || basename || userData?.username || formatAddress(address)
+    const displayAvatar = context?.user?.pfpUrl || baseAvatar || userData?.avatar || null
     
     return (
       <div className="relative group">
         <button className="bg-[#1652F0] hover:bg-[#1652F0]/90 text-white font-bold py-2 px-3 md:px-6 rounded-lg md:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-xs md:text-base flex items-center gap-2">
-          {context?.user?.pfpUrl ? (
+          {displayAvatar ? (
             <img 
-              src={context.user.pfpUrl} 
+              src={displayAvatar} 
               alt="PFP"
               className="w-6 h-6 rounded-full object-cover"
             />
-          ) : !isInMiniApp && !userData?.avatar ? (
-            <Avatar address={address} className="w-6 h-6 rounded-full" />
-          ) : userData?.avatar ? (
-            <img 
-              src={userData.avatar} 
-              alt="Avatar"
-              className="w-6 h-6 rounded-full object-cover"
-            />
           ) : (
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
-              {displayName.charAt(0).toUpperCase()}
-            </div>
+            <Avatar address={address} className="w-6 h-6 rounded-full" />
           )}
           {displayName}
         </button>
@@ -158,14 +212,14 @@ export function WalletButton() {
           </div>
           {context?.user && (
             <div className="p-4 border-b border-gray-700">
-              <p className="text-xs text-gray-400">Farcaster User</p>
-              <p className="text-sm text-white">@{context.user.username || 'Unknown'}</p>
+              <p className="text-xs text-gray-400">Mini App User</p>
+              <p className="text-sm text-white">@{context.user.username || context.user.displayName || 'Unknown'}</p>
               <p className="text-xs text-gray-400">FID: {context.user.fid}</p>
             </div>
           )}
           {basename && !context?.user && (
             <div className="p-4 border-b border-gray-700">
-              <p className="text-xs text-gray-400">Basename</p>
+              <p className="text-xs text-gray-400">Wallet Name</p>
               <p className="text-sm text-white">{basename}</p>
             </div>
           )}

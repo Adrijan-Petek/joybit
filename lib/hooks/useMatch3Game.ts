@@ -2,7 +2,7 @@ import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 
 import { formatEther } from 'viem'
 import { CONTRACT_ADDRESSES } from '../contracts/addresses'
 import { MATCH3_GAME_ABI } from '../contracts/abis'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export function useMatch3Game() {
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
@@ -234,99 +234,4 @@ export function useMatch3LevelReward(level: number) {
   })
 
   return reward as bigint
-}
-
-export function useLevelRewardsManager() {
-  const [levelRewards, setLevelRewards] = useState<Record<number, string>>({})
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    // Load level rewards from database API
-    const loadRewards = async () => {
-      try {
-        console.log('🎁 Loading level rewards from database...')
-        const response = await fetch('/api/level-rewards')
-        if (response.ok) {
-          const data = await response.json()
-          setLevelRewards(data)
-          console.log('✅ Level rewards loaded from database:', data)
-        } else {
-          console.error('Failed to load level rewards from database')
-        }
-      } catch (error) {
-        console.error('Error loading level rewards:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadRewards()
-  }, [])
-
-  const getRewardForLevel = (level: number): string => {
-    const reward = levelRewards[level]
-    return reward || '0'
-  }
-
-  const getRewardAmount = (level: number): number => {
-    const reward = getRewardForLevel(level)
-    return parseFloat(reward) || 0
-  }
-
-  const saveReward = async (level: number, reward: string) => {
-    try {
-      const response = await fetch('/api/level-rewards', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ level, reward }),
-      })
-
-      if (response.ok) {
-        // Update local state
-        setLevelRewards(prev => ({ ...prev, [level]: reward }))
-        return true
-      }
-      return false
-    } catch (error) {
-      console.error('Error saving level reward:', error)
-      return false
-    }
-  }
-
-  const deleteReward = async (level: number) => {
-    try {
-      const response = await fetch('/api/level-rewards', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ level }),
-      })
-
-      if (response.ok) {
-        // Update local state
-        setLevelRewards(prev => {
-          const newRewards = { ...prev }
-          delete newRewards[level]
-          return newRewards
-        })
-        return true
-      }
-      return false
-    } catch (error) {
-      console.error('Error deleting level reward:', error)
-      return false
-    }
-  }
-
-  return {
-    getRewardForLevel,
-    getRewardAmount,
-    levelRewards,
-    isLoading,
-    saveReward,
-    deleteReward
-  }
 }

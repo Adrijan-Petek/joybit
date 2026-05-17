@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@libsql/client'
+import type { Client } from '@libsql/client'
 
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-})
+let client: Client | null = null
+
+function getDbClient() {
+  if (client) return client
+
+  const url = process.env.TURSO_DATABASE_URL
+  const authToken = process.env.TURSO_AUTH_TOKEN
+
+  if (!url || !authToken) {
+    return null
+  }
+
+  client = createClient({ url, authToken })
+  return client
+}
 
 // Rate limiting storage (in production, use Redis)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
@@ -435,12 +447,15 @@ async function logSecurityEvent(
   user?: string
 ) {
   try {
-    await client.execute(`
+    const db = getDbClient()
+    if (!db) return
+
+    await db.execute(`
       INSERT INTO security_alerts (type, severity, ip, details, resolved)
       VALUES (?, ?, ?, ?, FALSE)
     `, [type, severity, ip, details])
 
-    await client.execute(`
+    await db.execute(`
       INSERT INTO security_logs (action, type, ip, user, details)
       VALUES (?, ?, ?, ?, ?)
     `, ['Security Event', type, ip, user || 'anonymous', details])
@@ -470,10 +485,14 @@ export async function proxy(request: NextRequest) {
   }
 
   try {
+    const db = getDbClient()
+
     // Check if IP is blocked
-    const blockedCheck = await client.execute(`
-      SELECT ip FROM blocked_ips WHERE ip = ?
-    `, [ip])
+    const blockedCheck = db
+      ? await db.execute(`
+        SELECT ip FROM blocked_ips WHERE ip = ?
+      `, [ip])
+      : { rows: [] }
 
     if (blockedCheck.rows.length > 0) {
       await logSecurityEvent('blocked_ip_access', 'high', ip, `Blocked IP attempted access to ${url}`)

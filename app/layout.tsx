@@ -1,22 +1,19 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { AudioProvider } from '@/components/audio/AudioContext'
 import { SplashScreen } from '@/components/SplashScreen'
 import { ThemeProvider } from '@/components/theme/ThemeContext'
 
-const inter = Inter({ subsets: ['latin'] })
-
 export const metadata: Metadata = {
-  title: 'Joybit - Match-3 Game on Base',
-  description: 'Play Match-3 games, earn JOYB tokens on Base blockchain! Compete in card battles and claim daily rewards. Built on Base (bc_sf53xjf3).',
+  title: 'Joybit - Match-3 Game',
+  description: 'Play Match-3, compete on the leaderboard, and earn JOYB rewards.',
   icons: {
     icon: '/branding/favicon.ico',
   },
   openGraph: {
-    title: 'Joybit - Blockchain Gaming on Base',
-    description: 'Play, earn, and win JOYB tokens in Match-3 games. Built on Base (bc_sf53xjf3).',
+    title: 'Joybit - Match-3 Gaming',
+    description: 'Play Match-3, compete on the leaderboard, and earn JOYB rewards.',
     url: 'https://joybit.vercel.app',
     siteName: 'Joybit',
     images: [
@@ -31,8 +28,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Joybit - Match-3 on Base',
-    description: 'Play Match-3 games and earn JOYB tokens on Base blockchain. Built on Base (bc_sf53xjf3).',
+    title: 'Joybit - Match-3',
+    description: 'Play Match-3, compete on the leaderboard, and earn JOYB rewards.',
     images: ['/branding/logo.png'],
   },
   other: {
@@ -68,7 +65,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body>
         <SplashScreen />
         <ThemeProvider>
           <Providers>

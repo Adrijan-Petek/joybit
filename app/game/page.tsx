@@ -3,16 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAccount } from 'wagmi'
-import { formatEther, parseEther } from 'viem'
+import { useAccount, useBalance } from 'wagmi'
+import { formatEther } from 'viem'
 import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
-import { useMatch3Game, useMatch3GameData, useMatch3LevelReward, useLevelRewardsManager } from '@/lib/hooks/useMatch3Game'
+import { useMatch3Game, useMatch3GameData, useMatch3LevelReward } from '@/lib/hooks/useMatch3Game'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
-import { notifyAdminReward } from '@/lib/utils/farcasterNotifications'
 import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
 import { detectInvalidScore, detectSpeedHack } from '@/lib/utils/cheatingDetection'
 import {
@@ -39,6 +38,12 @@ const getTileImage = (type: number) => {
 export default function Match3Game() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
+  const { data: nativeBalance } = useBalance({
+    address,
+    query: {
+      enabled: !!address,
+    },
+  })
   const { playSound, playMusic } = useAudio()
   const processingRef = useRef(false)
   const [mounted, setMounted] = useState(false)
@@ -79,7 +84,6 @@ export default function Match3Game() {
 
   // Get level reward for current level
   const levelReward = useMatch3LevelReward(gameState.level)
-  const { getRewardForLevel, getRewardAmount, levelRewards } = useLevelRewardsManager()
 
   const [animating, setAnimating] = useState(false)
   const [showShuffleMessage, setShowShuffleMessage] = useState(false)
@@ -92,8 +96,6 @@ export default function Match3Game() {
   const [activeBooster, setActiveBooster] = useState<'hammer' | 'colorBomb' | null>(null)
   const [userData, setUserData] = useState<{ username?: string; pfpUrl?: string }>({})
   const [allLevelRewards, setAllLevelRewards] = useState<Array<{level: number, amount: string}>>([])
-  const [showBased, setShowBased] = useState(false)
-  const basedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -119,21 +121,6 @@ export default function Match3Game() {
     
     initSDK()
   }, [playMusic])
-
-  useEffect(() => {
-    return () => {
-      if (basedTimerRef.current) clearTimeout(basedTimerRef.current)
-    }
-  }, [])
-
-  const triggerBased = useCallback(() => {
-    if (basedTimerRef.current) clearTimeout(basedTimerRef.current)
-    setShowBased(true)
-    playSound?.('based')
-    basedTimerRef.current = setTimeout(() => {
-      setShowBased(false)
-    }, 900)
-  }, [playSound])
 
   // Get last played level from contract
   const lastPlayedLevel = playerData && Array.isArray(playerData) ? Number(playerData[2]) || 1 : 1
@@ -161,28 +148,23 @@ export default function Match3Game() {
     loadBoosters()
   }, [address])
 
-  // Load level rewards from database
-  useEffect(() => {
-    const fetchLevelRewards = async () => {
-      try {
-        const response = await fetch('/api/level-rewards')
-        if (response.ok) {
-          const rewardsObj = await response.json()
-          // Convert object to array: {5: "100"} -> [{level: 5, amount: "100"}]
-          const rewardsArray = Object.entries(rewardsObj).map(([level, amount]) => ({
-            level: parseInt(level),
-            amount: amount as string
-          }))
-          // Sort by level ascending
-          const sortedRewards = rewardsArray.sort((a, b) => a.level - b.level)
-          setAllLevelRewards(sortedRewards)
-        }
-      } catch (error) {
-        console.error('Failed to fetch level rewards:', error)
-      }
+  const ensureCanPay = useCallback((value: bigint, actionLabel: string) => {
+    if (value <= 0n) return true
+
+    if (!nativeBalance) {
+      alert('Unable to verify wallet balance yet. Please try again in a moment.')
+      return false
     }
-    fetchLevelRewards()
-  }, [])
+
+    if (nativeBalance.value < value) {
+      alert(
+        `Insufficient funds for ${actionLabel}. Need ${formatEther(value)} ETH, but wallet has ${formatEther(nativeBalance.value)} ETH.`
+      )
+      return false
+    }
+
+    return true
+  }, [nativeBalance])
 
   // Start game
   const startGame = useCallback(async (level: number, isPaid: boolean = false) => {
@@ -194,7 +176,16 @@ export default function Match3Game() {
       // If continuing from last level, user must pay
       // If starting from level 1, can use free play if available
       const shouldPay = isPaid || (level > 1)
-      const value = shouldPay ? (playFee || parseEther('0.001')) : (canPlayFree ? 0n : (playFee || parseEther('0.001')))
+      if (shouldPay && playFee === undefined) {
+        console.log('Paid game fee is still loading, skipping paid start request.')
+        return
+      }
+
+      const value = shouldPay ? (playFee as bigint) : (canPlayFree ? 0n : (playFee ?? 0n))
+
+      if (!ensureCanPay(value, shouldPay ? 'starting the game' : 'playing this round')) {
+        return
+      }
       
       await startGameContract(level, value)
       const newSessionId = BigInt(Date.now())
@@ -217,7 +208,7 @@ export default function Match3Game() {
     } catch (error) {
       console.error('Failed to start game:', error)
     }
-  }, [playSound, gameState.boosters, canPlayFree, playFee, startGameContract, isConnected, address, refetch])
+  }, [playSound, gameState.boosters, canPlayFree, playFee, startGameContract, isConnected, address, refetch, ensureCanPay])
 
   // Submit game result
   const endGame = useCallback(async (won: boolean) => {
@@ -239,39 +230,6 @@ export default function Match3Game() {
     setGameState(prev => ({ ...prev, isPlaying: false }))
     setGameResult(won ? 'win' : 'lose')
     setShowResultPopup(true)
-    // If player won, record level completion in database
-    if (won) {
-      const rewardAmount = getRewardAmount(gameState.level)
-      if (rewardAmount > 0) {
-        try {
-          // Record the level completion in database
-          console.log(`🎁 Recording level ${gameState.level} completion with ${rewardAmount} JOYB reward`)
-          
-          const response = await fetch('/api/level-completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              address,
-              level: gameState.level,
-              rewardAmount: rewardAmount.toString()
-            })
-          })
-          
-          if (response.ok) {
-            console.log(`✅ Level ${gameState.level} completion saved to database`)
-          } else {
-            console.error(`❌ Failed to save level ${gameState.level} completion:`, response.status)
-          }
-          
-          // Send notification about the reward
-          await notifyAdminReward(rewardAmount.toString(), 'JOYB')
-        } catch (error) {
-          console.error('Failed to record level completion:', error)
-        }
-      }
-    }
     
     // Increment games played count in database
     const currentGamesPlayed = match3Stats.gamesPlayed || 0
@@ -292,7 +250,7 @@ export default function Match3Game() {
     if (!won) {
       playSound?.('game-over')
     }
-  }, [sessionId, address, gameState.score, gameState.level, playSound, saveStats, match3Stats.gamesPlayed, getRewardAmount])
+  }, [sessionId, address, gameState.score, gameState.level, playSound, saveStats, match3Stats.gamesPlayed])
 
   // Process matches and cascading with improved timing
   const processMatches = useCallback(async (grid: Tile[][]) => {
@@ -305,7 +263,6 @@ export default function Match3Game() {
     let cascadeCount = 0
     const maxCascades = 10 // Prevent infinite cascades
     const { tileTypes } = getLevelConfig(gameState.level)
-    let comboTriggered = false
 
     while (hasMatches && cascadeCount < maxCascades) {
       const matches = findAllMatches(currentGrid)
@@ -313,11 +270,6 @@ export default function Match3Game() {
       if (matches.length === 0) {
         hasMatches = false
         break
-      }
-
-      if (!comboTriggered && cascadeCount >= 1 && matches.length >= 5) {
-        comboTriggered = true
-        triggerBased()
       }
 
       // Mark all matched tiles
@@ -394,7 +346,7 @@ export default function Match3Game() {
     setAnimating(false)
     processingRef.current = false
     return currentGrid
-  }, [playSound, gameState.score, gameState.targetScore, gameState.level, triggerBased])
+  }, [playSound, gameState.score, gameState.targetScore, gameState.level])
 
   // Auto-shuffle when no valid moves
   const checkAndShuffle = useCallback(async (grid: Tile[][]) => {
@@ -605,7 +557,7 @@ export default function Match3Game() {
     const shareText = `🎮 I ${outcome} in Joybit Match-3!\n` +
       `🏆 Score: ${gameState.score}\n` +
       `🎯 Level: ${gameState.level}\n\n` +
-      `Come play on Base! #Joybit #Base`
+      `Come play Joybit! #Joybit`
     const shareUrl = `${window.location.origin}/game`
     const url = new URL('https://warpcast.com/~/compose')
     url.searchParams.set('text', shareText)
@@ -619,7 +571,17 @@ export default function Match3Game() {
     
     try {
       // Continue current level - always payable (no free continues)
-      const value = playFee || parseEther('0.001')
+      if (playFee === undefined) {
+        console.log('Game fee is still loading, skipping continue request.')
+        return
+      }
+
+      const value = playFee
+
+      if (!ensureCanPay(value, 'continuing this level')) {
+        return
+      }
+
       await startGameContract(gameState.level, value)
       const newSessionId = BigInt(Date.now())
       setSessionId(newSessionId)
@@ -642,7 +604,7 @@ export default function Match3Game() {
     } catch (error) {
       console.error('Failed to continue level:', error)
     }
-  }, [gameState.level, playFee, startGameContract, isConnected, address, playSound, refetch])
+  }, [gameState.level, playFee, startGameContract, isConnected, address, playSound, refetch, ensureCanPay])
 
   const handleNextLevel = () => {
     const nextLevel = gameState.level + 1
@@ -678,19 +640,38 @@ export default function Match3Game() {
     
     try {
       let hash: `0x${string}` | undefined
+      let cost: bigint | undefined
       
       if (type === 'hammer') {
+        cost = isPack ? boosterPrices.hammerPack : boosterPrices.hammer
+        if (cost === undefined || cost === null) {
+          alert('Booster price is still loading. Please try again.')
+          return
+        }
+        if (!ensureCanPay(cost, `buying ${isPack ? 'Hammer Pack' : 'Hammer'}`)) return
         hash = isPack 
-          ? await buyHammerPack(boosterPrices.hammerPack)
-          : await buyHammer(boosterPrices.hammer)
+          ? await buyHammerPack(cost)
+          : await buyHammer(cost)
       } else if (type === 'shuffle') {
+        cost = isPack ? boosterPrices.shufflePack : boosterPrices.shuffle
+        if (cost === undefined || cost === null) {
+          alert('Booster price is still loading. Please try again.')
+          return
+        }
+        if (!ensureCanPay(cost, `buying ${isPack ? 'Shuffle Pack' : 'Shuffle'}`)) return
         hash = isPack
-          ? await buyShufflePack(boosterPrices.shufflePack)
-          : await buyShuffle(boosterPrices.shuffle)
+          ? await buyShufflePack(cost)
+          : await buyShuffle(cost)
       } else if (type === 'colorBomb') {
+        cost = isPack ? boosterPrices.colorBombPack : boosterPrices.colorBomb
+        if (cost === undefined || cost === null) {
+          alert('Booster price is still loading. Please try again.')
+          return
+        }
+        if (!ensureCanPay(cost, `buying ${isPack ? 'Color Bomb Pack' : 'Color Bomb'}`)) return
         hash = isPack
-          ? await buyColorBombPack(boosterPrices.colorBombPack)
-          : await buyColorBomb(boosterPrices.colorBomb)
+          ? await buyColorBombPack(cost)
+          : await buyColorBomb(cost)
       }
       
       // Wait for transaction confirmation
@@ -971,22 +952,16 @@ export default function Match3Game() {
                   <motion.button
                     key={tile.id}
                     onClick={() => handleTileClick(x, y)}
-                    disabled={!gameState.isPlaying || animating}
-                    className={`
-                      aspect-square rounded flex items-center justify-center overflow-hidden
-                      ${tile.isMatched ? 'opacity-0' : 'opacity-100'}
-                      ${gameState.selectedTile?.x === x && gameState.selectedTile?.y === y ? 'ring-2 ring-white' : ''}
-                      disabled:cursor-not-allowed
-                    `}
+                    className="aspect-square p-0.5 md:p-1 rounded-md transition-all duration-200 hover:scale-105 active:scale-95"
+                    style={{
+                      backgroundColor: 'transparent',
+                    }}
                     initial={false}
                     animate={{
                       scale: tile.isMatched ? 0 : 1,
                       opacity: tile.isMatched ? 0 : 1,
                     }}
-                    transition={{ 
-                      duration: 0.2,
-                      ease: "easeOut"
-                    }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
                   >
                     <img 
                       src={getTileImage(tile.type)} 
@@ -1134,7 +1109,7 @@ export default function Match3Game() {
                   {lastPlayedLevel > 1 && (
                     <button
                       onClick={() => startGame(lastPlayedLevel, true)}
-                      disabled={isStarting}
+                      disabled={isStarting || playFee === undefined}
                       className="theme-button-secondary w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
                       style={{
                         background: 'linear-gradient(90deg, var(--theme-primary), var(--theme-secondary))',
@@ -1176,20 +1151,20 @@ export default function Match3Game() {
               initial={{ scale: 0.8, y: 50 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, y: 50 }}
-              className="rounded-2xl p-4 md:p-6 max-w-sm w-full border-2 shadow-2xl"
+              className="rounded-2xl p-4 md:p-6 max-w-sm w-full border shadow-2xl"
               style={{
-                borderColor: gameResult === 'win' ? 'var(--theme-success)' : 'var(--theme-error)',
-                background:
-                  gameResult === 'win'
-                    ? 'linear-gradient(135deg, color-mix(in srgb, var(--theme-success) 70%, transparent), color-mix(in srgb, var(--theme-primary) 40%, transparent))'
-                    : 'linear-gradient(135deg, color-mix(in srgb, var(--theme-error) 70%, transparent), color-mix(in srgb, var(--theme-accent) 35%, transparent))'
+                borderColor: 'var(--theme-border)',
+                backgroundColor: 'var(--theme-surface)'
               }}
             >
               <div className="text-center">
                 <div className="text-5xl md:text-6xl mb-3 md:mb-4">
                   {gameResult === 'win' ? '🎉' : '😢'}
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                <h2
+                  className="text-2xl md:text-3xl font-bold mb-2"
+                  style={{ color: gameResult === 'win' ? 'var(--theme-success)' : 'var(--theme-error)' }}
+                >
                   {gameResult === 'win' ? 'You Won!' : 'Game Over'}
                 </h2>
                 <div
@@ -1222,13 +1197,14 @@ export default function Match3Game() {
                   {gameResult === 'lose' && (
                     <button
                       onClick={handleContinueLevel}
+                      disabled={playFee === undefined}
                       className="theme-button-secondary w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base hover:opacity-90"
                       style={{
                         background: 'linear-gradient(90deg, var(--theme-secondary), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-secondary)))',
                         color: 'var(--theme-text)'
                       }}
                     >
-                      🔄 Continue Level ({formatEther(playFee || parseEther('0.001'))} ETH)
+                      🔄 Continue Level ({formatEther(playFee || 0n)} ETH)
                     </button>
                   )}
                   {gameResult === 'lose' && (
@@ -1253,14 +1229,14 @@ export default function Match3Game() {
                       className="px-4 py-2 rounded-xl font-bold transition-all text-xs md:text-sm border hover:opacity-90"
                       style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                     >
-                      🔁 Recast (Farcaster)
+                      🔁 Recast
                     </button>
                     <button
                       onClick={() => handleShareResult('base')}
                       className="px-4 py-2 rounded-xl font-bold transition-all text-xs md:text-sm border hover:opacity-90"
                       style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                     >
-                      🔁 Recast (Base)
+                      🔁 Recast Channel
                     </button>
                   </div>
                   <button

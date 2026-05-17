@@ -1,1358 +1,148 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useAccount } from 'wagmi'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { sdk } from '@farcaster/miniapp-sdk'
-import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { SettingsButton } from '@/components/SettingsButton'
+import { WalletButton } from '@/components/WalletButton'
 import { useAudio } from '@/components/audio/AudioContext'
-import { useTreasury, useTreasuryData } from '@/lib/hooks/useTreasury'
-import { useMatch3GameData } from '@/lib/hooks/useMatch3Game'
-import { useCardGameData } from '@/lib/hooks/useCardGame'
-import { useClaimData } from '@/lib/hooks/useDailyClaim'
-import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
-import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
-import { notifyRewardAvailable } from '@/lib/utils/farcasterNotifications'
+import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
+import { useTreasury, useTreasuryData } from '@/lib/hooks/useTreasury'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
-import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
-import { logCheatingAttempt } from '@/lib/utils/cheatingDetection'
-import AchievementNFTMinter from '@/components/AchievementNFTMinter'
-import { Avatar } from '@coinbase/onchainkit/identity'
-import { generateUserProfile, validateUsername } from '@/lib/utils/userProfile'
-import toast from 'react-hot-toast'
-
-// Type definitions
-interface Achievement {
-  id: number
-  name: string
-  description: string
-  requirement: string
-  emoji: string
-  rarity: string
-  category: string
-  price?: string
-  unlocked?: boolean
-  gradient?: string
-  border?: string
-  textColor?: string
-  unlocked_at?: string
-  minted?: boolean
-  exists?: boolean
-  active?: boolean
-}
-
-interface UserAchievement {
-  achievement_id: number
-  unlocked_at: string
-  minted: boolean
-}
-
-interface UserStats {
-  match3_games_played?: number
-  match3_high_score?: number
-  match3_high_score_level?: number
-  card_games_played?: number
-  card_games_won?: number
-  daily_total_claims?: number
-  daily_current_streak?: number
-  [key: string]: any
-}
 
 export default function ProfilePage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
   const { playMusic } = useAudio()
-  const [mounted, setMounted] = useState(false)
-  const [tokenImages, setTokenImages] = useState<Record<string, { image: string; symbol: string }>>({})
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [claimCooldown, setClaimCooldown] = useState(false)
-  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
-  const [showAchievementModal, setShowAchievementModal] = useState(false)
-  const [achievements, setAchievements] = useState<Achievement[]>([])
-  const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([])
-  const [userStats, setUserStats] = useState<UserStats | null>(null)
-  const [userData, setUserData] = useState<{ username?: string; pfp?: string }>({})
-  const [farcasterUserData, setFarcasterUserData] = useState<{ username?: string; pfpUrl?: string; fid?: number }>({})
-  const [isEditingUsername, setIsEditingUsername] = useState(false)
-  const [editingUsername, setEditingUsername] = useState('')
-  const [usernameError, setUsernameError] = useState('')
-
-  // Helper function to get rarity styling
-  const getRarityStyling = (rarity: string) => {
-    let gradient = 'from-gray-500/20 to-gray-600/20'
-    let border = 'border-gray-500/30'
-    let textColor = 'text-gray-400'
-
-    switch (rarity) {
-      case 'Common':
-        gradient = 'from-yellow-500/20 to-orange-500/20'
-        border = 'border-yellow-500/30'
-        textColor = 'text-yellow-400'
-        break
-      case 'Rare':
-        gradient = 'from-blue-500/20 to-cyan-500/20'
-        border = 'border-blue-500/30'
-        textColor = 'text-blue-400'
-        break
-      case 'Epic':
-        gradient = 'from-purple-500/20 to-pink-500/20'
-        border = 'border-purple-500/30'
-        textColor = 'text-purple-400'
-        break
-      case 'Legendary':
-        gradient = 'from-teal-500/20 to-cyan-500/20'
-        border = 'border-teal-500/30'
-        textColor = 'text-teal-400'
-        break
-      case 'Mythic':
-        gradient = 'from-rose-500/20 to-red-500/20'
-        border = 'border-rose-500/30'
-        textColor = 'text-rose-400'
-        break
-    }
-
-    return { gradient, border, textColor }
-  }
-
+  const { stats } = useMatch3Stats(address)
+  const { leaderboard } = useLeaderboard()
+  const { allPendingRewards, refetch } = useTreasuryData(address)
   const { claimRewards, isClaiming } = useTreasury()
-  const { allPendingRewards, refetch: refetchTreasury } = useTreasuryData(address)
-  const { playerData: match3Data, refetch: refetchMatch3 } = useMatch3GameData(address)
-  const { playerData: cardData, refetch: refetchCard, isLoading: isLoadingCard } = useCardGameData(address)
-  const { playerData: claimData, refetch: refetchClaim } = useClaimData(address)
-  const { stats: match3Stats, fetchStats: refetchMatch3Stats } = useMatch3Stats(address)
-  const { leaderboard: globalLeaderboard } = useLeaderboard()
-
-  // Fetch achievements and user data from database
-  const fetchAchievementsData = async () => {
-    try {
-      console.log('Fetching achievements data for address:', address)
-
-      // Fetch all achievements
-      const achievementsResponse = await fetch(`/api/achievements?action=all`)
-      const allAchievements = await achievementsResponse.json()
-      console.log('All achievements:', allAchievements)
-
-      if (!address) {
-        // Show all achievements as locked if no wallet connected
-        const achievementsWithStatus = allAchievements.map((achievement: any) => {
-          // Add visual styling based on rarity
-          const { gradient, border, textColor } = getRarityStyling(achievement.rarity)
-
-          return {
-            ...achievement,
-            unlocked: false,
-            gradient,
-            border,
-            textColor,
-            unlocked_at: null,
-            minted: false
-          } as Achievement
-        })
-        setAchievements(achievementsWithStatus)
-        setUserAchievements([])
-        setUserStats(null)
-        return
-      }
-
-      // Fetch user stats from database first
-      console.log('Fetching user stats from database...')
-      const userStatsResponse = await fetch(`/api/achievements?action=stats&address=${address}`)
-      const userStatsData = await userStatsResponse.json()
-      console.log('User stats from database:', userStatsData)
-
-      // Check and unlock achievements based on database stats
-      console.log('Checking for achievements to unlock based on database stats...')
-      try {
-        const checkResponse = await fetch(`/api/achievements?action=check&address=${address}`)
-        const checkResult = await checkResponse.json()
-        console.log('Achievement check result:', checkResult)
-        
-        if (checkResult.unlocked && checkResult.unlocked.length > 0) {
-          console.log('🎉 New achievements unlocked:', checkResult.unlocked)
-          checkResult.unlocked.forEach((achievementId: number) => {
-            const achievement = allAchievements.find((a: any) => a.id === achievementId)
-            if (achievement) {
-              console.log(`✅ Unlocked: ${achievement.name}`)
-            }
-          })
-        }
-      } catch (error) {
-        console.error('Error checking achievements:', error)
-      }
-
-      // Fetch user achievements
-      const userAchievementsResponse = await fetch(`/api/achievements?action=achievements&address=${address}`)
-      const userAchievementData = await userAchievementsResponse.json()
-      console.log('User achievements:', userAchievementData)
-
-      // Fetch contract achievements to get prices and active status
-      console.log('Fetching contract achievements for profile...')
-      let contractAchievements = []
-      try {
-        const contractResponse = await fetch('/api/contract-achievements')
-        if (contractResponse.ok) {
-          const contractData = await contractResponse.json()
-          contractAchievements = contractData.achievements || []
-          console.log('Contract achievements loaded for profile:', contractAchievements.length)
-        }
-      } catch (error) {
-        console.error('Error fetching contract achievements:', error)
-      }
-
-      // Combine achievements with unlock status and contract data
-      const achievementsWithStatus = allAchievements.map((achievement: any) => {
-        const userAchievement = userAchievementData.find((ua: UserAchievement) => ua.achievement_id === achievement.id)
-        const unlocked = !!userAchievement
-
-        // Find matching contract achievement - try both id and contractId
-        const contractAch = contractAchievements.find((ca: any) => {
-          const caId = ca.contractId || ca.id
-          return Number(caId) === Number(achievement.id) || String(caId) === String(achievement.id)
-        })
-
-        if (contractAch) {
-          console.log(`✅ Profile: Found contract data for achievement ${achievement.id}:`, {
-            exists: true,
-            active: contractAch.active,
-            price: contractAch.price
-          })
-        } else {
-          console.log(`⚠️ Profile: No contract data for achievement ${achievement.id}`)
-        }
-
-        // Add visual styling based on rarity
-        const { gradient, border, textColor } = getRarityStyling(achievement.rarity)
-
-        return {
-          ...achievement,
-          unlocked,
-          gradient,
-          border,
-          textColor,
-          unlocked_at: userAchievement?.unlocked_at,
-          minted: userAchievement?.minted || false,
-          // Add contract data
-          exists: !!contractAch,
-          active: contractAch?.active || false,
-          price: contractAch?.price || achievement.price || '0.001'
-        } as Achievement
-      })
-
-      setAchievements(achievementsWithStatus)
-      setUserAchievements(userAchievementData)
-      setUserStats(userStatsData)
-
-      console.log('Final achievements with status:', achievementsWithStatus)
-      console.log('Achievements array length:', achievementsWithStatus.length)
-    } catch (error) {
-      console.error('Error fetching achievements data:', error)
-    }
-  }
-
-  // Fetch user data (username and pfp) from leaderboard
-  const fetchUserData = async () => {
-    if (!address) return
-
-    try {
-      // First, check if we have Farcaster data (highest priority)
-      if (farcasterUserData.username || farcasterUserData.pfpUrl) {
-        const farcasterData = {
-          username: farcasterUserData.username,
-          pfp: farcasterUserData.pfpUrl,
-          fid: farcasterUserData.fid
-        }
-        
-        // Store this data in database for future use
-        const response = await fetch(`/api/leaderboard?address=${address}`)
-        const data = await response.json()
-        
-        await fetch('/api/leaderboard', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            address, 
-            score: data.currentScore || 0,
-            username: farcasterData.username, 
-            pfp: farcasterData.pfp,
-            fid: farcasterData.fid
-          })
-        })
-        
-        setUserData({ username: farcasterData.username, pfp: farcasterData.pfp })
-        return
-      }
-      
-      // Second, try to fetch Basename (ENS) for external wallets
-      try {
-        console.log('🔍 Attempting to fetch Basename for external wallet...')
-        const basenameResponse = await fetch(`/api/get-basename?address=${address}`)
-        const basenameData = await basenameResponse.json()
-        
-        if (basenameData.username) {
-          console.log(`✅ Found Basename: ${basenameData.username}`)
-          const basenameUserData = {
-            username: basenameData.username,
-            pfp: undefined
-          }
-          
-          // Store Basename in database
-          const response = await fetch(`/api/leaderboard?address=${address}`)
-          const data = await response.json()
-          
-          await fetch('/api/leaderboard', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              address, 
-              score: data.currentScore || 0,
-              username: basenameUserData.username,
-              pfp: undefined
-            })
-          })
-          
-          setUserData(basenameUserData)
-          return
-        }
-      } catch (basenameError) {
-        console.log('❌ Could not fetch Basename:', basenameError)
-      }
-      
-      // Third, check database for existing profile (only for users without ENS/Farcaster)
-      const response = await fetch(`/api/leaderboard?address=${address}`)
-      const data = await response.json()
-      
-      if (data.username || data.pfp) {
-        setUserData({
-          username: data.username,
-          pfp: data.pfp
-        })
-        return
-      }
-
-      // No Farcaster/Basename/DB profile found: show address + OnchainKit Avatar in UI.
-      setUserData({})
-      return
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-      setUserData({})
-    }
-  }
-
-  // Sort achievements: unlocked first, then by rarity
-  const sortedAchievements = achievements.sort((a, b) => {
-    // Unlocked achievements come first
-    if (a.unlocked && !b.unlocked) return -1
-    if (!a.unlocked && b.unlocked) return 1
-    
-    // Then sort by rarity (Mythic > Legendary > Epic > Rare > Common)
-    const rarityOrder = { 'Mythic': 5, 'Legendary': 4, 'Epic': 3, 'Rare': 2, 'Common': 1 }
-    return (rarityOrder[b.rarity as keyof typeof rarityOrder] || 0) - (rarityOrder[a.rarity as keyof typeof rarityOrder] || 0)
-  })
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
     playMusic('main-menu')
 
-    // Initialize Farcaster SDK
-    const initSDK = async () => {
-      try {
-        const { sdk } = await import('@farcaster/miniapp-sdk')
-        await sdk.actions.ready()
-        
-        // Get user data from Farcaster
-        const context = await sdk.context
-        setFarcasterUserData({
-          username: context?.user?.username,
-          pfpUrl: context?.user?.pfpUrl,
-          fid: typeof context?.user?.fid === 'number' ? context.user.fid : undefined
-        })
-      } catch (error) {
-        console.log('Not in Farcaster Mini App context')
-        setFarcasterUserData({})
-      }
-    }
-
-    initSDK()
-
-    // Fetch achievements data
-    fetchAchievementsData()
-  }, [playMusic, address])
-
-  // Fetch user data when address or farcaster data changes
-  useEffect(() => {
-    if (address) {
-      fetchUserData()
-    }
-  }, [address, farcasterUserData])
-
-  // Load token metadata
-  useEffect(() => {
-    if (!mounted) return
-
-    const loadTokenMetadata = async () => {
-      try {
-        console.log('🔄 Loading token metadata...')
-        let tokenImagesData: Record<string, { image: string; symbol: string }> = {}
-
-        // Load from storage first (same as admin panel)
-        const saved = await getStorageItem('joybit_token_images')
-        if (saved) {
-          tokenImagesData = JSON.parse(saved)
-          console.log('📦 Token metadata from storage:', tokenImagesData)
-        }
-
-        // Also load from API and merge (API data takes precedence)
-        try {
-          const response = await fetch('/api/token-metadata')
-          if (response.ok) {
-            const data = await response.json()
-            console.log('📡 Token metadata from API:', data)
-            tokenImagesData = { ...tokenImagesData, ...data } // Merge: API overrides localStorage
-            console.log('🔀 Merged token metadata:', tokenImagesData)
-          }
-        } catch (error) {
-          console.error('⚠️ Failed to load token metadata from API:', error)
-        }
-
-        setTokenImages(tokenImagesData)
-      } catch (error) {
-        console.error('❌ Error loading token metadata:', error)
-      }
-    }
-
-    loadTokenMetadata()
-
-    // Reload when window gains focus (for when returning from admin panel)
-    const handleFocus = () => {
-      loadTokenMetadata()
-      // Also refresh achievements when returning to profile
-      if (address) {
-        fetchAchievementsData()
-      }
-    }
-    window.addEventListener('focus', handleFocus)
-
-    return () => window.removeEventListener('focus', handleFocus)
-  }, [mounted])
-
-  // Periodic refresh of achievements data
-  useEffect(() => {
-    if (!address || !mounted) return
-
-    const refreshInterval = setInterval(() => {
-      console.log('🔄 Periodic achievement refresh...')
-      fetchAchievementsData()
-    }, 30000) // Refresh every 30 seconds
-
-    return () => clearInterval(refreshInterval)
-  }, [address, mounted])
-
-  // Auto-refresh data when page loads and periodically
-  useEffect(() => {
-    if (address) {
-      // Initial fetch
-      refetchMatch3?.()
-      refetchCard?.()
-      refetchClaim?.()
-      refetchTreasury()
-
-      // Set up periodic refresh for card game stats (more frequent since games are quick)
-      const cardRefreshInterval = setInterval(() => {
-        refetchCard?.()
-      }, 10000) // Refresh card stats every 10 seconds
-
-      return () => clearInterval(cardRefreshInterval)
-    }
-  }, [address, refetchMatch3, refetchCard, refetchClaim, refetchTreasury])
-
-  // Monitor for new pending rewards and send notifications
-  useEffect(() => {
-    const checkPendingRewards = async () => {
-      if (!mounted || !allPendingRewards || !address) return
-
-      // Check if user has pending rewards that weren't there before
-      const hasPendingRewards = allPendingRewards.tokens.length > 0
-
-      if (hasPendingRewards) {
-        // Check if we've already notified about these rewards
-        const notificationKey = `joybit_rewards_notified_${address}`
-        const lastNotified = await getStorageItem(notificationKey)
-
-        // Only notify if we haven't notified recently (within last hour)
-        const now = Date.now()
-        const oneHour = 60 * 60 * 1000
-
-        if (!lastNotified || (now - parseInt(lastNotified)) > oneHour) {
-          // Calculate total pending amount
-          const totalPending = allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)
-          const firstTokenAddress = allPendingRewards.tokens[0]
-          const tokenData = tokenImages[firstTokenAddress.toLowerCase()]
-          const tokenSymbol = tokenData?.symbol || (firstTokenAddress.toLowerCase() === CONTRACT_ADDRESSES.joybitToken.toLowerCase() ? 'JOYB' : 'tokens')
-
-          notifyRewardAvailable(formatTokenBalance(totalPending), tokenSymbol)
-
-          // Mark as notified
-          setStorageItem(notificationKey, now.toString()).catch(error => {
-            console.warn('Failed to save notification timestamp:', error)
-          })
-        }
-      }
-    }
-
-    checkPendingRewards()
-  }, [allPendingRewards, mounted, address, tokenImages])
-
-  // Sync blockchain stats with database
-  useEffect(() => {
-    const syncStatsWithDatabase = async () => {
-      if (!address || !match3Stats || !cardData || !claimData) return
-
-      try {
-        const currentStats = {
-          match3_games_played: match3Stats.gamesPlayed || 0,
-          match3_high_score: match3Stats.highScore || 0,
-          match3_high_score_level: match3Stats.highScoreLevel || 0,
-          match3_last_played: match3Stats.lastPlayed || 0,
-          card_games_played: cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0,
-          card_games_won: cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0,
-          card_last_played: Date.now(),
-          daily_total_claims: claimData && Array.isArray(claimData) ? Number(claimData[3]) || 0 : 0,
-          daily_current_streak: claimData && Array.isArray(claimData) ? Number(claimData[1]) || 0 : 0,
-          daily_last_claim: Date.now(),
-          last_login: Date.now()
-        }
-
-        const response = await fetch('/api/achievements', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'update_stats',
-            userAddress: address,
-            stats: currentStats
-          })
-        })
-
-        const result = await response.json()
-        if (result.unlockedAchievements && result.unlockedAchievements.length > 0) {
-          console.log('New achievements unlocked:', result.unlockedAchievements)
-          // Refresh achievements data
-          fetchAchievementsData()
-        }
-      } catch (error) {
-        console.error('Error syncing stats with database:', error)
-      }
-    }
-
-    syncStatsWithDatabase()
-  }, [address, match3Stats, cardData, claimData])
-
-  const handleRefresh = () => {
-    refetchMatch3?.()
-    refetchCard?.()
-    refetchClaim?.()
-    refetchTreasury()
-    refetchMatch3Stats()
-  }
-
-  const handleClaimRewards = async () => {
-    if (!isConnected || !allPendingRewards || allPendingRewards.tokens.length === 0) return
-
-    try {
-      // Check for multiple claims (cheating detection)
-      const lastClaimTime = await getStorageItem(`last_claim_${address}`)
-      const now = Date.now()
-      const timeSinceLastClaim = lastClaimTime ? now - parseInt(lastClaimTime) : Infinity
-
-      // If claimed within last 30 seconds, flag as potential cheating
-      if (timeSinceLastClaim < 30000 && address) {
-        logCheatingAttempt('multiple_claims', address, `Claimed ${timeSinceLastClaim}ms after last claim`)
-      }
-
-      // Store the rewards before claiming for notification
-      const rewardsBeforeClaim = allPendingRewards
-
-      await claimRewards()
-      refetchTreasury()
-
-      // Store claim timestamp for cheating detection
-      setStorageItem(`last_claim_${address}`, Date.now().toString())
-
-      // Set cooldown to prevent immediate re-claiming
-      setClaimCooldown(true)
-      setTimeout(() => setClaimCooldown(false), 5000) // 5 second cooldown
-
-      // Send notification for claimed rewards
-      if (rewardsBeforeClaim && rewardsBeforeClaim.tokens.length > 0) {
-        // Calculate total claimed amount (simplified - just show first token for now)
-        const totalClaimed = rewardsBeforeClaim.amounts.reduce((sum, amount) => sum + amount, 0n)
-        const firstTokenAddress = rewardsBeforeClaim.tokens[0]
-        const tokenData = tokenImages[firstTokenAddress.toLowerCase()]
-        const tokenSymbol = tokenData?.symbol || (firstTokenAddress.toLowerCase() === CONTRACT_ADDRESSES.joybitToken.toLowerCase() ? 'JOYB' : 'tokens')
-
-        notifyRewardAvailable(formatTokenBalance(totalClaimed), tokenSymbol)
-      }
-    } catch (error) {
-      console.error('Failed to claim rewards:', error)
-    }
-  }
-
-  const handleShareAndClaim = async () => {
-    // This function is no longer used - functionality split into separate Claim and Share buttons
-  }
-
-  const handleSaveUsername = async () => {
-    if (!address) return
-
-    const validation = validateUsername(editingUsername)
-    if (!validation.valid) {
-      setUsernameError(validation.error!)
-      return
-    }
-
-    try {
-      // Preserve existing score (do not modify points)
-      const current = await fetch(`/api/leaderboard?address=${address}`)
-      const currentData = await current.json()
-      const currentScore = currentData.currentScore || 0
-
-      // Save to database (with the same score)
-      await fetch('/api/leaderboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address,
-          score: currentScore,
-          username: editingUsername,
-          pfp: userData.pfp // Keep existing PFP
-        })
+    import('@farcaster/miniapp-sdk')
+      .then(({ sdk }) => sdk.actions.ready())
+      .catch(() => {
+        // Browser users are not always inside a Farcaster Mini App.
       })
-
-      // Update local state
-      setUserData(prev => ({ ...prev, username: editingUsername }))
-      setIsEditingUsername(false)
-      setUsernameError('')
-      toast.success('Username updated successfully!')
-    } catch (error) {
-      console.error('Failed to save username:', error)
-      toast.error('Failed to save username')
-    }
-  }
-
-  const handleGenerateProfile = async () => {
-    if (!address) return
-
-    try {
-      const profile = generateUserProfile()
-
-      // Preserve existing score (do not modify points)
-      const current = await fetch(`/api/leaderboard?address=${address}`)
-      const currentData = await current.json()
-      const currentScore = currentData.currentScore || 0
-
-      // Save to database (with the same score)
-      await fetch('/api/leaderboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address,
-          score: currentScore,
-          username: profile.username,
-          pfp: profile.avatar
-        })
-      })
-
-      // Update local state
-      setUserData(profile)
-      toast.success('Profile generated successfully!')
-    } catch (error) {
-      console.error('Failed to generate profile:', error)
-      toast.error('Failed to generate profile')
-    }
-  }
-
-  const handleShareLeaderboard = async () => {
-    try {
-      // Get game stats for the message
-      const match3Played = match3Stats.gamesPlayed || (match3Data && Array.isArray(match3Data) ? Number(match3Data[1]) || 0 : 0)
-      const leaderboardScore = globalLeaderboard.find(p => p.address.toLowerCase() === address?.toLowerCase())?.score || 0
-      const cardPlayed = cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0
-      const cardWon = cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0
-      const rewardsAmount = allPendingRewards ? formatTokenBalance(allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)) : '0'
-
-      // Create share message matching the preview
-      const shareText = `🎮 Just crushed it in Joybit!\n` +
-        `🏆 Leaderboard Score: ${leaderboardScore.toLocaleString()} points\n` +
-        `🏆 Match-3: ${match3Played} games played\n` +
-        `🃏 Card Game: ${cardPlayed} games, ${cardWon} wins\n` +
-        `💰 Claiming ${rewardsAmount} JOYB in rewards!\n\n` +
-        `Who's next? Come play and win big! 🚀\n` +
-        `#Joybit #GameFi #MiniApp`
-
-      // Share using Farcaster's composer
-      const shareUrl = `${window.location.origin}/leaderboard`
-      await sdk.actions.openUrl({
-        url: `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}`
-      })
-
-      console.log('✅ Shared results on Farcaster!')
-    } catch (error) {
-      console.error('Failed to share on Farcaster:', error)
-    }
-  }
+  }, [playMusic])
 
   if (!mounted) return null
 
-  if (!isConnected) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-2 md:p-3">
-        <div className="fixed top-2 right-2 md:top-3 md:right-3 z-50">
-          <WalletButton />
-        </div>
-        
-        <div className="container mx-auto max-w-xl md:max-w-2xl">
-          <div className="flex justify-between items-center mb-3 md:mb-4">
-            <button
-              onClick={() => router.push('/')}
-              className="bg-cyan-500 hover:bg-cyan-600 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all text-xs md:text-sm"
-            >
-              ← Back
-            </button>
-            <h1 className="text-lg md:text-2xl font-bold">👤 Profile</h1>
-            <div className="w-12 md:w-16"></div>
-          </div>
-          <div className="flex flex-col items-center justify-center min-h-[300px]">
-            <h2 className="text-xl md:text-2xl font-bold mb-4">Connect Your Wallet</h2>
-            <ConnectButton />
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const currentPlayer = address
+    ? leaderboard.find((entry) => entry.address.toLowerCase() === address.toLowerCase())
+    : undefined
+  const rank = currentPlayer
+    ? leaderboard.findIndex((entry) => entry.address.toLowerCase() === currentPlayer.address.toLowerCase()) + 1
+    : 0
 
-  // Parse Match3 data
-  // PlayerData: [0]=lastFreePlayTime, [1]=gamesPlayed, [2]=gamesWon, [3]=hammers, [4]=shuffles, [5]=colorBombs
-  console.log('Match3 Data:', match3Data)
-  const match3Played = match3Data ? Number((match3Data as any)[1]) || 0 : 0
-  console.log('Match3 Played:', match3Played)
-  
-  // Use database stats for high score and level
-  const match3HighScore = match3Stats.highScore
-  const match3HighScoreLevel = match3Stats.highScoreLevel
-  
-  // Parse Card game data from contract (authoritative source)
-  const cardPlayed = cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0
-  const cardWon = cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0
-  const cardWinRate = cardPlayed > 0 ? ((cardWon / cardPlayed) * 100).toFixed(1) : '0.0'
-
-  // Parse Daily claim data
-  // PlayerData: [0]=lastClaimTime, [1]=currentStreak, [2]=totalClaims, [3]=totalRewardsEarned
-  const currentStreak = claimData ? Number((claimData as any)[1]) || 0 : 0
-  const totalClaimed = claimData ? ((claimData as any)[3] ? BigInt((claimData as any)[3]) : 0n) : 0n
+  const pendingRewards = allPendingRewards.tokens.map((token, index) => ({
+    token,
+    amount: allPendingRewards.amounts[index] || 0n,
+  }))
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-2 md:p-3">
-      <div className="fixed top-2 right-2 md:top-3 md:right-3 z-50 flex items-center gap-2">
+    <main
+      className="min-h-screen px-4 py-5"
+      style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}
+    >
+      <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
         <AudioButtons />
         <SettingsButton />
         <WalletButton />
       </div>
-      
-      <div className="container mx-auto max-w-xl md:max-w-2xl">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-3 md:mb-4">
+
+      <div className="mx-auto max-w-3xl pt-14">
+        <div className="mb-6 flex items-center justify-between">
           <button
+            type="button"
             onClick={() => router.push('/')}
-            className="bg-white/10 hover:bg-white/20 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all text-xs md:text-sm"
+            className="rounded-lg px-4 py-2 text-sm font-semibold"
           >
-            ← Back
+            Back
           </button>
-          <h1 className="text-lg md:text-2xl font-bold">👤 Profile</h1>
-          <button
-            onClick={handleRefresh}
-            className="bg-cyan-500 hover:bg-cyan-600 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all text-xs md:text-sm"
-          >
-            🔄 Refresh
-          </button>
+          <h1 className="text-2xl font-black">Profile</h1>
+          <div className="w-16" />
         </div>
 
-        {/* Player Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 md:p-4 mb-3 border border-gray-800"
-        >
-          <div className="flex items-center">
-            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mr-3 overflow-hidden">
-              {farcasterUserData.pfpUrl ? (
-                <img 
-                  src={farcasterUserData.pfpUrl} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
-              ) : userData.pfp ? (
-                <img 
-                  src={userData.pfp} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
-              ) : address ? (
-                <Avatar address={address} className="w-full h-full rounded-full" />
-              ) : (
-                <div className="w-full h-full bg-cyan-500 rounded-full flex items-center justify-center">
-                  🎮
+        {!isConnected ? (
+          <section className="rounded-xl border border-white/10 bg-white/[0.04] p-6 text-center">
+            <h2 className="mb-2 text-xl font-bold">Connect to view your profile</h2>
+            <p className="text-sm text-gray-400">
+              Wallet connection is automatic in supported mini-app contexts.
+            </p>
+          </section>
+        ) : (
+          <div className="space-y-4">
+            <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-blue-300">Wallet</p>
+              <p className="mt-2 break-all font-mono text-sm text-gray-200">{address}</p>
+            </section>
+
+            <section className="grid gap-3 sm:grid-cols-3">
+              <Stat label="Games Played" value={stats?.gamesPlayed ?? 0} />
+              <Stat label="High Score" value={stats?.highScore ?? 0} />
+              <Stat label="Best Level" value={stats?.highScoreLevel ?? 0} />
+            </section>
+
+            <section className="grid gap-3 sm:grid-cols-2">
+              <Stat label="Leaderboard Score" value={currentPlayer?.score ?? 0} />
+              <Stat label="Rank" value={rank ? `#${rank}` : '-'} />
+            </section>
+
+            <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold">Pending Rewards</h2>
+                  <p className="text-sm text-gray-400">Claim rewards earned from Match-3.</p>
                 </div>
-              )}
-            </div>
-            <div className="overflow-hidden flex-1">
-              {isEditingUsername ? (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={editingUsername}
-                    onChange={(e) => {
-                      setEditingUsername(e.target.value)
-                      setUsernameError('')
-                    }}
-                    placeholder="Enter username"
-                    className="w-full px-3 py-1 bg-gray-800 border border-gray-600 rounded text-white text-sm"
-                    maxLength={20}
-                  />
-                  {usernameError && (
-                    <p className="text-red-400 text-xs">{usernameError}</p>
-                  )}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSaveUsername}
-                      className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-medium"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsEditingUsername(false)
-                        setEditingUsername('')
-                        setUsernameError('')
-                      }}
-                      className="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-xs font-medium"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-base md:text-lg font-bold mb-0.5">
-                      {farcasterUserData.username || userData.username || 'Player'}
-                    </h2>
-                    <p className="text-gray-400 font-mono text-xs md:text-sm truncate">{address}</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setIsEditingUsername(true)
-                      setEditingUsername(farcasterUserData.username || userData.username || '')
-                    }}
-                    className="ml-2 p-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
-                    title="Edit username"
-                  >
-                    ✏️
-                  </button>
-                </div>
-              )}
-            </div>
-            {!userData.username && !farcasterUserData.username && (
-              <button
-                onClick={handleGenerateProfile}
-                className="ml-2 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs font-medium"
-              >
-                Generate Profile
-              </button>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Claim Rewards Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/50 rounded-lg p-3 md:p-4 mb-3"
-        >
-          <h3 className="text-sm md:text-base font-bold mb-2 text-yellow-400">💰 Pending Multi-Token Rewards</h3>
-          
-          {allPendingRewards && allPendingRewards.tokens.length > 0 ? (
-            <div className="space-y-2 mb-4">
-              {allPendingRewards.tokens.map((tokenAddress, index) => {
-                const amount = allPendingRewards.amounts[index]
-                const tokenData = tokenImages[tokenAddress.toLowerCase()]
-                const isJoyb = tokenAddress.toLowerCase() === CONTRACT_ADDRESSES.joybitToken.toLowerCase()
-                
-                return (
-                  <div key={tokenAddress} className="flex items-center justify-between bg-black/20 rounded-lg p-2">
-                    <div className="flex items-center gap-2">
-                      {tokenData?.image ? (
-                        <img 
-                          src={tokenData.image} 
-                          alt={tokenData.symbol}
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
-                      ) : isJoyb ? (
-                        <img 
-                          src="/branding/logo.png" 
-                          alt="JOYB"
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
-                          🪙
-                        </div>
-                      )}
-                      <div>
-                        <div className="text-sm font-bold text-green-400">
-                          {formatTokenBalance(amount)} {tokenData?.symbol || (isJoyb ? 'JOYB' : tokenAddress.slice(0, 6) + '...')}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {isJoyb ? 'From games & rewards' : 'From admin rewards'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <div className="text-gray-400 text-sm">No pending rewards</div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="flex gap-3 justify-center mb-4"
-          >
-            <button
-              onClick={handleClaimRewards}
-              disabled={isClaiming || claimCooldown || !allPendingRewards || allPendingRewards.tokens.length === 0}
-              className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 text-black font-bold py-3 px-6 rounded-lg transition-all disabled:cursor-not-allowed text-sm"
-            >
-              {isClaiming ? 'Claiming...' : claimCooldown ? 'Cooldown...' : '💰 Claim All'}
-            </button>
-
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition-all text-sm"
-            >
-              🚀 Share Results
-            </button>
-          </motion.div>
-        </motion.div>
-
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-2 gap-3 mb-3">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 border border-gray-800"
-          >
-            <h3 className="text-sm md:text-base font-bold mb-2 text-gray-300">Match-3 Game Stats</h3>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs md:text-sm">
-                <span className="text-gray-400">Games Played:</span>
-                <span className="font-bold">{match3Stats.gamesPlayed || match3Played}</span>
-              </div>
-              <div className="flex flex-col text-xs md:text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Leaderboard Score:</span>
-                  <span className="font-bold text-purple-400">
-                    {globalLeaderboard.find(p => p.address.toLowerCase() === address?.toLowerCase())?.score.toLocaleString() || '0'}
-                  </span>
-                </div>
-                {match3HighScoreLevel > 0 && (
-                  <div className="flex justify-between mt-1">
-                    <span className="text-gray-400">Best Level:</span>
-                    <span className="font-bold text-purple-300">lvl {match3HighScoreLevel}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 border border-gray-800"
-          >
-            <h3 className="text-sm md:text-base font-bold mb-2 text-gray-300 flex items-center justify-between">
-              Card Game Stats
-              <button
-                onClick={() => refetchCard?.()}
-                className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
-                title="Refresh stats"
-              >
-                ↻
-              </button>
-            </h3>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs md:text-sm">
-                <span className="text-gray-400">Total Plays:</span>
-                <span className="font-bold">
-                  {isLoadingCard ? '...' : cardPlayed}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs md:text-sm">
-                <span className="text-gray-400">Wins:</span>
-                <span className="font-bold text-green-400">
-                  {isLoadingCard ? '...' : cardWon}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs md:text-sm">
-                <span className="text-gray-400">Win Rate:</span>
-                <span className="font-bold text-blue-400">
-                  {isLoadingCard ? '...' : cardWinRate}%
-                </span>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Daily Claim Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 border border-gray-800 mb-3"
-        >
-          <h3 className="text-sm md:text-base font-bold mb-2">🔥 Daily Claim Streak</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-2xl md:text-3xl font-bold text-orange-400">{currentStreak} Days</div>
-              <div className="text-gray-400 text-xs md:text-sm mt-0.5">Current Streak</div>
-            </div>
-            <div className="text-right">
-              <div className="text-xl md:text-2xl font-bold text-green-400">{formatTokenBalance(totalClaimed)} JOYB</div>
-              <div className="text-gray-400 text-xs md:text-sm mt-0.5">Total Claimed</div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Achievements */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="bg-gray-900/70 backdrop-blur-lg rounded-lg p-3 border border-gray-800 mb-3"
-        >
-          <h3 className="text-sm md:text-base font-bold mb-3">🏆 Achievements</h3>
-          {sortedAchievements.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
-              <div className="text-4xl mb-2">🏆</div>
-              <div>Loading achievements...</div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {sortedAchievements.map((achievement) => (
-              <div
-                key={achievement.id}
-                className={`relative group cursor-pointer transition-all duration-300 hover:scale-105 ${
-                  achievement.unlocked
-                    ? 'hover:shadow-2xl hover:shadow-current/20'
-                    : 'hover:shadow-lg hover:shadow-gray-500/20'
-                }`}
-                onClick={() => {
-                  setSelectedAchievement(achievement)
-                  setShowAchievementModal(true)
-                }}
-              >
-                {/* Achievement Card Image from local public folder */}
-                <div className="relative w-full aspect-square rounded-lg overflow-hidden">
-                  {/* Card image */}
-                  <img
-                    src={`/achievement-cards/${achievement.id}.png`}
-                    alt={achievement.name}
-                    className={`w-full h-full object-cover transition-all duration-300 ${
-                      achievement.unlocked ? '' : 'grayscale brightness-50'
-                    }`}
-                    onError={(e) => {
-                      // Fallback to emoji if image fails to load
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                  
-                  {/* Lock overlay for locked achievements */}
-                  {!achievement.unlocked && (
-                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
-                      <div className="text-4xl">🔒</div>
-                    </div>
-                  )}
-                  
-                  {/* Unlocked checkmark */}
-                  {achievement.unlocked && (
-                    <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg">
-                      ✓
-                    </div>
-                  )}
-                  
-                  {/* Minted indicator */}
-                  {achievement.minted && (
-                    <div className="absolute top-2 left-2 px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center gap-1 text-xs font-bold text-black shadow-lg">
-                      <span>🏆</span>
-                      <span>Minted</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            </div>
-          )}
-        </motion.div>
-
-        {/* Quick Actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="grid grid-cols-2 gap-3"
-        >
-          <button
-            onClick={() => router.push('/game')}
-            className="bg-blue-500 hover:bg-blue-600 py-3 rounded-lg font-bold text-sm transition-all"
-          >
-            🎮 Play Match-3
-          </button>
-          <button
-            onClick={() => router.push('/card-game')}
-            className="bg-purple-500 hover:bg-purple-600 py-3 rounded-lg font-bold text-sm transition-all"
-          >
-            🎴 Play Cards
-          </button>
-          <button
-            onClick={() => router.push('/daily-claim')}
-            className="bg-orange-500 hover:bg-orange-600 py-3 rounded-lg font-bold text-sm transition-all"
-          >
-            🎁 Daily Claim
-          </button>
-          <button
-            onClick={() => router.push('/leaderboard')}
-            className="bg-green-500 hover:bg-green-600 py-3 rounded-lg font-bold text-sm transition-all"
-          >
-            🏆 Leaderboard
-          </button>
-        </motion.div>
-      </div>
-
-      {/* Achievement Modal */}
-      <AnimatePresence>
-        {showAchievementModal && selectedAchievement && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowAchievementModal(false)}
-          >
-            {/* Subtle animated background */}
-            <div className="absolute inset-0 overflow-hidden">
-              {[...Array(8)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-1 h-1 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full opacity-10"
-                  initial={{
-                    x: Math.random() * window.innerWidth,
-                    y: Math.random() * window.innerHeight,
-                    scale: 0
-                  }}
-                  animate={{
-                    y: [null, -50],
-                    scale: [0, 1, 0],
-                    opacity: [0, 0.2, 0]
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    delay: Math.random() * 3
-                  }}
-                />
-              ))}
-            </div>
-
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl rounded-xl p-6 max-w-sm w-full border border-gray-700/50 shadow-2xl relative overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Subtle glow effect */}
-              <div className={`absolute inset-0 ${selectedAchievement.gradient} opacity-5 blur-xl`} />
-
-              <div className="relative z-10">
-                {/* Close button */}
                 <button
-                  onClick={() => setShowAchievementModal(false)}
-                  className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
+                  type="button"
+                  onClick={async () => {
+                    await claimRewards()
+                    await refetch()
+                  }}
+                  disabled={isClaiming || pendingRewards.length === 0}
+                  className="theme-button-primary rounded-lg px-4 py-2 text-sm font-bold"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  {isClaiming ? 'Claiming...' : 'Claim'}
                 </button>
-
-                {/* Achievement header */}
-                <div className="text-center mb-4">
-                  <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-3 ${
-                    selectedAchievement.rarity === 'Mythic' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' :
-                    selectedAchievement.rarity === 'Legendary' ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black' :
-                    selectedAchievement.rarity === 'Epic' ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' :
-                    selectedAchievement.rarity === 'Rare' ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white' :
-                    'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
-                  }`}>
-                    {selectedAchievement.rarity} Achievement
-                  </div>
-
-                  {/* Achievement Card Image */}
-                  <motion.div
-                    className="w-48 h-48 mx-auto mb-3 rounded-lg overflow-hidden border-2 border-gray-700 shadow-2xl"
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  >
-                    <img
-                      src={`/achievement-cards/${selectedAchievement.id}.png`}
-                      alt={selectedAchievement.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback to emoji
-                        e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center w-full h-full bg-gradient-to-br ${selectedAchievement.gradient}"><span class="text-6xl">${selectedAchievement.emoji}</span></div>`
-                      }}
-                    />
-                  </motion.div>
-
-                  <h3 className="text-xl font-bold text-white mb-1">{selectedAchievement.name}</h3>
-                  <p className="text-gray-300 text-sm leading-relaxed">{selectedAchievement.description}</p>
-                </div>
-
-                {/* Achievement details */}
-                <div className="bg-gray-800/30 rounded-lg p-3 mb-4">
-                  <div className="text-xs text-gray-400 mb-1">
-                    <strong className="text-white">Requirement:</strong>
-                  </div>
-                  <div className="text-sm text-gray-300">{selectedAchievement.requirement}</div>
-                </div>
-
-                {/* Status indicator */}
-                <div className={`text-center mb-4 px-3 py-2 rounded-lg text-sm font-medium ${
-                  selectedAchievement.unlocked
-                    ? 'bg-gradient-to-r from-green-600/20 to-emerald-600/20 text-green-400 border border-green-600/30'
-                    : 'bg-gradient-to-r from-red-600/20 to-rose-600/20 text-red-400 border border-red-600/30'
-                }`}>
-                  {selectedAchievement.unlocked ? '✅ Achievement Unlocked' : '🔒 Achievement Locked'}
-                </div>
-
-                {/* NFT Minter for unlocked achievements */}
-                {selectedAchievement.unlocked && (
-                  <AchievementNFTMinter
-                    achievement={selectedAchievement}
-                    hasAchievement={selectedAchievement.unlocked}
-                    onMintSuccess={() => {
-                      setShowAchievementModal(false)
-                      fetchAchievementsData()
-                    }}
-                    onMintStateChange={(achievementId, minted) => {
-                      // Update local achievement state immediately
-                      setAchievements(prevAchievements =>
-                        prevAchievements.map(ach =>
-                          ach.id === achievementId
-                            ? { ...ach, minted }
-                            : ach
-                        )
-                      )
-                    }}
-                  />
-                )}
               </div>
-            </motion.div>
-          </motion.div>
+
+              {pendingRewards.length === 0 ? (
+                <p className="text-sm text-gray-400">No pending rewards yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {pendingRewards.map((reward) => (
+                    <div
+                      key={reward.token}
+                      className="flex items-center justify-between rounded-lg bg-black/30 px-3 py-2 text-sm"
+                    >
+                      <span className="font-mono text-xs text-gray-400">{reward.token}</span>
+                      <span className="font-bold">{formatTokenBalance(reward.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
         )}
+      </div>
+    </main>
+  )
+}
 
-        {/* Share Results Modal */}
-        {showShareModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowShareModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl rounded-xl p-6 max-w-lg w-full border border-gray-700/50 shadow-2xl relative overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Subtle glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 blur-xl" />
-
-              <div className="relative z-10">
-                <div className="text-center mb-6">
-                  <div className="text-4xl mb-3">🎉</div>
-                  <h3 className="text-2xl font-bold text-purple-300 mb-2">Share Your Victory!</h3>
-                  <p className="text-gray-300 text-sm">
-                    Show off your gaming skills and inspire others to join the fun!
-                  </p>
-                </div>
-
-                {/* Share Preview */}
-                <div className="bg-black/40 border border-purple-500/30 rounded-lg p-4 mb-6">
-                  <div className="text-xs text-gray-400 mb-3 flex items-center gap-2">
-                    <span>📤</span>
-                    <span>Share Preview:</span>
-                  </div>
-                  <div className="text-sm text-white font-mono bg-black/20 p-3 rounded border border-gray-600/30 leading-relaxed">
-                    🎮 Just crushed it in Joybit!<br/>
-                    🏆 Leaderboard Score: {globalLeaderboard.find(p => p.address.toLowerCase() === address?.toLowerCase())?.score.toLocaleString() || '0'} points<br/>
-                    🏆 Match-3: {match3Stats.gamesPlayed || (match3Data && Array.isArray(match3Data) ? Number(match3Data[1]) || 0 : 0)} games played<br/>
-                    🃏 Card Game: {cardData && Array.isArray(cardData) ? Number(cardData[1]) || 0 : 0} games, {cardData && Array.isArray(cardData) ? Number(cardData[2]) || 0 : 0} wins<br/>
-                    💰 Claiming {allPendingRewards ? formatTokenBalance(allPendingRewards.amounts.reduce((sum, amount) => sum + amount, 0n)) : '0'} JOYB in rewards!<br/>
-                    <br/>
-                    Who&apos;s next? Come play and win big! 🚀<br/>
-                    #Joybit #GameFi #MiniApp
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3 justify-center">
-                  <button
-                    onClick={() => setShowShareModal(false)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2.5 px-6 rounded-lg transition-all text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleShareLeaderboard()
-                      setShowShareModal(false)
-                    }}
-                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-2.5 px-6 rounded-lg transition-all text-sm"
-                  >
-                    🚀 Share Now
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+function Stat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
+      <div className="text-2xl font-black text-white">{value}</div>
+      <div className="mt-1 text-sm text-gray-400">{label}</div>
     </div>
   )
 }

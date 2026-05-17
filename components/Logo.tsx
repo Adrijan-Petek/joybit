@@ -40,7 +40,7 @@ export function Logo({ size = 'medium', clickable = false, showText = true }: Lo
         alt="Joybit Logo" 
         width={sizeMap[size]}
         height={sizeMap[size]}
-        className="rounded-lg"
+        className=""
         priority
       />
       {showText && (

@@ -1,17 +1,42 @@
+const CHEATING_LOG_COOLDOWN_MS = 30_000
+const recentCheatingEvents = new Map<string, number>()
+
+function eventKey(type: string, address: string, details?: string) {
+  return `${type}:${address.toLowerCase()}:${details || ''}`
+}
+
+function shouldSendEvent(type: string, address: string, details?: string) {
+  const now = Date.now()
+
+  for (const [key, ts] of recentCheatingEvents) {
+    if (now - ts > CHEATING_LOG_COOLDOWN_MS) {
+      recentCheatingEvents.delete(key)
+    }
+  }
+
+  const key = eventKey(type, address, details)
+  const lastSent = recentCheatingEvents.get(key)
+  if (lastSent && now - lastSent < CHEATING_LOG_COOLDOWN_MS) {
+    return false
+  }
+
+  recentCheatingEvents.set(key, now)
+  return true
+}
+
 // Utility function to log cheating attempts to the security system
 export async function logCheatingAttempt(
   type: 'multiple_claims' | 'invalid_score' | 'speed_hack' | 'game_manipulation' | 'reward_exploit',
   address: string,
   details?: string
 ) {
-  try {
-    // Get client IP and user agent
-    const ip = typeof window !== 'undefined' ?
-      await fetch('https://api.ipify.org?format=json')
-        .then(r => r.json())
-        .then(d => d.ip)
-        .catch(() => 'unknown') : 'server';
+  if (!shouldSendEvent(type, address, details)) {
+    return
+  }
 
+  try {
+    // Keep this lightweight and non-blocking for gameplay flow.
+    const ip = 'unknown'
     const userAgent = typeof window !== 'undefined' ? navigator.userAgent : 'server';
 
     const response = await fetch('/api/admin/security/cheating', {
@@ -31,10 +56,20 @@ export async function logCheatingAttempt(
     if (response.ok) {
       console.log(`🚨 Cheating attempt logged: ${type} by ${address}`)
     } else {
-      console.error('Failed to log cheating attempt:', await response.text())
+      const contentType = response.headers.get('content-type') || ''
+      let detail = `${response.status}`
+
+      if (contentType.includes('application/json')) {
+        const data = await response.json().catch(() => null)
+        if (data?.error) detail = `${response.status} ${String(data.error)}`
+      }
+
+      // Avoid printing full HTML payloads in console when route is missing.
+      console.warn(`Cheating log endpoint unavailable (${detail})`)
     }
   } catch (error) {
-    console.error('Error logging cheating attempt:', error)
+    // Never break user flow because telemetry failed.
+    console.warn('Cheating telemetry send skipped:', error)
   }
 }
 

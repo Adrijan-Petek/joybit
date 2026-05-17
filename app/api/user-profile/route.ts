@@ -1,24 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@libsql/client'
+import type { Client } from '@libsql/client'
 
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-})
+let client: Client | null = null
+let initialized = false
+
+function getClient() {
+  if (client) return client
+
+  const url = process.env.TURSO_DATABASE_URL
+  const authToken = process.env.TURSO_AUTH_TOKEN
+  if (!url || !authToken) return null
+
+  client = createClient({ url, authToken })
+  return client
+}
 
 // Initialize database tables
 async function initTables() {
-  await client.execute(`
+  if (initialized) return
+  const db = getClient()
+  if (!db) return
+
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS leaderboard_users (
       address TEXT PRIMARY KEY,
       username TEXT,
       pfp TEXT
     )
   `)
-}
 
-// Call init on module load
-initTables().catch(console.error)
+  initialized = true
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,8 +45,18 @@ export async function GET(request: NextRequest) {
     // Normalize address
     const normalizedAddress = address.toLowerCase()
 
+    const db = getClient()
+    if (!db) {
+      return NextResponse.json({
+        username: null,
+        avatar: null
+      })
+    }
+
+    await initTables()
+
     // Check if user profile exists (don't generate new ones)
-    const result = await client.execute({
+    const result = await db.execute({
       sql: 'SELECT username, pfp FROM leaderboard_users WHERE LOWER(address) = ?',
       args: [normalizedAddress]
     })

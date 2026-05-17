@@ -92,6 +92,28 @@ button:disabled,
   border-color: color-mix(in srgb, var(--theme-secondary) 70%, var(--theme-border)) !important;
 }
 
+.theme-button-brand {
+  background: linear-gradient(135deg, #1652f0, #1f64ff) !important;
+  border-color: color-mix(in srgb, #1652f0 78%, var(--theme-border)) !important;
+  color: #ffffff !important;
+}
+
+.theme-button-brand-soft {
+  background: color-mix(in srgb, #1652f0 18%, var(--theme-surface)) !important;
+  border-color: color-mix(in srgb, #1652f0 62%, var(--theme-border)) !important;
+  color: #dbe7ff !important;
+}
+
+.logo-button-reset,
+.logo-button-reset:hover,
+.logo-button-reset:focus-visible {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  border-radius: 0 !important;
+}
+
 .theme-panel {
   background-color: var(--theme-surface);
   border: 1px solid var(--theme-border);

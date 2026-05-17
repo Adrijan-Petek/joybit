@@ -44,7 +44,7 @@ export function useTreasuryData(address?: string) {
     },
   })
 
-  const { data: joybRewards, isLoading: isLoadingJoybRewards, refetch: refetchJoybRewards } = useReadContract({
+  const { data: joybRewards, isLoading: isLoadingJoybRewards } = useReadContract({
     address: CONTRACT_ADDRESSES.treasury as `0x${string}`,
     abi: TREASURY_ABI,
     functionName: 'getPendingRewards',
@@ -80,11 +80,13 @@ export function useTreasuryData(address?: string) {
     args: [CONTRACT_ADDRESSES.joybitToken],
   })
 
+  const pendingRewardsTuple = allPendingRewards as [`0x${string}`[], bigint[]] | undefined
+
   return {
     pendingRewards: joybRewards as bigint, // Keep for backward compatibility
-    allPendingRewards: allPendingRewards ? {
-      tokens: allPendingRewards[0] as `0x${string}`[],
-      amounts: allPendingRewards[1] as bigint[]
+    allPendingRewards: pendingRewardsTuple ? {
+      tokens: pendingRewardsTuple[0],
+      amounts: pendingRewardsTuple[1]
     } : { tokens: [], amounts: [] },
     ethBalance: ethBalance as bigint,
     joybBalance: joybBalance as bigint,
