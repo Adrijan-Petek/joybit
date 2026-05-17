@@ -131,22 +131,23 @@ export default function Home() {
           </button>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowInfoModal(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/10 text-sm font-bold text-white"
-              title="How to play"
-              aria-label="How to play"
-            >
-              i
-            </button>
             <AudioButtons splitButtons />
             <WalletButton />
           </div>
         </div>
       </header>
 
-      <section className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 pb-10 pt-28 md:pt-24">
+      <button
+        type="button"
+        onClick={() => setShowInfoModal(true)}
+        className="fixed bottom-24 right-4 z-40 flex h-11 w-11 animate-pulse items-center justify-center rounded-full border border-white/15 bg-blue-500 text-base font-bold text-white shadow-lg md:bottom-8"
+        title="How to play"
+        aria-label="How to play"
+      >
+        i
+      </button>
+
+      <section className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 pb-28 pt-28 md:pb-10 md:pt-24">
         <div className="max-w-xl md:mx-auto md:text-center">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-blue-300">
             Joybit Mini App
