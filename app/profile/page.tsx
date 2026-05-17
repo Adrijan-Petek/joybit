@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 import { AudioButtons } from '@/components/AudioButtons'
-import { SettingsButton } from '@/components/SettingsButton'
 import { WalletButton } from '@/components/WalletButton'
 import { useAudio } from '@/components/audio/AudioContext'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
@@ -54,7 +53,6 @@ export default function ProfilePage() {
     >
       <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
         <AudioButtons />
-        <SettingsButton />
         <WalletButton />
       </div>
 
@@ -74,9 +72,6 @@ export default function ProfilePage() {
         {!isConnected ? (
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-6 text-center">
             <h2 className="mb-2 text-xl font-bold">Connect to view your profile</h2>
-            <p className="text-sm text-gray-400">
-              Wallet connection is automatic in supported mini-app contexts.
-            </p>
           </section>
         ) : (
           <div className="space-y-4">

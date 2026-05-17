@@ -8,7 +8,6 @@ import { formatEther } from 'viem'
 import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
-import { SettingsButton } from '@/components/SettingsButton'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 import { useMatch3Game, useMatch3GameData, useMatch3LevelReward } from '@/lib/hooks/useMatch3Game'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
@@ -717,7 +716,6 @@ export default function Match3Game() {
     >
       <div className="fixed top-2 right-2 z-50 flex items-center gap-2">
         <AudioButtons />
-        <SettingsButton />
         <WalletButton />
       </div>
 

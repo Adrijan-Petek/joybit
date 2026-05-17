@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 import { Avatar } from '@coinbase/onchainkit/identity'
 import { AudioButtons } from '@/components/AudioButtons'
-import { SettingsButton } from '@/components/SettingsButton'
 import { WalletButton } from '@/components/WalletButton'
 import { useAudio } from '@/components/audio/AudioContext'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
@@ -43,7 +42,6 @@ export default function Leaderboard() {
     >
       <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
         <AudioButtons />
-        <SettingsButton />
         <WalletButton />
       </div>
 
@@ -94,7 +92,7 @@ export default function Leaderboard() {
             <div className="divide-y divide-white/10">
               {leaderboard.map((player, index) => {
                 const isCurrentUser = address?.toLowerCase() === player.address.toLowerCase()
-                const displayName = player.username || `${player.address.slice(0, 6)}...${player.address.slice(-4)}`
+                const displayName = player.username || `Player #${index + 1}`
 
                 return (
                   <div
@@ -111,7 +109,6 @@ export default function Leaderboard() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-semibold">{displayName}</div>
-                      <div className="truncate font-mono text-xs text-gray-500">{player.address}</div>
                     </div>
                     <div className="text-lg font-black">{player.score}</div>
                   </div>

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useAccount, useReadContract, useWriteContract } from 'wagmi'
 import { formatEther, isAddress, parseEther } from 'viem'
 import { AudioButtons } from '@/components/AudioButtons'
-import { SettingsButton } from '@/components/SettingsButton'
 import { WalletButton } from '@/components/WalletButton'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { MATCH3_GAME_ABI, TREASURY_ABI } from '@/lib/contracts/abis'
@@ -183,7 +182,6 @@ export default function AdminPage() {
     <main className="min-h-screen px-4 py-5" style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}>
       <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
         <AudioButtons />
-        <SettingsButton />
         <WalletButton />
       </div>
 

@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { sdk } from '@farcaster/miniapp-sdk'
@@ -8,7 +7,6 @@ import { useAccount } from 'wagmi'
 import { AudioButtons } from '@/components/AudioButtons'
 import { InfoModal } from '@/components/InfoModal'
 import { Logo } from '@/components/Logo'
-import { SettingsButton } from '@/components/SettingsButton'
 import { WalletButton } from '@/components/WalletButton'
 import { useAudio } from '@/components/audio/AudioContext'
 
@@ -142,15 +140,14 @@ export default function Home() {
             >
               i
             </button>
-            <AudioButtons />
-            <SettingsButton />
+            <AudioButtons splitButtons />
             <WalletButton />
           </div>
         </div>
       </header>
 
-      <section className="mx-auto grid min-h-screen max-w-6xl items-center gap-8 px-4 pb-10 pt-28 md:grid-cols-[1fr_0.78fr] md:pt-24">
-        <div className="max-w-xl">
+      <section className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 pb-10 pt-28 md:pt-24">
+        <div className="max-w-xl md:mx-auto md:text-center">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-blue-300">
             Joybit Mini App
           </p>
@@ -161,7 +158,7 @@ export default function Home() {
             A focused Match-3 experience built for fast rounds, competitive rankings, and seamless wallet-ready rewards.
           </p>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row md:justify-center">
             <button
               type="button"
               onClick={() => router.push('/game')}
@@ -178,7 +175,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="mt-8 grid grid-cols-3 gap-3">
+          <div className="mt-8 grid grid-cols-3 gap-3 md:text-center">
             <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
               <div className="text-lg font-bold text-white">1</div>
               <div className="text-xs text-gray-400">One polished game mode</div>
@@ -191,22 +188,6 @@ export default function Home() {
               <div className="text-lg font-bold text-white">Wallet</div>
               <div className="text-xs text-gray-400">Seamless connection flow</div>
             </div>
-          </div>
-        </div>
-
-        <div className="relative mx-auto w-full max-w-[180px] sm:max-w-[220px] md:max-w-[260px]">
-          <div className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl">
-            <Image
-              src="/hero.png"
-              alt="Joybit Match-3 game preview"
-              fill
-              priority
-              className="object-cover"
-              sizes="(min-width: 768px) 260px, 220px"
-            />
-          </div>
-          <div className="mt-3 rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-sm text-gray-300">
-            Wallet connection is automatic in supported mini-app contexts.
           </div>
         </div>
       </section>
