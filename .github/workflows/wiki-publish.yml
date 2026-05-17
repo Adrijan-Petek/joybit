@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
+      - 'README.md'
       - 'docs/wiki/**'
       - '.github/workflows/wiki-publish.yml'
 
@@ -14,14 +15,50 @@ jobs:
   publish-wiki:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Adrijan-Petek' # Only run on main repo
+    env:
+      GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+      WIKI_SOURCE_PATH: .wiki-publish
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Prepare wiki content
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf "$WIKI_SOURCE_PATH"
+          mkdir -p "$WIKI_SOURCE_PATH"
+
+          if [ -d "docs/wiki" ]; then
+            cp -R docs/wiki/. "$WIKI_SOURCE_PATH/"
+            echo "Prepared wiki content from docs/wiki"
+          elif [ -f "README.md" ]; then
+            cp README.md "$WIKI_SOURCE_PATH/Home.md"
+            echo "Prepared wiki content from README.md fallback"
+          else
+            echo "No wiki source content found"
+            echo "HAS_WIKI_SOURCE=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          if [ -z "$(find "$WIKI_SOURCE_PATH" -maxdepth 1 -type f | head -n 1)" ]; then
+            echo "No publishable wiki files found"
+            echo "HAS_WIKI_SOURCE=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          echo "HAS_WIKI_SOURCE=true" >> "$GITHUB_ENV"
+
+      - name: Skip when wiki token is missing
+        if: env.GH_PERSONAL_ACCESS_TOKEN == ''
+        run: echo "Skipping wiki publish because GH_PERSONAL_ACCESS_TOKEN is not configured."
+
       - name: Publish Documentation to Wiki
+        if: env.HAS_WIKI_SOURCE == 'true' && env.GH_PERSONAL_ACCESS_TOKEN != ''
         uses: SwiftDocOrg/github-wiki-publish-action@v1
         with:
-          path: "docs/wiki"
-        env:
-          GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+          path: ".wiki-publish"
