@@ -140,7 +140,7 @@ export default function Home() {
       <button
         type="button"
         onClick={() => setShowInfoModal(true)}
-        className="fixed bottom-24 right-4 z-40 flex h-11 w-11 animate-pulse items-center justify-center rounded-full border border-white/15 bg-blue-500 text-base font-bold text-white shadow-lg md:bottom-8"
+        className="fixed bottom-36 right-4 z-40 flex h-11 w-11 animate-pulse items-center justify-center rounded-full border border-white/15 bg-blue-500 text-base font-bold text-white shadow-lg md:bottom-20"
         title="How to play"
         aria-label="How to play"
       >
