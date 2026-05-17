@@ -303,8 +303,8 @@ export default function Match3Game() {
         timeLeft: prev.timeLeft + timeBonus,
       }))
 
-      // Shorter delay for match highlighting
-      await new Promise(resolve => setTimeout(resolve, 150))
+      // Delay for match highlight flash
+      await new Promise(resolve => setTimeout(resolve, 120))
 
       // Apply gravity with falling animation
       currentGrid = applyGravity(currentGrid, tileTypes)
@@ -314,8 +314,8 @@ export default function Match3Game() {
         grid: currentGrid.map(row => [...row]),
       }))
 
-      // Shorter delay for falling animation
-      await new Promise(resolve => setTimeout(resolve, 200))
+      // Delay for falling animation
+      await new Promise(resolve => setTimeout(resolve, 160))
 
       // Reset tile states for next cascade
       currentGrid = currentGrid.map(row =>
@@ -946,28 +946,64 @@ export default function Match3Game() {
         >
             <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}>
               {gameState.grid.map((row, y) =>
-                row.map((tile, x) => (
-                  <motion.button
-                    key={tile.id}
-                    onClick={() => handleTileClick(x, y)}
-                    className="aspect-square p-0.5 md:p-1 rounded-md transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{
-                      backgroundColor: 'transparent',
-                    }}
-                    initial={false}
-                    animate={{
-                      scale: tile.isMatched ? 0 : 1,
-                      opacity: tile.isMatched ? 0 : 1,
-                    }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                  >
-                    <img 
-                      src={getTileImage(tile.type)} 
-                      alt={`Tile ${tile.type}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </motion.button>
-                ))
+                row.map((tile, x) => {
+                  const isSelected = gameState.selectedTile?.x === x && gameState.selectedTile?.y === y
+                  return (
+                    <motion.button
+                      key={tile.id}
+                      onClick={() => handleTileClick(x, y)}
+                      className="aspect-square p-0.5 md:p-1 rounded-md relative"
+                      style={{
+                        backgroundColor: 'transparent',
+                        outline: 'none',
+                        zIndex: isSelected ? 10 : 'auto',
+                      }}
+                      initial={tile.isFalling ? { y: -40, opacity: 0 } : false}
+                      animate={{
+                        scale: tile.isMatched
+                          ? 0
+                          : isSelected
+                            ? 1.22
+                            : 1,
+                        opacity: tile.isMatched ? 0 : 1,
+                        y: 0,
+                        filter: tile.isMatched
+                          ? 'brightness(2.5) saturate(2)'
+                          : isSelected
+                            ? 'brightness(1.25) drop-shadow(0 0 6px rgba(255,220,50,0.85))'
+                            : 'brightness(1) drop-shadow(0 0 0px transparent)',
+                      }}
+                      transition={{
+                        scale: { type: 'spring', stiffness: 500, damping: 22 },
+                        y: { type: 'spring', stiffness: 380, damping: 28 },
+                        opacity: { duration: 0.15 },
+                        filter: { duration: 0.15 },
+                      }}
+                      whileHover={!tile.isMatched && !animating ? { scale: isSelected ? 1.22 : 1.1 } : {}}
+                      whileTap={!tile.isMatched ? { scale: 0.88 } : {}}
+                    >
+                      {isSelected && (
+                        <motion.span
+                          className="absolute inset-0 rounded-md pointer-events-none"
+                          style={{
+                            boxShadow: '0 0 0 2.5px rgba(255,220,50,0.9), 0 0 10px 2px rgba(255,200,0,0.5)',
+                            borderRadius: 6,
+                          }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.1 }}
+                        />
+                      )}
+                      <img 
+                        src={getTileImage(tile.type)} 
+                        alt={`Tile ${tile.type}`}
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                      />
+                    </motion.button>
+                  )
+                })
               )}
             </div>
           </div>
