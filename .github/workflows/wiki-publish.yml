@@ -65,9 +65,10 @@ jobs:
 
           WIKI_REPO="https://github.com/${GITHUB_REPOSITORY}.wiki.git"
           WIKI_WORKDIR="$(mktemp -d)"
-          AUTH_HEADER="AUTHORIZATION: basic $(printf '%s' "${GITHUB_ACTOR}:${GH_PERSONAL_ACCESS_TOKEN}" | base64 | tr -d '\n')"
+          git config --global credential.helper store
+          printf 'https://%s:%s@github.com\n' "$GITHUB_ACTOR" "$GH_PERSONAL_ACCESS_TOKEN" > ~/.git-credentials
 
-          git -c http.https://github.com/.extraheader="$AUTH_HEADER" clone "$WIKI_REPO" "$WIKI_WORKDIR"
+          git clone "$WIKI_REPO" "$WIKI_WORKDIR"
 
           find "$WIKI_WORKDIR" -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
@@ -86,4 +87,4 @@ jobs:
 
           git add -A
           git commit -m "Automatically publish wiki"
-          git -c http.https://github.com/.extraheader="$AUTH_HEADER" push origin HEAD:master
+          git push origin HEAD:master
