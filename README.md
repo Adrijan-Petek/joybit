@@ -1,5 +1,9 @@
 # Joybit
 
+<p align="center">
+	<img src="public/branding/logo.png" alt="Joybit logo" width="160" />
+</p>
+
 Joybit is a production-focused Match-3 mini app. The current scope is intentionally lean: one polished game loop, wallet-aware rewards, and clear player progression.
 
 ## Product Scope
