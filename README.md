@@ -44,6 +44,12 @@ Joybit is a production-focused Match-3 mini app. The current scope is intentiona
 
 Copy `.env.example` to `.env.local` and configure the required values.
 
+### Current Contract Addresses (Base Mainnet)
+
+- JOYBIT Token: `0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07`
+- Treasury: `0x91F67245cE0ad7AFB5301EE5d8eaE29Db69078Af`
+- Match3 Game: `0x72cC365b09D7cB4bE3416279407655cA9BBdc532`
+
 ### Required
 
 - `NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS`
