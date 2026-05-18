@@ -125,34 +125,6 @@ export default function AdminPage() {
     },
   })
 
-  if (!mounted) return null
-
-  if (!isConnected || !isUnlocked || !isAuthorized) {
-    return (
-      <main className="min-h-screen px-4 py-5" style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}>
-        <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
-          <WalletButton />
-        </div>
-
-        <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center">
-          <section className="w-full rounded-xl border border-white/10 bg-white/[0.04] p-6 text-center">
-            <h1 className="mb-2 text-2xl font-black">Admin Access Locked</h1>
-            <p className="text-sm text-gray-400">
-              Connect with an authorized wallet/FID and unlock from the home logo tap sequence.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push('/')}
-              className="theme-button-brand mt-4 rounded-lg px-4 py-2 text-sm font-bold"
-            >
-              Back Home
-            </button>
-          </section>
-        </div>
-      </main>
-    )
-  }
-
   const handleUpdatePlayFee = async () => {
     try {
       setStatus('Submitting play fee update...')
@@ -276,6 +248,34 @@ export default function AdminPage() {
   useEffect(() => {
     fetchSeasonalEpochs()
   }, [])
+
+  if (!mounted) return null
+
+  if (!isConnected || !isUnlocked || !isAuthorized) {
+    return (
+      <main className="min-h-screen px-4 py-5" style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}>
+        <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
+          <WalletButton />
+        </div>
+
+        <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center">
+          <section className="w-full rounded-xl border border-white/10 bg-white/[0.04] p-6 text-center">
+            <h1 className="mb-2 text-2xl font-black">Admin Access Locked</h1>
+            <p className="text-sm text-gray-400">
+              Connect with an authorized wallet/FID and unlock from the home logo tap sequence.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              className="theme-button-brand mt-4 rounded-lg px-4 py-2 text-sm font-bold"
+            >
+              Back Home
+            </button>
+          </section>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen px-4 py-5" style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}>
