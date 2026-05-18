@@ -9,7 +9,9 @@ import { useAudio } from '@/components/audio/AudioContext'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { useTreasury, useTreasuryData } from '@/lib/hooks/useTreasury'
+import { useSeasonalRewards } from '@/lib/hooks/useSeasonalRewards'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
+import { isAddress } from 'viem'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -18,8 +20,11 @@ export default function ProfilePage() {
   const { stats } = useMatch3Stats(address)
   const { leaderboard } = useLeaderboard()
   const { allPendingRewards, refetch } = useTreasuryData(address)
-  const { claimRewards, isClaiming } = useTreasury()
+  const { claimRewards, claimTokenRewards, isClaiming } = useTreasury()
+  const { data: seasonalRewards, isLoading: seasonalLoading } = useSeasonalRewards(address)
   const [mounted, setMounted] = useState(false)
+  const [claimingToken, setClaimingToken] = useState<`0x${string}` | null>(null)
+  const [seasonTab, setSeasonTab] = useState<'weekly' | 'monthly'>('weekly')
 
   useEffect(() => {
     setMounted(true)
@@ -41,10 +46,42 @@ export default function ProfilePage() {
     ? leaderboard.findIndex((entry) => entry.address.toLowerCase() === currentPlayer.address.toLowerCase()) + 1
     : 0
 
-  const pendingRewards = allPendingRewards.tokens.map((token, index) => ({
-    token,
-    amount: allPendingRewards.amounts[index] || 0n,
-  }))
+  const configuredRewardTokens = (process.env.NEXT_PUBLIC_REWARD_TOKENS || '')
+    .split(',')
+    .map((entry) => {
+      const [addressPart, symbolPart] = entry.split(':').map((part) => part.trim())
+      return {
+        address: (addressPart || '').toLowerCase(),
+        symbol: symbolPart || 'TOKEN',
+      }
+    })
+    .filter((entry) => !!entry.address)
+
+  const pendingRewards = allPendingRewards.tokens
+    .map((token, index) => ({
+      token,
+      amount: allPendingRewards.amounts[index] || 0n,
+    }))
+    .filter((reward) => reward.amount > 0n)
+
+  const hasPendingRewards = pendingRewards.length > 0
+
+  const seasonalRows = seasonalRewards.allocations.filter((allocation) => allocation.period === seasonTab)
+  const seasonalPendingRaw = seasonTab === 'weekly' ? seasonalRewards.weeklyPendingRaw : seasonalRewards.monthlyPendingRaw
+
+  const getTokenLabel = (tokenAddress: string) => {
+    const normalized = tokenAddress.toLowerCase()
+
+    if (isAddress(process.env.NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS || '') &&
+      normalized === (process.env.NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS || '').toLowerCase()) {
+      return 'JOYB'
+    }
+
+    const configured = configuredRewardTokens.find((token) => token.address === normalized)
+    if (configured) return configured.symbol
+
+    return `${tokenAddress.slice(0, 6)}...${tokenAddress.slice(-4)}`
+  }
 
   return (
     <main
@@ -98,14 +135,14 @@ export default function ProfilePage() {
                     await claimRewards()
                     await refetch()
                   }}
-                  disabled={isClaiming || pendingRewards.length === 0}
+                  disabled={isClaiming || !hasPendingRewards}
                   className="theme-button-primary rounded-lg px-4 py-2 text-sm font-bold"
                 >
-                  {isClaiming ? 'Claiming...' : 'Claim'}
+                  {isClaiming ? 'Claiming...' : 'Claim All'}
                 </button>
               </div>
 
-              {pendingRewards.length === 0 ? (
+              {!hasPendingRewards ? (
                 <p className="text-sm text-gray-400">No pending rewards yet.</p>
               ) : (
                 <div className="space-y-2">
@@ -114,8 +151,78 @@ export default function ProfilePage() {
                       key={reward.token}
                       className="flex items-center justify-between rounded-lg bg-black/30 px-3 py-2 text-sm"
                     >
-                      <span className="text-gray-400">JOYB Rewards</span>
-                      <span className="font-bold">{formatTokenBalance(reward.amount)}</span>
+                      <div className="flex flex-col">
+                        <span className="text-gray-300">{getTokenLabel(reward.token)}</span>
+                        <span className="font-mono text-[11px] text-gray-500">{reward.token}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold">{formatTokenBalance(reward.amount)}</span>
+                        <button
+                          type="button"
+                          disabled={isClaiming || claimingToken === reward.token}
+                          onClick={async () => {
+                            setClaimingToken(reward.token)
+                            try {
+                              await claimTokenRewards(reward.token)
+                              await refetch()
+                            } finally {
+                              setClaimingToken(null)
+                            }
+                          }}
+                          className="rounded-md border border-white/15 px-2 py-1 text-xs font-semibold hover:bg-white/10 disabled:opacity-50"
+                        >
+                          {claimingToken === reward.token ? 'Claiming...' : 'Claim'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold">Seasonal Rewards</h2>
+                  <p className="text-sm text-gray-400">Track weekly and monthly allocations.</p>
+                </div>
+                <div className="rounded-lg border border-white/10 p-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSeasonTab('weekly')}
+                    className={`rounded-md px-2 py-1 ${seasonTab === 'weekly' ? 'bg-white/20 text-white' : 'text-gray-400'}`}
+                  >
+                    Weekly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSeasonTab('monthly')}
+                    className={`rounded-md px-2 py-1 ${seasonTab === 'monthly' ? 'bg-white/20 text-white' : 'text-gray-400'}`}
+                  >
+                    Monthly
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-3 rounded-lg bg-black/30 px-3 py-2 text-sm">
+                <span className="text-gray-400">Pending {seasonTab} rewards: </span>
+                <span className="font-bold">{formatTokenBalance(BigInt(seasonalPendingRaw || '0'))}</span>
+              </div>
+
+              {seasonalLoading ? (
+                <p className="text-sm text-gray-400">Loading seasonal rewards...</p>
+              ) : seasonalRows.length === 0 ? (
+                <p className="text-sm text-gray-400">No {seasonTab} allocations yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {seasonalRows.slice(0, 20).map((entry) => (
+                    <div key={`${entry.epochId}-${entry.tokenAddress}`} className="rounded-lg bg-black/30 px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold">Epoch #{entry.epochId} - Rank #{entry.rank}</span>
+                        <span className="font-bold">{formatTokenBalance(BigInt(entry.amountRaw || '0'))}</span>
+                      </div>
+                      <div className="mt-1 text-xs text-gray-400">Token: {getTokenLabel(entry.tokenAddress)}</div>
+                      <div className="text-xs text-gray-500">Status: {entry.claimed ? 'Claimed' : 'Pending'} | {entry.status}</div>
                     </div>
                   ))}
                 </div>

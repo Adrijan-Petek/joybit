@@ -9,6 +9,17 @@ import { WalletButton } from '@/components/WalletButton'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { MATCH3_GAME_ABI, TREASURY_ABI } from '@/lib/contracts/abis'
 
+type SeasonalEpoch = {
+  id: number
+  period: 'weekly' | 'monthly'
+  status: string
+  tokenAddress: string
+  budgetRaw: string
+  minGames: number
+  startAt: number
+  endAt: number
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -22,6 +33,15 @@ export default function AdminPage() {
   const [newTreasuryAddress, setNewTreasuryAddress] = useState<string>(CONTRACT_ADDRESSES.treasury || '')
   const [withdrawEthAmount, setWithdrawEthAmount] = useState('0.01')
   const [withdrawTokenAmount, setWithdrawTokenAmount] = useState('10')
+  const [seasonalPeriod, setSeasonalPeriod] = useState<'weekly' | 'monthly'>('weekly')
+  const [seasonalTokenAddress, setSeasonalTokenAddress] = useState<string>(CONTRACT_ADDRESSES.joybitToken || '')
+  const [seasonalBudgetRaw, setSeasonalBudgetRaw] = useState('100000000000000000000')
+  const [seasonalMinGames, setSeasonalMinGames] = useState('5')
+  const [seasonalEpochId, setSeasonalEpochId] = useState('')
+  const [seasonalFundRaw, setSeasonalFundRaw] = useState('0')
+  const [adminSecret, setAdminSecret] = useState('')
+  const [seasonalEpochs, setSeasonalEpochs] = useState<SeasonalEpoch[]>([])
+  const [seasonalBusy, setSeasonalBusy] = useState(false)
   const [status, setStatus] = useState('')
 
   const adminWalletList = (process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES || process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS || '')
@@ -178,6 +198,47 @@ export default function AdminPage() {
     }
   }
 
+  const fetchSeasonalEpochs = async () => {
+    try {
+      const response = await fetch('/api/rewards/epochs')
+      const data = await response.json()
+      setSeasonalEpochs(Array.isArray(data.latestEpochs) ? data.latestEpochs : [])
+    } catch (error) {
+      console.error('Failed to fetch seasonal epochs:', error)
+    }
+  }
+
+  const callSeasonalAction = async (payload: Record<string, unknown>, successMessage: string) => {
+    setSeasonalBusy(true)
+    try {
+      const response = await fetch('/api/rewards/epochs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        setStatus(data?.error || 'Seasonal rewards action failed.')
+        return
+      }
+
+      setStatus(successMessage)
+      await fetchSeasonalEpochs()
+    } catch (error) {
+      setStatus(`Seasonal rewards action failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setSeasonalBusy(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSeasonalEpochs()
+  }, [])
+
   return (
     <main className="min-h-screen px-4 py-5" style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}>
       <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
@@ -278,6 +339,123 @@ export default function AdminPage() {
               >
                 Withdraw Token
               </button>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
+            <h2 className="mb-3 text-lg font-bold">Seasonal Rewards (Weekly / Monthly)</h2>
+            <p className="mb-3 text-xs text-gray-400">Use finalize to snapshot rankings, then fund and mark distributed when payouts are executed.</p>
+
+            <div className="mb-3 grid gap-3 sm:grid-cols-2">
+              <input
+                value={adminSecret}
+                onChange={(e) => setAdminSecret(e.target.value)}
+                placeholder="REWARDS_ADMIN_SECRET (optional if not configured)"
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+              <input
+                value={seasonalTokenAddress}
+                onChange={(e) => setSeasonalTokenAddress(e.target.value)}
+                placeholder="Reward token address"
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="mb-3 grid gap-3 sm:grid-cols-4">
+              <select
+                value={seasonalPeriod}
+                onChange={(e) => setSeasonalPeriod(e.target.value as 'weekly' | 'monthly')}
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              <input
+                value={seasonalBudgetRaw}
+                onChange={(e) => setSeasonalBudgetRaw(e.target.value)}
+                placeholder="Budget raw (wei)"
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+              <input
+                value={seasonalMinGames}
+                onChange={(e) => setSeasonalMinGames(e.target.value)}
+                placeholder="Min games"
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={seasonalBusy}
+                onClick={() => callSeasonalAction({
+                  action: 'finalize',
+                  period: seasonalPeriod,
+                  tokenAddress: seasonalTokenAddress,
+                  budgetRaw: seasonalBudgetRaw,
+                  minGames: Number(seasonalMinGames || '5'),
+                }, `${seasonalPeriod} epoch finalized successfully.`)}
+                className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold"
+              >
+                Finalize Epoch
+              </button>
+            </div>
+
+            <div className="mb-4 grid gap-3 sm:grid-cols-3">
+              <input
+                value={seasonalEpochId}
+                onChange={(e) => setSeasonalEpochId(e.target.value)}
+                placeholder="Epoch ID"
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+              <input
+                value={seasonalFundRaw}
+                onChange={(e) => setSeasonalFundRaw(e.target.value)}
+                placeholder="Fund amount raw"
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={seasonalBusy}
+                  onClick={() => callSeasonalAction({
+                    action: 'fund',
+                    epochId: Number(seasonalEpochId),
+                    tokenAddress: seasonalTokenAddress,
+                    amountRaw: seasonalFundRaw,
+                    fundedBy: address || '',
+                  }, 'Seasonal epoch funding recorded.')}
+                  className="theme-button-brand-soft rounded-lg px-4 py-2 text-sm font-bold"
+                >
+                  Fund
+                </button>
+                <button
+                  type="button"
+                  disabled={seasonalBusy}
+                  onClick={() => callSeasonalAction({
+                    action: 'distribute',
+                    epochId: Number(seasonalEpochId),
+                  }, 'Seasonal epoch marked distributed.')}
+                  className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold"
+                >
+                  Distribute
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {seasonalEpochs.length === 0 ? (
+                <p className="text-sm text-gray-400">No seasonal epochs yet.</p>
+              ) : (
+                seasonalEpochs.map((epoch) => (
+                  <div key={epoch.id} className="rounded-lg border border-white/10 bg-black/30 p-3 text-xs text-gray-300">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold">#{epoch.id} {epoch.period.toUpperCase()} - {epoch.status.toUpperCase()}</span>
+                      <span>Min games: {epoch.minGames}</span>
+                    </div>
+                    <div className="mt-1 break-all">Token: {epoch.tokenAddress}</div>
+                    <div className="mt-1">Budget raw: {epoch.budgetRaw}</div>
+                    <div className="mt-1">Window: {new Date(epoch.startAt).toLocaleString()} - {new Date(epoch.endAt).toLocaleString()}</div>
+                  </div>
+                ))
+              )}
             </div>
           </section>
 
