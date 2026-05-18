@@ -66,8 +66,10 @@ export default function Home() {
     const shareText =
       '🎮 Playing Joybit Match-3. Fast rounds, leaderboard competition, and wallet-ready rewards.\n\nTry it:'
     const shareUrl = 'https://joybit.vercel.app'
+    const frameImageUrl = `${window.location.origin}/frame.png`
     const url = new URL('https://warpcast.com/~/compose')
     url.searchParams.set('text', shareText)
+    url.searchParams.append('embeds[]', frameImageUrl)
     url.searchParams.append('embeds[]', shareUrl)
     window.open(url.toString(), '_blank', 'noopener,noreferrer')
   }, [])
