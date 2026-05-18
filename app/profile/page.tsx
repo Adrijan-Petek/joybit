@@ -66,7 +66,11 @@ export default function ProfilePage() {
 
   const hasPendingRewards = pendingRewards.length > 0
 
-  const seasonalRows = seasonalRewards.allocations.filter((allocation) => allocation.period === seasonTab)
+  const seasonalRows = seasonalRewards.allocations.filter((allocation) => (
+    allocation.period === seasonTab &&
+    allocation.status === 'distributed' &&
+    BigInt(allocation.amountRaw || '0') > 0n
+  ))
   const seasonalPendingRaw = seasonTab === 'weekly' ? seasonalRewards.weeklyPendingRaw : seasonalRewards.monthlyPendingRaw
 
   const getTokenLabel = (tokenAddress: string) => {
@@ -184,7 +188,7 @@ export default function ProfilePage() {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold">Seasonal Rewards</h2>
-                  <p className="text-sm text-gray-400">Track weekly and monthly allocations.</p>
+                  <p className="text-sm text-gray-400">Shows distributed rewards you won for each period.</p>
                 </div>
                 <div className="rounded-lg border border-white/10 p-1 text-xs">
                   <button
@@ -212,7 +216,7 @@ export default function ProfilePage() {
               {seasonalLoading ? (
                 <p className="text-sm text-gray-400">Loading seasonal rewards...</p>
               ) : seasonalRows.length === 0 ? (
-                <p className="text-sm text-gray-400">No {seasonTab} allocations yet.</p>
+                <p className="text-sm text-gray-400">No distributed {seasonTab} rewards won yet.</p>
               ) : (
                 <div className="space-y-2">
                   {seasonalRows.slice(0, 20).map((entry) => (
@@ -222,6 +226,7 @@ export default function ProfilePage() {
                         <span className="font-bold">{formatTokenBalance(BigInt(entry.amountRaw || '0'))}</span>
                       </div>
                       <div className="mt-1 text-xs text-gray-400">Token: {getTokenLabel(entry.tokenAddress)}</div>
+                      <div className="font-mono text-[11px] text-gray-500">{entry.tokenAddress}</div>
                       <div className="text-xs text-gray-500">Status: {entry.claimed ? 'Claimed' : 'Pending'} | {entry.status}</div>
                     </div>
                   ))}
