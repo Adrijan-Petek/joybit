@@ -63,9 +63,8 @@ export default function Home() {
   const handleRecastApp = useCallback(() => {
     if (typeof window === 'undefined') return
 
-    const shareUrl = 'https://joybit.vercel.app'
     const shareText =
-      `🎮 Playing Joybit Match-3. Fast rounds, leaderboard competition, and wallet-ready rewards.\n\nTry it: ${shareUrl}`
+      '🎮 Playing Joybit Match-3. Fast rounds, leaderboard competition, and wallet-ready rewards.'
     const frameImageUrl = `${window.location.origin}/frame.png`
     const url = new URL('https://warpcast.com/~/compose')
     url.searchParams.set('text', shareText)
