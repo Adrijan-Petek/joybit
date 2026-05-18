@@ -53,21 +53,23 @@ export const getLevelConfig = (level: number) => {
     difficultyFactor = 0.7 + ((clampedLevel - 100) / 50) * 0.3
   }
 
-  // Target Score: Easier progression
-  const baseScore = 900
-  const scoreMultiplier = clampedLevel <= 10
-    ? 1 + (clampedLevel - 1) * 0.15  // Slower increase for levels 1-10
-    : 1 + (clampedLevel - 1) * 0.3  // Easier scaling after level 10
-  const targetScore = Math.floor(baseScore * scoreMultiplier)
+  // Target score per level requirement (used as the next checkpoint increment).
+  // Level 1 starts at 1200 and increases gradually.
+  let targetScore: number
+  if (clampedLevel <= 10) {
+    targetScore = 1200 + (clampedLevel - 1) * 110
+  } else if (clampedLevel <= 50) {
+    targetScore = 2190 + (clampedLevel - 10) * 140
+  } else {
+    targetScore = 7790 + (clampedLevel - 50) * 170
+  }
 
-  // Moves: More generous and slower reduction
-  const baseMoves = clampedLevel <= 10
-    ? 45  // More generous for levels 1-10
-    : 40  // Higher base for others
-  const moveReduction = clampedLevel <= 10
-    ? clampedLevel * 0.3  // Very small reduction for levels 1-10
-    : 3 + (clampedLevel - 10) * 0.2  // Slower reduction after level 10
-  const moves = Math.max(20, Math.floor(baseMoves - moveReduction))
+  // Moves: generous early game with gradual reduction.
+  const baseMoves = 36
+  const moveReduction = clampedLevel <= 20
+    ? (clampedLevel - 1) * 0.2
+    : 3.8 + (clampedLevel - 20) * 0.12
+  const moves = Math.max(22, Math.floor(baseMoves - moveReduction))
 
   // Time Limit: Fixed at 100 seconds for all levels
   const timeLimit = 100

@@ -29,6 +29,14 @@ export default function Leaderboard() {
       })
   }, [playMusic])
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      refetch()
+    }, 5000)
+
+    return () => clearInterval(timer)
+  }, [refetch])
+
   if (!mounted) return null
 
   const myRank = address
@@ -67,12 +75,12 @@ export default function Leaderboard() {
         <section className="mb-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
           <div className="grid gap-3 text-sm sm:grid-cols-3">
             <div>
-              <div className="text-xl font-black">100</div>
-              <div className="text-gray-400">Match-3 win</div>
+              <div className="text-xl font-black">Live</div>
+              <div className="text-gray-400">Auto refresh (5s)</div>
             </div>
             <div>
-              <div className="text-xl font-black">50</div>
-              <div className="text-gray-400">Match-3 game</div>
+              <div className="text-xl font-black">Run Score</div>
+              <div className="text-gray-400">Best cumulative score</div>
             </div>
             <div>
               <div className="text-xl font-black">{myRank ? `#${myRank}` : '-'}</div>

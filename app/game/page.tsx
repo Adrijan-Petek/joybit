@@ -10,9 +10,8 @@ import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
-import { useMatch3Game, useMatch3GameData, useMatch3LevelReward } from '@/lib/hooks/useMatch3Game'
+import { useMatch3Game, useMatch3GameData } from '@/lib/hooks/useMatch3Game'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
-import { calculateLeaderboardPoints } from '@/lib/utils/scoring'
 import { detectInvalidScore, detectSpeedHack } from '@/lib/utils/cheatingDetection'
 import {
   initializeGrid,
@@ -123,9 +122,6 @@ export default function Match3Game() {
     }
   })
 
-  // Get level reward for current level
-  const levelReward = useMatch3LevelReward(gameState.level)
-
   const [animating, setAnimating] = useState(false)
   const [showShuffleMessage, setShowShuffleMessage] = useState(false)
   const [showBoosterShop, setShowBoosterShop] = useState(false)
@@ -135,7 +131,7 @@ export default function Match3Game() {
   const [sessionId, setSessionId] = useState<bigint | null>(null)
   const [buyingBooster, setBuyingBooster] = useState<string | null>(null)
   const [activeBooster, setActiveBooster] = useState<'hammer' | 'colorBomb' | null>(null)
-  const [userData, setUserData] = useState<{ username?: string; pfpUrl?: string }>({})
+  const [userData, setUserData] = useState<{ username?: string; pfpUrl?: string; fid?: number }>({})
   const [weeklyRewardSummary, setWeeklyRewardSummary] = useState<WeeklyRewardSummary | null>(null)
 
   // Prevent hydration mismatch
@@ -153,7 +149,8 @@ export default function Match3Game() {
         const context = await sdk.context
         setUserData({
           username: context?.user?.username,
-          pfpUrl: context?.user?.pfpUrl
+          pfpUrl: context?.user?.pfpUrl,
+          fid: context?.user?.fid
         })
       } catch (error) {
         console.log('Not in Farcaster Mini App context')
@@ -317,7 +314,7 @@ export default function Match3Game() {
 
     // Cheating detection
     const levelConfig = getLevelConfig(gameState.level)
-    const expectedMaxScore = levelConfig.targetScore * 3 // Allow reasonable margin for combos
+    const expectedMaxScore = Math.max(gameState.targetScore * 2, levelConfig.targetScore * 3)
 
     // Check for invalid score (too high for level)
     detectInvalidScore(address, gameState.score, expectedMaxScore)
@@ -338,8 +335,23 @@ export default function Match3Game() {
     
     // Save stats to database
     try {
-      await saveStats(gameState.score, gameState.level, newGamesPlayed)
+      const savedStats = await saveStats(gameState.score, gameState.level, newGamesPlayed)
       console.log('✅ Game stats saved to database:', { score: gameState.score, level: gameState.level, gamesPlayed: newGamesPlayed })
+
+      const leaderboardScore = Math.max(gameState.score, savedStats?.highScore || 0)
+      await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address,
+          score: leaderboardScore,
+          username: userData.username,
+          pfp: userData.pfpUrl,
+          fid: userData.fid,
+        }),
+      })
     } catch (error) {
       console.error('❌ Failed to save game stats:', error)
     }
@@ -351,7 +363,7 @@ export default function Match3Game() {
     if (!won) {
       playSound?.('game-over')
     }
-  }, [sessionId, address, gameState.score, gameState.level, playSound, saveStats, match3Stats.gamesPlayed])
+  }, [sessionId, address, gameState.score, gameState.level, gameState.targetScore, playSound, saveStats, match3Stats.gamesPlayed, userData.username, userData.pfpUrl, userData.fid])
 
   // Process matches and cascading with improved timing
   const processMatches = useCallback(async (grid: Tile[][]) => {
@@ -362,6 +374,7 @@ export default function Match3Game() {
     let currentGrid = grid.map(row => [...row])
     let hasMatches = true
     let cascadeCount = 0
+    let runningScore = gameState.score
     const maxCascades = 10 // Prevent infinite cascades
     const { tileTypes } = getLevelConfig(gameState.level)
 
@@ -381,8 +394,9 @@ export default function Match3Game() {
       const matchScore = calculateScore(matches) * (cascadeCount + 1)
 
       // Check if level would be completed
-      const currentScore = gameState.score + matchScore
+      const currentScore = runningScore + matchScore
       const wouldCompleteLevel = currentScore >= gameState.targetScore
+      runningScore = currentScore
 
       // Add bonus time for time tiles
       let timeBonus = 0
@@ -716,17 +730,17 @@ export default function Match3Game() {
     setSessionId(newSessionId)
     
     // Update game state locally - no blockchain interaction
-    setGameState({
+    setGameState(prev => ({
+      ...prev,
       grid: initializeGrid(config.tileTypes),
-      score: 0,
       moves: config.moves,
-      targetScore: config.targetScore,
+      // Keep run score and increase the next checkpoint by this level's requirement.
+      targetScore: prev.targetScore + config.targetScore,
       timeLeft: config.timeLimit,
       level: nextLevel,
       isPlaying: true,
       selectedTile: null,
-      boosters: gameState.boosters,
-    })
+    }))
     
     setShowResultPopup(false)
     setGameResult(null)
@@ -1245,12 +1259,6 @@ export default function Match3Game() {
                   <div className="text-3xl md:text-4xl font-bold">{gameState.score}</div>
                   <div className="text-xs md:text-sm opacity-75 mt-1">Target: {gameState.targetScore}</div>
                 </div>
-                {gameResult === 'win' && levelReward && levelReward > 0n && (
-                    <p className="mb-3 md:mb-4 text-base md:text-lg">
-                    🎁 You earned <span className="font-bold">{formatEther(levelReward)} JOYB</span> in Weekly Rewards!<br/>
-                    <span className="text-xs md:text-sm">Claim it in Profile</span>
-                  </p>
-                )}
                 <div className="space-y-2">
                   {gameResult === 'win' && (
                     <button
