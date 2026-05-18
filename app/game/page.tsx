@@ -45,7 +45,35 @@ function formatRewardAmount(rawAmount: bigint, tokenDecimals: number) {
 function getRewardTokenSymbol(tokenAddress: string) {
   const normalizedAddress = tokenAddress.toLowerCase()
   const configuredToken = CONTRACT_ADDRESSES.joybitToken.toLowerCase()
-  return normalizedAddress && normalizedAddress === configuredToken ? 'JOYB' : 'TOKEN'
+
+  if (normalizedAddress && normalizedAddress === configuredToken) {
+    return 'JOYB'
+  }
+
+  const configuredRewardTokens = (process.env.NEXT_PUBLIC_REWARD_TOKENS || '')
+    .split(',')
+    .map((entry) => {
+      const [addressPart, symbolPart] = entry.split(':').map((part) => part.trim())
+      return {
+        address: (addressPart || '').toLowerCase(),
+        symbol: symbolPart || 'TOKEN',
+      }
+    })
+
+  const configured = configuredRewardTokens.find((entry) => entry.address === normalizedAddress)
+  if (configured) return configured.symbol
+
+  if (tokenAddress.length >= 10) {
+    return `${tokenAddress.slice(0, 6)}...${tokenAddress.slice(-4)}`
+  }
+
+  return 'TOKEN'
+}
+
+type WeeklyRewardSummary = {
+  poolAmount: string
+  tokenSymbol: string
+  winnersCount: number
 }
 
 export default function Match3Game() {
@@ -108,7 +136,7 @@ export default function Match3Game() {
   const [buyingBooster, setBuyingBooster] = useState<string | null>(null)
   const [activeBooster, setActiveBooster] = useState<'hammer' | 'colorBomb' | null>(null)
   const [userData, setUserData] = useState<{ username?: string; pfpUrl?: string }>({})
-  const [allLevelRewards, setAllLevelRewards] = useState<Array<{level: number, amount: string}>>([])
+  const [weeklyRewardSummary, setWeeklyRewardSummary] = useState<WeeklyRewardSummary | null>(null)
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -184,7 +212,7 @@ export default function Match3Game() {
 
         const weeklyEpoch = payload.latestEpochs?.find((epoch) => epoch.period === 'weekly')
         if (!weeklyEpoch || !weeklyEpoch.metadata || !weeklyEpoch.budgetRaw) {
-          if (!cancelled) setAllLevelRewards([])
+          if (!cancelled) setWeeklyRewardSummary(null)
           return
         }
 
@@ -192,24 +220,25 @@ export default function Match3Game() {
           ? JSON.parse(weeklyEpoch.metadata) as { payoutPercents?: number[]; winnersCount?: number }
           : weeklyEpoch.metadata
 
-        const payoutPercents: number[] = Array.isArray(metadata?.payoutPercents) ? metadata.payoutPercents : []
+        const payoutPercents = Array.isArray(metadata?.payoutPercents) ? metadata.payoutPercents : []
+
         const budgetRaw = BigInt(weeklyEpoch.budgetRaw)
         const tokenDecimals = typeof weeklyEpoch.tokenDecimals === 'number' ? weeklyEpoch.tokenDecimals : 18
         const tokenSymbol = getRewardTokenSymbol(weeklyEpoch.tokenAddress || '')
+        const winnersCount = Number(metadata?.winnersCount || 0)
+        const resolvedWinnersCount = winnersCount > 0 ? winnersCount : payoutPercents.length
+        const poolAmount = formatRewardAmount(budgetRaw, tokenDecimals)
 
-        const rewards = payoutPercents.map((percent: number, index: number) => {
-          const basisPoints = Math.max(0, Math.round(Number(percent) * 100))
-          const rewardRaw = (budgetRaw * BigInt(basisPoints)) / 10000n
-          return {
-            level: index + 1,
-            amount: `${formatRewardAmount(rewardRaw, tokenDecimals)} ${tokenSymbol}`,
-          }
-        })
-
-        if (!cancelled) setAllLevelRewards(rewards)
+        if (!cancelled) {
+          setWeeklyRewardSummary({
+            poolAmount,
+            tokenSymbol,
+            winnersCount: resolvedWinnersCount > 0 ? resolvedWinnersCount : 10,
+          })
+        }
       } catch (error) {
         console.warn('Failed to load weekly rewards:', error)
-        if (!cancelled) setAllLevelRewards([])
+        if (!cancelled) setWeeklyRewardSummary(null)
       }
     }
 
@@ -865,23 +894,20 @@ export default function Match3Game() {
             <div className="text-center text-[9px] mb-2" style={{ color: 'var(--theme-text-secondary)' }}>
               Earn JOYB as you progress through the week.
             </div>
-            {allLevelRewards.length > 0 ? (
-              <div className="grid grid-cols-2 gap-1.5 text-center">
-                {allLevelRewards.slice(0, 10).map((reward) => (
-                  <div
-                    key={reward.level}
-                    className="rounded-lg border px-2 py-1.5"
-                    style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 70%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-background) 40%, transparent)' }}
-                    title={`Rank ${reward.level}: ${reward.amount}`}
-                  >
-                    <div className="text-[10px] font-bold" style={{ color: 'var(--theme-accent)' }}>
-                      #{reward.level}
-                    </div>
-                    <div className="text-[9px] font-semibold" style={{ color: 'var(--theme-text)' }}>
-                      {reward.amount}
-                    </div>
-                  </div>
-                ))}
+            {weeklyRewardSummary ? (
+              <div
+                className="rounded-lg border px-3 py-3 text-center"
+                style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 70%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-background) 40%, transparent)' }}
+              >
+                <div className="text-[9px] uppercase tracking-[0.16em] font-bold" style={{ color: 'var(--theme-accent)' }}>
+                  Weekly Pool
+                </div>
+                <div className="text-sm md:text-base font-black" style={{ color: 'var(--theme-text)' }}>
+                  {weeklyRewardSummary.poolAmount} {weeklyRewardSummary.tokenSymbol}
+                </div>
+                <div className="text-[9px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
+                  Distributed across top {weeklyRewardSummary.winnersCount} players each week.
+                </div>
               </div>
             ) : (
               <div className="rounded-lg border border-dashed px-3 py-4 text-center text-[9px]" style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 75%, transparent)', color: 'var(--theme-text-secondary)' }}>
@@ -1104,14 +1130,20 @@ export default function Match3Game() {
                       <div className="text-center text-[9px] md:text-[10px] mb-2" style={{ color: 'var(--theme-text-secondary)' }}>
                         This week’s milestones and JOYB rewards.
                       </div>
-                  {allLevelRewards.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
-                      {allLevelRewards.slice(0, 10).map((reward) => (
-                        <div key={reward.level} className="rounded-lg border px-2 py-2" style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 70%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-background) 45%, transparent)' }}>
-                          <div className="text-[10px] font-bold" style={{ color: 'var(--theme-accent)' }}>#{reward.level}</div>
-                          <div className="text-[9px] md:text-[10px] font-semibold" style={{ color: 'var(--theme-text)' }}>{reward.amount}</div>
-                        </div>
-                      ))}
+                      {weeklyRewardSummary ? (
+                        <div
+                          className="rounded-lg border px-3 py-3 text-center"
+                          style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 70%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-background) 45%, transparent)' }}
+                        >
+                          <div className="text-[9px] uppercase tracking-[0.16em] font-bold" style={{ color: 'var(--theme-accent)' }}>
+                            Weekly Pool
+                          </div>
+                          <div className="text-sm md:text-base font-black" style={{ color: 'var(--theme-text)' }}>
+                            {weeklyRewardSummary.poolAmount} {weeklyRewardSummary.tokenSymbol}
+                          </div>
+                          <div className="text-[9px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
+                            Distributed across top {weeklyRewardSummary.winnersCount} players each week.
+                          </div>
                     </div>
                   ) : (
                     <div className="rounded-lg border border-dashed px-3 py-4 text-center text-[10px]" style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 75%, transparent)', color: 'var(--theme-text-secondary)' }}>
@@ -1148,7 +1180,7 @@ export default function Match3Game() {
                     disabled={isStarting}
                     className="theme-button-primary w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
                     style={{
-                      background: 'linear-gradient(90deg, var(--theme-success), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-success)))',
+                      backgroundColor: 'var(--theme-primary)',
                       color: 'var(--theme-text)'
                     }}
                   >
@@ -1165,7 +1197,7 @@ export default function Match3Game() {
                       disabled={isStarting || playFee === undefined}
                       className="theme-button-secondary w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
                       style={{
-                        background: 'linear-gradient(90deg, var(--theme-primary), var(--theme-secondary))',
+                        backgroundColor: 'var(--theme-secondary)',
                         color: 'var(--theme-text)'
                       }}
                     >
