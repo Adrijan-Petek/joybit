@@ -32,6 +32,14 @@ function formatEpochDate(value: unknown): string {
   return new Date(num).toLocaleString()
 }
 
+function formatRaw(value: bigint): string {
+  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+function formatExactToken(value: bigint, symbol: string): string {
+  return `${formatEther(value)} ${symbol}`
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -249,6 +257,10 @@ export default function AdminPage() {
     fetchSeasonalEpochs()
   }, [])
 
+  const playFeeValue = (playFee as bigint) || 0n
+  const ethTreasuryValue = (treasuryEthBalance as bigint) || 0n
+  const rewardTreasuryValue = (treasuryRewardTokenBalance as bigint) || 0n
+
   if (!mounted) return null
 
   if (!isConnected || !isUnlocked || !isAuthorized) {
@@ -295,8 +307,36 @@ export default function AdminPage() {
 
         <div className="space-y-4">
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
+            <h2 className="mb-4 text-lg font-bold">Operations Overview</h2>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-gray-400">Play Fee</div>
+                <div className="mt-1 text-sm font-bold text-white">{formatExactToken(playFeeValue, 'ETH')}</div>
+                <div className="mt-1 font-mono text-[11px] text-gray-500">Raw: {formatRaw(playFeeValue)} wei</div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-gray-400">Treasury ETH</div>
+                <div className="mt-1 text-sm font-bold text-white">{formatExactToken(ethTreasuryValue, 'ETH')}</div>
+                <div className="mt-1 font-mono text-[11px] text-gray-500">Raw: {formatRaw(ethTreasuryValue)} wei</div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-gray-400">Treasury JOYB</div>
+                <div className="mt-1 text-sm font-bold text-white">{formatExactToken(rewardTreasuryValue, 'JOYB')}</div>
+                <div className="mt-1 font-mono text-[11px] text-gray-500">Raw: {formatRaw(rewardTreasuryValue)} wei</div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2 text-xs text-gray-400">
+              <div className="rounded border border-white/10 bg-black/30 px-3 py-2 break-all">Match3: {CONTRACT_ADDRESSES.match3Game || 'Not configured'}</div>
+              <div className="rounded border border-white/10 bg-black/30 px-3 py-2 break-all">Treasury: {CONTRACT_ADDRESSES.treasury || 'Not configured'}</div>
+              <div className="rounded border border-white/10 bg-black/30 px-3 py-2 break-all">Reward Token: {CONTRACT_ADDRESSES.joybitToken || 'Not configured'}</div>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
             <h2 className="mb-3 text-lg font-bold">Match-3 Fee</h2>
-            <p className="mb-3 text-sm text-gray-400">Current fee: {formatEther((playFee as bigint) || 0n)} ETH</p>
+            <p className="mb-1 text-sm text-gray-300">Current fee: {formatExactToken(playFeeValue, 'ETH')}</p>
+            <p className="mb-3 font-mono text-xs text-gray-500">Raw: {formatRaw(playFeeValue)} wei</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 value={newPlayFeeEth}
@@ -337,7 +377,8 @@ export default function AdminPage() {
 
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
             <h2 className="mb-3 text-lg font-bold">Treasury Withdraw</h2>
-            <p className="mb-3 text-sm text-gray-400">Treasury ETH balance: {formatEther((treasuryEthBalance as bigint) || 0n)} ETH</p>
+            <p className="mb-1 text-sm text-gray-300">Treasury ETH balance: {formatExactToken(ethTreasuryValue, 'ETH')}</p>
+            <p className="mb-3 font-mono text-xs text-gray-500">Raw: {formatRaw(ethTreasuryValue)} wei</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 value={withdrawEthAmount}
@@ -359,9 +400,8 @@ export default function AdminPage() {
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
             <h2 className="mb-3 text-lg font-bold">Reward Token (JOYB)</h2>
             <p className="mb-1 text-xs text-gray-400 break-all">Token: {CONTRACT_ADDRESSES.joybitToken || 'Not configured'}</p>
-            <p className="mb-3 text-sm text-gray-400">
-              Treasury token balance: {formatEther((treasuryRewardTokenBalance as bigint) || 0n)} JOYB
-            </p>
+            <p className="mb-1 text-sm text-gray-300">Treasury token balance: {formatExactToken(rewardTreasuryValue, 'JOYB')}</p>
+            <p className="mb-3 font-mono text-xs text-gray-500">Raw: {formatRaw(rewardTreasuryValue)} wei</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 value={withdrawTokenAmount}
