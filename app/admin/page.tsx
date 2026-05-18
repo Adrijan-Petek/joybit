@@ -20,6 +20,18 @@ type SeasonalEpoch = {
   endAt: number
 }
 
+function formatEpochPeriod(period: unknown): string {
+  const normalized = typeof period === 'string' ? period.toLowerCase() : ''
+  if (normalized === 'weekly' || normalized === 'monthly') return normalized.toUpperCase()
+  return 'UNKNOWN'
+}
+
+function formatEpochDate(value: unknown): string {
+  const num = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(num) || num <= 0) return '-'
+  return new Date(num).toLocaleString()
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -201,10 +213,17 @@ export default function AdminPage() {
   const fetchSeasonalEpochs = async () => {
     try {
       const response = await fetch('/api/rewards/epochs')
+      if (!response.ok) {
+        setSeasonalEpochs([])
+        return
+      }
+
       const data = await response.json()
-      setSeasonalEpochs(Array.isArray(data.latestEpochs) ? data.latestEpochs : [])
+      const nextEpochs = Array.isArray(data?.latestEpochs) ? data.latestEpochs : []
+      setSeasonalEpochs(nextEpochs)
     } catch (error) {
       console.error('Failed to fetch seasonal epochs:', error)
+      setSeasonalEpochs([])
     }
   }
 
@@ -447,12 +466,12 @@ export default function AdminPage() {
                 seasonalEpochs.map((epoch) => (
                   <div key={epoch.id} className="rounded-lg border border-white/10 bg-black/30 p-3 text-xs text-gray-300">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold">#{epoch.id} {epoch.period.toUpperCase()} - {epoch.status.toUpperCase()}</span>
+                      <span className="font-bold">#{epoch.id} {formatEpochPeriod(epoch.period)} - {String(epoch.status || '').toUpperCase() || 'UNKNOWN'}</span>
                       <span>Min games: {epoch.minGames}</span>
                     </div>
                     <div className="mt-1 break-all">Token: {epoch.tokenAddress}</div>
                     <div className="mt-1">Budget raw: {epoch.budgetRaw}</div>
-                    <div className="mt-1">Window: {new Date(epoch.startAt).toLocaleString()} - {new Date(epoch.endAt).toLocaleString()}</div>
+                    <div className="mt-1">Window: {formatEpochDate(epoch.startAt)} - {formatEpochDate(epoch.endAt)}</div>
                   </div>
                 ))
               )}
