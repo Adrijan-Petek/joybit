@@ -132,7 +132,22 @@ export async function POST(request: NextRequest) {
 
     await ensureTables()
     const body = await request.json()
-    const { address, score, username, pfp, fid } = body
+    const { action, address, score, username, pfp, fid } = body
+
+    if (action === 'reset') {
+      const secret = process.env.REWARDS_ADMIN_SECRET
+      if (secret) {
+        const provided = request.headers.get('x-admin-secret') || ''
+        if (provided !== secret) {
+          return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+        }
+      }
+
+      await db.execute('DELETE FROM leaderboard_scores')
+      await db.execute('DELETE FROM leaderboard_users')
+
+      return NextResponse.json({ success: true, reset: true })
+    }
 
     if (!address || typeof score !== 'number') {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 })

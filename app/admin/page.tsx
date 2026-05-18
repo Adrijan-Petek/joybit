@@ -92,6 +92,7 @@ export default function AdminPage() {
   const [tokenManageAddress, setTokenManageAddress] = useState('')
   const [tokenMinimumBalance, setTokenMinimumBalance] = useState('0')
   const [tokenManageBusy, setTokenManageBusy] = useState(false)
+  const [leaderboardBusy, setLeaderboardBusy] = useState(false)
   const [status, setStatus] = useState('')
 
   const adminWalletList = (process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES || process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS || '')
@@ -359,6 +360,37 @@ export default function AdminPage() {
       setStatus(`Seasonal rewards action failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setSeasonalBusy(false)
+    }
+  }
+
+  const handleResetLeaderboard = async () => {
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm('Reset the entire leaderboard database? This clears all scores and user metadata and cannot be undone.')
+      if (!confirmed) return
+    }
+
+    setLeaderboardBusy(true)
+    try {
+      const response = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
+        },
+        body: JSON.stringify({ action: 'reset' }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        setStatus(data?.error || 'Leaderboard reset failed.')
+        return
+      }
+
+      setStatus('Leaderboard reset successfully.')
+    } catch (error) {
+      setStatus(`Leaderboard reset failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setLeaderboardBusy(false)
     }
   }
 
@@ -674,9 +706,29 @@ export default function AdminPage() {
             </div>
           </section>
 
+          <section className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-5">
+            <h2 className="mb-3 text-lg font-bold text-rose-200">Leaderboard Reset</h2>
+            <p className="mb-3 text-sm text-rose-100/80">
+              Clear all stored leaderboard scores and user metadata so the board starts fresh.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-xs text-rose-100/70">
+                This action removes old ranking data from the database. It does not touch seasonal reward epochs.
+              </div>
+              <button
+                type="button"
+                disabled={leaderboardBusy}
+                onClick={handleResetLeaderboard}
+                className="rounded-lg border border-rose-300/40 bg-rose-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Reset Leaderboard
+              </button>
+            </div>
+          </section>
+
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
             <h2 className="mb-3 text-lg font-bold">Seasonal Rewards (Weekly / Monthly)</h2>
-            <p className="mb-3 text-xs text-gray-400">Use finalize to snapshot rankings, then fund and mark distributed when payouts are executed. All amounts below are in token units (not wei).</p>
+            <p className="mb-3 text-xs text-gray-400">Use finalize to snapshot rankings, then fund and mark distributed when payouts are executed. After distribution, the leaderboard is reset automatically so the next weekly or monthly cycle starts fresh. All amounts below are in token units (not wei).</p>
 
             <div className="mb-3 grid gap-3 sm:grid-cols-2">
               <div>

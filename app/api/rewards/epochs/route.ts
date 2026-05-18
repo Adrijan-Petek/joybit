@@ -172,6 +172,11 @@ async function ensureTables(db: Client) {
   initialized = true
 }
 
+async function resetLeaderboardTables(db: Client) {
+  await db.execute('DELETE FROM leaderboard_scores')
+  await db.execute('DELETE FROM leaderboard_users')
+}
+
 async function loadPlayers(db: Client): Promise<PlayerRow[]> {
   const result = await db.execute(`
     WITH normalized_scores AS (
@@ -500,6 +505,8 @@ export async function POST(request: NextRequest) {
         `,
         args: [now, epochId],
       })
+
+      await resetLeaderboardTables(db)
 
       return NextResponse.json({ success: true })
     }
