@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAccount, useReadContract, useWriteContract } from 'wagmi'
-import { formatEther, isAddress, parseEther } from 'viem'
+import { formatEther, isAddress, parseEther, zeroAddress } from 'viem'
 import { AudioButtons } from '@/components/AudioButtons'
 import { WalletButton } from '@/components/WalletButton'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
@@ -61,12 +61,22 @@ export default function AdminPage() {
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
   const adminFid = Number(process.env.NEXT_PUBLIC_ADMIN_FARCASTER_FID || '0')
+  const validMatch3Address = isAddress(CONTRACT_ADDRESSES.match3Game)
+  const validTreasuryAddress = isAddress(CONTRACT_ADDRESSES.treasury)
+  const validRewardTokenAddress = isAddress(CONTRACT_ADDRESSES.joybitToken)
+  const match3Address = validMatch3Address ? CONTRACT_ADDRESSES.match3Game : zeroAddress
+  const treasuryAddress = validTreasuryAddress ? CONTRACT_ADDRESSES.treasury : zeroAddress
+  const rewardTokenAddress = validRewardTokenAddress ? CONTRACT_ADDRESSES.joybitToken : zeroAddress
 
   useEffect(() => {
     setMounted(true)
 
     if (typeof window !== 'undefined') {
-      setIsUnlocked(sessionStorage.getItem('joybit_admin_unlock') === '1')
+      try {
+        setIsUnlocked(window.sessionStorage.getItem('joybit_admin_unlock') === '1')
+      } catch {
+        setIsUnlocked(false)
+      }
     }
 
     import('@farcaster/miniapp-sdk')
@@ -88,22 +98,31 @@ export default function AdminPage() {
   }, [address, adminWalletList, userFid, adminFid])
 
   const { data: playFee, refetch: refetchPlayFee } = useReadContract({
-    address: CONTRACT_ADDRESSES.match3Game,
+    address: match3Address,
     abi: MATCH3_GAME_ABI,
     functionName: 'playFee',
+    query: {
+      enabled: validMatch3Address,
+    },
   })
 
   const { data: treasuryEthBalance, refetch: refetchTreasuryEth } = useReadContract({
-    address: CONTRACT_ADDRESSES.treasury,
+    address: treasuryAddress,
     abi: TREASURY_ABI,
     functionName: 'treasuryBalanceETH',
+    query: {
+      enabled: validTreasuryAddress,
+    },
   })
 
   const { data: treasuryRewardTokenBalance, refetch: refetchTreasuryRewardToken } = useReadContract({
-    address: CONTRACT_ADDRESSES.treasury,
+    address: treasuryAddress,
     abi: TREASURY_ABI,
     functionName: 'treasuryBalanceToken',
-    args: [CONTRACT_ADDRESSES.joybitToken],
+    args: [rewardTokenAddress],
+    query: {
+      enabled: validTreasuryAddress && validRewardTokenAddress,
+    },
   })
 
   if (!mounted) return null

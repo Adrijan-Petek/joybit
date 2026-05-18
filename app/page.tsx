@@ -97,7 +97,11 @@ export default function Home() {
 
     if (isAuthorizedAdmin) {
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('joybit_admin_unlock', '1')
+        try {
+          window.sessionStorage.setItem('joybit_admin_unlock', '1')
+        } catch {
+          // Some in-app browsers restrict storage access.
+        }
       }
       router.push('/admin')
     }
