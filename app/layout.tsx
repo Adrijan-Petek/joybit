@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     siteName: 'Joybit',
     images: [
       {
-        url: '/frame.png?v=2',
+        url: '/branding/frame2.png',
         width: 1200,
         height: 630,
       },
@@ -31,20 +31,20 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Joybit - Match-3',
     description: 'Play Match-3, compete on the leaderboard, and earn JOYB rewards.',
-    images: ['/branding/frame.png?v=2'],
+    images: ['/branding/frame2.png'],
   },
   other: {
     'talentapp:project_verification': '8fd1a32bcb3eb97a26378ecc625b52332b7c8d598ae0a25620a80f206d91891d54bf5d27e3c237fe9eb7a98ca7c2209fc192976e8a45415374baa73eace62608',
     'fc:miniapp': JSON.stringify({
       version: "1",
-      imageUrl: "https://joybit.vercel.app/frame.png?v=2",
+      imageUrl: "https://joybit.vercel.app/branding/frame2.png",
       button: {
         title: "🎮 Play Joybit",
         action: {
           type: "launch_miniapp",
           name: "Joybit",
           url: "https://joybit.vercel.app",
-          splashImageUrl: "https://joybit.vercel.app/frame.png?v=2",
+          splashImageUrl: "https://joybit.vercel.app/branding/frame2.png",
           splashBackgroundColor: "#000000"
         }
       }
