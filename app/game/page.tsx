@@ -655,11 +655,10 @@ export default function Match3Game() {
   const handleShareResult = useCallback((channel?: 'base') => {
     if (typeof window === 'undefined') return
     const outcome = gameResult === 'win' ? 'won' : 'hit Game Over'
-    const shareUrl = `${window.location.origin}/game`
     const shareText = `🎮 I ${outcome} in Joybit Match-3!\n` +
       `🏆 Score: ${gameState.score}\n` +
       `🎯 Level: ${gameState.level}\n\n` +
-      `Come play Joybit! ${shareUrl} #Joybit`
+      `Come play Joybit! #Joybit`
     const frameImageUrl = `${window.location.origin}/frame.png`
     const url = new URL('https://warpcast.com/~/compose')
     url.searchParams.set('text', shareText)
