@@ -188,16 +188,16 @@ export default function Match3Game() {
           return
         }
 
-        const metadata = typeof weeklyEpoch.metadata === 'string'
-          ? JSON.parse(weeklyEpoch.metadata)
+        const metadata: { payoutPercents?: number[]; winnersCount?: number } = typeof weeklyEpoch.metadata === 'string'
+          ? JSON.parse(weeklyEpoch.metadata) as { payoutPercents?: number[]; winnersCount?: number }
           : weeklyEpoch.metadata
 
-        const payoutPercents = Array.isArray(metadata?.payoutPercents) ? metadata.payoutPercents : []
+        const payoutPercents: number[] = Array.isArray(metadata?.payoutPercents) ? metadata.payoutPercents : []
         const budgetRaw = BigInt(weeklyEpoch.budgetRaw)
         const tokenDecimals = typeof weeklyEpoch.tokenDecimals === 'number' ? weeklyEpoch.tokenDecimals : 18
         const tokenSymbol = getRewardTokenSymbol(weeklyEpoch.tokenAddress || '')
 
-        const rewards = payoutPercents.map((percent, index) => {
+        const rewards = payoutPercents.map((percent: number, index: number) => {
           const basisPoints = Math.max(0, Math.round(Number(percent) * 100))
           const rewardRaw = (budgetRaw * BigInt(basisPoints)) / 10000n
           return {
