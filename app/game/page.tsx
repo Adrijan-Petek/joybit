@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAccount, useBalance } from 'wagmi'
-import { formatEther } from 'viem'
+import { formatEther, formatUnits } from 'viem'
 import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
+import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 import { useMatch3Game, useMatch3GameData, useMatch3LevelReward } from '@/lib/hooks/useMatch3Game'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
@@ -32,6 +33,19 @@ const TILE_IMAGE_MAP = [1, 2, 3, 4, 5, 6, 7, 18] as const
 const getTileImage = (type: number) => {
   const index = Math.max(0, Math.min(type, TILE_IMAGE_MAP.length - 1))
   return `/tiles/${TILE_IMAGE_MAP[index]}.png`
+}
+
+function formatRewardAmount(rawAmount: bigint, tokenDecimals: number) {
+  const formatted = formatUnits(rawAmount, tokenDecimals)
+  const [wholePart, fractionalPart = ''] = formatted.split('.')
+  const trimmedFraction = fractionalPart.replace(/0+$/, '').slice(0, 4)
+  return trimmedFraction ? `${wholePart}.${trimmedFraction}` : wholePart
+}
+
+function getRewardTokenSymbol(tokenAddress: string) {
+  const normalizedAddress = tokenAddress.toLowerCase()
+  const configuredToken = CONTRACT_ADDRESSES.joybitToken.toLowerCase()
+  return normalizedAddress && normalizedAddress === configuredToken ? 'JOYB' : 'TOKEN'
 }
 
 export default function Match3Game() {
@@ -146,6 +160,65 @@ export default function Match3Game() {
 
     loadBoosters()
   }, [address])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadWeeklyRewards = async () => {
+      try {
+        const response = await fetch('/api/rewards/epochs', { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error(`Failed to load weekly rewards: ${response.status}`)
+        }
+
+        const payload = await response.json() as {
+          latestEpochs?: Array<{
+            period?: string
+            status?: string
+            tokenAddress?: string
+            tokenDecimals?: number
+            budgetRaw?: string
+            metadata?: string | { payoutPercents?: number[]; winnersCount?: number }
+          }>
+        }
+
+        const weeklyEpoch = payload.latestEpochs?.find((epoch) => epoch.period === 'weekly')
+        if (!weeklyEpoch || !weeklyEpoch.metadata || !weeklyEpoch.budgetRaw) {
+          if (!cancelled) setAllLevelRewards([])
+          return
+        }
+
+        const metadata = typeof weeklyEpoch.metadata === 'string'
+          ? JSON.parse(weeklyEpoch.metadata)
+          : weeklyEpoch.metadata
+
+        const payoutPercents = Array.isArray(metadata?.payoutPercents) ? metadata.payoutPercents : []
+        const budgetRaw = BigInt(weeklyEpoch.budgetRaw)
+        const tokenDecimals = typeof weeklyEpoch.tokenDecimals === 'number' ? weeklyEpoch.tokenDecimals : 18
+        const tokenSymbol = getRewardTokenSymbol(weeklyEpoch.tokenAddress || '')
+
+        const rewards = payoutPercents.map((percent, index) => {
+          const basisPoints = Math.max(0, Math.round(Number(percent) * 100))
+          const rewardRaw = (budgetRaw * BigInt(basisPoints)) / 10000n
+          return {
+            level: index + 1,
+            amount: `${formatRewardAmount(rewardRaw, tokenDecimals)} ${tokenSymbol}`,
+          }
+        })
+
+        if (!cancelled) setAllLevelRewards(rewards)
+      } catch (error) {
+        console.warn('Failed to load weekly rewards:', error)
+        if (!cancelled) setAllLevelRewards([])
+      }
+    }
+
+    loadWeeklyRewards()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const ensureCanPay = useCallback((value: bigint, actionLabel: string) => {
     if (value <= 0n) return true
@@ -792,87 +865,29 @@ export default function Match3Game() {
             <div className="text-center text-[9px] mb-2" style={{ color: 'var(--theme-text-secondary)' }}>
               Earn JOYB as you progress through the week.
             </div>
-            {/* Progress Bar */}
-            {(() => {
-              const configuredRewards = allLevelRewards.filter(reward => reward.level >= 1 && reward.level <= 100)
-              const maxLevel = configuredRewards.length > 0 ? Math.max(...configuredRewards.map(r => r.level)) : 100
-              const progressPercent = maxLevel > 0 ? Math.min((gameState.level / maxLevel) * 100, 100) : 0
-              
-              return (
-                <div
-                  className="relative w-full h-2 rounded-full mb-2"
-                  style={{ backgroundColor: 'color-mix(in srgb, var(--theme-border) 60%, transparent)' }}
-                >
-                  <div 
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{
-                      width: `${progressPercent}%`,
-                      background: 'linear-gradient(90deg, var(--theme-accent), var(--theme-primary))'
-                    }}
-                  ></div>
-                  {/* Milestones */}
-                  {configuredRewards.map((reward) => {
-                    const position = maxLevel > 0 ? (reward.level / maxLevel) * 100 : 0
-                    const isUnlocked = gameState.level >= reward.level
-                    const isClaimed = gameState.level > reward.level // Assume claimed if past level
-                    return (
-                      <div
-                        key={reward.level}
-                        className="absolute top-1/2 transform -translate-y-1/2 w-3 h-3 rounded-full border-2 cursor-pointer"
-                        style={{ left: `${position}%`, transform: 'translate(-50%, -50%)', borderColor: 'var(--theme-border)' }}
-                        title={`Level ${reward.level}\nReward: ${reward.amount} JOYB`}
-                      >
-                        <div
-                          className="w-full h-full rounded-full"
-                          style={{
-                            backgroundColor: isClaimed
-                              ? 'var(--theme-success)'
-                              : isUnlocked
-                                ? 'var(--theme-accent)'
-                                : 'color-mix(in srgb, var(--theme-border) 70%, transparent)',
-                            borderColor: isClaimed
-                              ? 'var(--theme-success)'
-                              : isUnlocked
-                                ? 'var(--theme-accent)'
-                                : 'var(--theme-border)'
-                          }}
-                        >
-                          {isClaimed && (
-                            <span
-                              className="absolute inset-0 flex items-center justify-center text-[8px]"
-                              style={{ color: 'var(--theme-text)' }}
-                            >
-                              ✔
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })()}
-            {/* Milestone Labels */}
-            <div className="relative w-full h-4 mt-1">
-              {allLevelRewards.filter(reward => reward.level >= 1 && reward.level <= 100).map((reward) => {
-                const configuredRewards = allLevelRewards.filter(r => r.level >= 1 && r.level <= 100)
-                const maxLevel = configuredRewards.length > 0 ? Math.max(...configuredRewards.map(r => r.level)) : 100
-                const position = maxLevel > 0 ? (reward.level / maxLevel) * 100 : 0
-                return (
+            {allLevelRewards.length > 0 ? (
+              <div className="grid grid-cols-2 gap-1.5 text-center">
+                {allLevelRewards.slice(0, 10).map((reward) => (
                   <div
-                    key={`label-${reward.level}`}
-                    className="absolute top-0 text-[8px] font-medium"
-                    style={{
-                      color: 'var(--theme-text-secondary)',
-                      left: `${position}%`,
-                      transform: 'translateX(-50%)'
-                    }}
+                    key={reward.level}
+                    className="rounded-lg border px-2 py-1.5"
+                    style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 70%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-background) 40%, transparent)' }}
+                    title={`Rank ${reward.level}: ${reward.amount}`}
                   >
-                    Lv.{reward.level}
+                    <div className="text-[10px] font-bold" style={{ color: 'var(--theme-accent)' }}>
+                      #{reward.level}
+                    </div>
+                    <div className="text-[9px] font-semibold" style={{ color: 'var(--theme-text)' }}>
+                      {reward.amount}
+                    </div>
                   </div>
-                )
-              })}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed px-3 py-4 text-center text-[9px]" style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 75%, transparent)', color: 'var(--theme-text-secondary)' }}>
+                No weekly rewards configured yet.
+              </div>
+            )}
           </div>
         </div>
 
@@ -1089,28 +1104,20 @@ export default function Match3Game() {
                       <div className="text-center text-[9px] md:text-[10px] mb-2" style={{ color: 'var(--theme-text-secondary)' }}>
                         This week’s milestones and JOYB rewards.
                       </div>
-                  <div className="flex flex-wrap gap-2 justify-center text-center">
-                    {allLevelRewards.filter(reward => reward.level >= 1 && reward.level <= 100).map((reward) => {
-                      return (
-                        <div key={reward.level} className="flex flex-col items-center min-w-[40px]">
-                          <div
-                            className="text-[10px] font-bold"
-                            style={{ color: lastPlayedLevel >= reward.level ? 'var(--theme-success)' : 'var(--theme-text-secondary)' }}
-                          >
-                            Lv.{reward.level}
-                          </div>
-                          <div
-                            className="text-[9px]"
-                            style={{ color: lastPlayedLevel >= reward.level ? 'var(--theme-success)' : 'var(--theme-text-secondary)' }}
-                          >
-                            {reward.amount !== '0' && reward.amount !== '' ? (
-                              parseFloat(reward.amount) >= 1000 ? `${(parseFloat(reward.amount) / 1000).toFixed(1)}K` : reward.amount
-                            ) : '-'}
-                          </div>
+                  {allLevelRewards.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+                      {allLevelRewards.slice(0, 10).map((reward) => (
+                        <div key={reward.level} className="rounded-lg border px-2 py-2" style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 70%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-background) 45%, transparent)' }}>
+                          <div className="text-[10px] font-bold" style={{ color: 'var(--theme-accent)' }}>#{reward.level}</div>
+                          <div className="text-[9px] md:text-[10px] font-semibold" style={{ color: 'var(--theme-text)' }}>{reward.amount}</div>
                         </div>
-                      )
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed px-3 py-4 text-center text-[10px]" style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 75%, transparent)', color: 'var(--theme-text-secondary)' }}>
+                      No weekly rewards configured yet.
+                    </div>
+                  )}
                   <div className="text-center text-[9px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
                     Complete levels this week to earn JOYB rewards.
                   </div>

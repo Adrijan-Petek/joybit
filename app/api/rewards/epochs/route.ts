@@ -302,7 +302,7 @@ export async function GET(request: NextRequest) {
     }
 
     const latestEpochsResult = await db.execute(`
-      SELECT id, period, status, token_address, token_decimals, budget_raw, min_games, start_at, end_at, finalized_at, distributed_at
+      SELECT id, period, status, token_address, token_decimals, budget_raw, min_games, start_at, end_at, finalized_at, distributed_at, metadata
       FROM seasonal_reward_epochs
       ORDER BY end_at DESC
       LIMIT 10
@@ -320,6 +320,7 @@ export async function GET(request: NextRequest) {
       endAt: toNumber(row.end_at),
       finalizedAt: row.finalized_at ? toNumber(row.finalized_at) : null,
       distributedAt: row.distributed_at ? toNumber(row.distributed_at) : null,
+      metadata: toText(row.metadata, ''),
     }))
 
     return NextResponse.json({ latestEpochs })
