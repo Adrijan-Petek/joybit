@@ -774,17 +774,23 @@ export default function Match3Game() {
             </div>
           </div>
 
-          {/* Bottom Row: Level Rewards */}
+          {/* Bottom Row: Weekly Rewards */}
           <div
-            className="rounded-lg p-3 border"
+            className="rounded-xl p-3 border shadow-sm"
             style={{
-              borderColor: 'var(--theme-accent)',
+              borderColor: 'color-mix(in srgb, var(--theme-accent) 70%, var(--theme-border))',
               background:
-                'linear-gradient(90deg, color-mix(in srgb, var(--theme-accent) 18%, transparent), color-mix(in srgb, var(--theme-warning) 12%, transparent))'
+                'linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 20%, transparent), color-mix(in srgb, var(--theme-primary) 12%, transparent), color-mix(in srgb, var(--theme-warning) 10%, transparent))'
             }}
           >
-            <div className="text-center text-[10px] font-bold mb-2" style={{ color: 'var(--theme-accent)' }}>
-              🎁 Level Rewards
+            <div className="flex items-center justify-center gap-2 text-center text-[10px] font-bold mb-1.5" style={{ color: 'var(--theme-accent)' }}>
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 border text-[9px] uppercase tracking-[0.18em]"
+                style={{ borderColor: 'color-mix(in srgb, var(--theme-accent) 65%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-accent) 14%, transparent)' }}>
+                Weekly Rewards
+              </span>
+            </div>
+            <div className="text-center text-[9px] mb-2" style={{ color: 'var(--theme-text-secondary)' }}>
+              Earn JOYB as you progress through the week.
             </div>
             {/* Progress Bar */}
             {(() => {
@@ -1067,16 +1073,22 @@ export default function Match3Game() {
 
                 {/* Level Rewards Preview */}
                 <div
-                  className="rounded-lg p-2 md:p-3 border"
+                  className="rounded-xl p-2.5 md:p-3 border shadow-sm"
                   style={{
-                    borderColor: 'var(--theme-accent)',
+                      borderColor: 'color-mix(in srgb, var(--theme-accent) 70%, var(--theme-border))',
                     background:
-                      'linear-gradient(90deg, color-mix(in srgb, var(--theme-accent) 16%, transparent), color-mix(in srgb, var(--theme-warning) 10%, transparent))'
+                          'linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 18%, transparent), color-mix(in srgb, var(--theme-primary) 10%, transparent), color-mix(in srgb, var(--theme-warning) 8%, transparent))'
                   }}
                 >
-                  <div className="text-center font-bold text-xs md:text-sm mb-2" style={{ color: 'var(--theme-accent)' }}>
-                    🎁 Level Rewards
+                      <div className="text-center font-bold text-xs md:text-sm mb-1.5" style={{ color: 'var(--theme-accent)' }}>
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 border text-[10px] uppercase tracking-[0.18em]"
+                          style={{ borderColor: 'color-mix(in srgb, var(--theme-accent) 65%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-accent) 14%, transparent)' }}>
+                          Weekly Rewards
+                        </span>
                   </div>
+                      <div className="text-center text-[9px] md:text-[10px] mb-2" style={{ color: 'var(--theme-text-secondary)' }}>
+                        This week’s milestones and JOYB rewards.
+                      </div>
                   <div className="flex flex-wrap gap-2 justify-center text-center">
                     {allLevelRewards.filter(reward => reward.level >= 1 && reward.level <= 100).map((reward) => {
                       return (
@@ -1100,7 +1112,7 @@ export default function Match3Game() {
                     })}
                   </div>
                   <div className="text-center text-[9px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
-                    Complete levels to earn JOYB rewards!
+                    Complete levels this week to earn JOYB rewards.
                   </div>
                 </div>
               </div>
@@ -1210,9 +1222,9 @@ export default function Match3Game() {
                   <div className="text-xs md:text-sm opacity-75 mt-1">Target: {gameState.targetScore}</div>
                 </div>
                 {gameResult === 'win' && levelReward && levelReward > 0n && (
-                  <p className="mb-3 md:mb-4 text-base md:text-lg">
-                    🎁 You earned <span className="font-bold">{formatEther(levelReward)} JOYB</span>!<br/>
-                    <span className="text-xs md:text-sm">Claim in Profile</span>
+                    <p className="mb-3 md:mb-4 text-base md:text-lg">
+                    🎁 You earned <span className="font-bold">{formatEther(levelReward)} JOYB</span> in Weekly Rewards!<br/>
+                    <span className="text-xs md:text-sm">Claim it in Profile</span>
                   </p>
                 )}
                 <div className="space-y-2">
