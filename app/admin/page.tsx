@@ -40,6 +40,13 @@ function formatExactToken(value: bigint, symbol: string): string {
   return `${formatEther(value)} ${symbol}`
 }
 
+function formatDisplayToken(value: bigint, symbol: string, maxDecimals = 6): string {
+  const [intPart, decimalPart = ''] = formatEther(value).split('.')
+  const trimmed = decimalPart.slice(0, maxDecimals).replace(/0+$/, '')
+  const groupedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return `${trimmed ? `${groupedInt}.${trimmed}` : groupedInt} ${symbol}`
+}
+
 function formatRawTokenAmount(raw: string | undefined, symbol: string): string {
   if (!raw) return `0 ${symbol}`
   try {
@@ -71,6 +78,9 @@ export default function AdminPage() {
   const [adminSecret, setAdminSecret] = useState('')
   const [seasonalEpochs, setSeasonalEpochs] = useState<SeasonalEpoch[]>([])
   const [seasonalBusy, setSeasonalBusy] = useState(false)
+  const [tokenManageAddress, setTokenManageAddress] = useState('')
+  const [tokenMinimumBalance, setTokenMinimumBalance] = useState('0')
+  const [tokenManageBusy, setTokenManageBusy] = useState(false)
   const [status, setStatus] = useState('')
 
   const adminWalletList = (process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES || process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS || '')
@@ -139,6 +149,15 @@ export default function AdminPage() {
     args: [rewardTokenAddress],
     query: {
       enabled: validTreasuryAddress && validRewardTokenAddress,
+    },
+  })
+
+  const { data: supportedTokens, refetch: refetchSupportedTokens } = useReadContract({
+    address: treasuryAddress,
+    abi: TREASURY_ABI,
+    functionName: 'getSupportedTokens',
+    query: {
+      enabled: validTreasuryAddress,
     },
   })
 
@@ -215,6 +234,53 @@ export default function AdminPage() {
       setStatus('Treasury reward token withdrawn successfully.')
     } catch (error) {
       setStatus(`Reward token withdraw failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleAddSupportedToken = async () => {
+    if (!isAddress(tokenManageAddress)) {
+      setStatus('Token address format is invalid.')
+      return
+    }
+
+    setTokenManageBusy(true)
+    try {
+      const minimumRaw = parseEther(tokenMinimumBalance || '0')
+      await writeContractAsync({
+        address: CONTRACT_ADDRESSES.treasury,
+        abi: TREASURY_ABI,
+        functionName: 'addSupportedToken',
+        args: [tokenManageAddress as `0x${string}`, minimumRaw],
+      })
+      await refetchSupportedTokens()
+      setStatus('Supported token added successfully.')
+    } catch (error) {
+      setStatus(`Add supported token failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setTokenManageBusy(false)
+    }
+  }
+
+  const handleRemoveSupportedToken = async () => {
+    if (!isAddress(tokenManageAddress)) {
+      setStatus('Token address format is invalid.')
+      return
+    }
+
+    setTokenManageBusy(true)
+    try {
+      await writeContractAsync({
+        address: CONTRACT_ADDRESSES.treasury,
+        abi: TREASURY_ABI,
+        functionName: 'removeSupportedToken',
+        args: [tokenManageAddress as `0x${string}`],
+      })
+      await refetchSupportedTokens()
+      setStatus('Supported token removed successfully.')
+    } catch (error) {
+      setStatus(`Remove supported token failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setTokenManageBusy(false)
     }
   }
 
@@ -395,18 +461,18 @@ export default function AdminPage() {
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <div className="text-xs uppercase tracking-wide text-gray-400">Play Fee</div>
-                <div className="mt-1 text-sm font-bold text-white">{formatExactToken(playFeeValue, 'ETH')}</div>
-                <div className="mt-1 font-mono text-[11px] text-gray-500">Raw: {formatRaw(playFeeValue)} wei</div>
+                <div className="mt-1 text-sm font-bold text-white">{formatDisplayToken(playFeeValue, 'ETH')}</div>
+                <div className="mt-1 font-mono text-[11px] text-gray-500">Exact: {formatExactToken(playFeeValue, 'ETH')}</div>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <div className="text-xs uppercase tracking-wide text-gray-400">Treasury ETH</div>
-                <div className="mt-1 text-sm font-bold text-white">{formatExactToken(ethTreasuryValue, 'ETH')}</div>
-                <div className="mt-1 font-mono text-[11px] text-gray-500">Raw: {formatRaw(ethTreasuryValue)} wei</div>
+                <div className="mt-1 text-sm font-bold text-white">{formatDisplayToken(ethTreasuryValue, 'ETH')}</div>
+                <div className="mt-1 font-mono text-[11px] text-gray-500">Exact: {formatExactToken(ethTreasuryValue, 'ETH')}</div>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <div className="text-xs uppercase tracking-wide text-gray-400">Treasury JOYB</div>
-                <div className="mt-1 text-sm font-bold text-white">{formatExactToken(rewardTreasuryValue, 'JOYB')}</div>
-                <div className="mt-1 font-mono text-[11px] text-gray-500">Raw: {formatRaw(rewardTreasuryValue)} wei</div>
+                <div className="mt-1 text-sm font-bold text-white">{formatDisplayToken(rewardTreasuryValue, 'JOYB')}</div>
+                <div className="mt-1 font-mono text-[11px] text-gray-500">Exact: {formatExactToken(rewardTreasuryValue, 'JOYB')}</div>
               </div>
             </div>
 
@@ -419,8 +485,8 @@ export default function AdminPage() {
 
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
             <h2 className="mb-3 text-lg font-bold">Match-3 Fee</h2>
-            <p className="mb-1 text-sm text-gray-300">Current fee: {formatExactToken(playFeeValue, 'ETH')}</p>
-            <p className="mb-3 font-mono text-xs text-gray-500">Raw: {formatRaw(playFeeValue)} wei</p>
+            <p className="mb-1 text-sm text-gray-300">Current fee: {formatDisplayToken(playFeeValue, 'ETH')}</p>
+            <p className="mb-3 font-mono text-xs text-gray-500">Exact: {formatExactToken(playFeeValue, 'ETH')}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 value={newPlayFeeEth}
@@ -461,8 +527,8 @@ export default function AdminPage() {
 
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
             <h2 className="mb-3 text-lg font-bold">Treasury Withdraw</h2>
-            <p className="mb-1 text-sm text-gray-300">Treasury ETH balance: {formatExactToken(ethTreasuryValue, 'ETH')}</p>
-            <p className="mb-3 font-mono text-xs text-gray-500">Raw: {formatRaw(ethTreasuryValue)} wei</p>
+            <p className="mb-1 text-sm text-gray-300">Treasury ETH balance: {formatDisplayToken(ethTreasuryValue, 'ETH')}</p>
+            <p className="mb-3 font-mono text-xs text-gray-500">Exact: {formatExactToken(ethTreasuryValue, 'ETH')}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 value={withdrawEthAmount}
@@ -484,8 +550,8 @@ export default function AdminPage() {
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
             <h2 className="mb-3 text-lg font-bold">Reward Token (JOYB)</h2>
             <p className="mb-1 text-xs text-gray-400 break-all">Token: {CONTRACT_ADDRESSES.joybitToken || 'Not configured'}</p>
-            <p className="mb-1 text-sm text-gray-300">Treasury token balance: {formatExactToken(rewardTreasuryValue, 'JOYB')}</p>
-            <p className="mb-3 font-mono text-xs text-gray-500">Raw: {formatRaw(rewardTreasuryValue)} wei</p>
+            <p className="mb-1 text-sm text-gray-300">Treasury token balance: {formatDisplayToken(rewardTreasuryValue, 'JOYB')}</p>
+            <p className="mb-3 font-mono text-xs text-gray-500">Exact: {formatExactToken(rewardTreasuryValue, 'JOYB')}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 value={withdrawTokenAmount}
@@ -501,6 +567,55 @@ export default function AdminPage() {
               >
                 Withdraw Token
               </button>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
+            <h2 className="mb-3 text-lg font-bold">Supported Reward Tokens</h2>
+            <p className="mb-3 text-xs text-gray-400">Add or remove tokens in Treasury. Minimum balance is entered in token units.</p>
+            <div className="mb-3 grid gap-3 sm:grid-cols-3">
+              <input
+                value={tokenManageAddress}
+                onChange={(e) => setTokenManageAddress(e.target.value)}
+                placeholder="Token address (0x...)"
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+              <input
+                value={tokenMinimumBalance}
+                onChange={(e) => setTokenMinimumBalance(e.target.value)}
+                placeholder="Minimum balance (e.g. 1000)"
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={tokenManageBusy}
+                  onClick={handleAddSupportedToken}
+                  className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold"
+                >
+                  Add Token
+                </button>
+                <button
+                  type="button"
+                  disabled={tokenManageBusy}
+                  onClick={handleRemoveSupportedToken}
+                  className="theme-button-brand-soft rounded-lg px-4 py-2 text-sm font-bold"
+                >
+                  Remove Token
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {Array.isArray(supportedTokens) && supportedTokens.length > 0 ? (
+                supportedTokens.map((token) => (
+                  <div key={token} className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-gray-300 break-all">
+                    {token}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-400">No supported tokens found.</p>
+              )}
             </div>
           </section>
 
