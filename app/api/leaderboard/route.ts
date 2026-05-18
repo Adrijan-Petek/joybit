@@ -145,14 +145,83 @@ export async function POST(request: NextRequest) {
       }
 
       if (action === 'reset-all') {
-        // Wipe every table in the Turso database
-        await db.execute('DELETE FROM leaderboard_scores')
-        await db.execute('DELETE FROM leaderboard_users')
-        await db.execute('DELETE FROM match3_stats')
-        try { await db.execute('DELETE FROM seasonal_reward_allocations') } catch { /* table may not exist yet */ }
-        try { await db.execute('DELETE FROM seasonal_reward_fundings') } catch { /* table may not exist yet */ }
-        try { await db.execute('DELETE FROM seasonal_reward_epochs') } catch { /* table may not exist yet */ }
-        return NextResponse.json({ success: true, resetAll: true })
+        // Drop every table (child tables first to avoid FK violations)
+        const drops = [
+          'DROP TABLE IF EXISTS seasonal_reward_allocations',
+          'DROP TABLE IF EXISTS seasonal_reward_fundings',
+          'DROP TABLE IF EXISTS seasonal_reward_epochs',
+          'DROP TABLE IF EXISTS match3_stats',
+          'DROP TABLE IF EXISTS leaderboard_users',
+          'DROP TABLE IF EXISTS leaderboard_scores',
+        ]
+        for (const sql of drops) {
+          try { await db.execute(sql) } catch { /* ignore */ }
+        }
+
+        // Recreate all tables fresh
+        await db.execute(`CREATE TABLE leaderboard_scores (
+          address TEXT PRIMARY KEY,
+          score INTEGER NOT NULL
+        )`)
+        await db.execute(`CREATE TABLE leaderboard_users (
+          address TEXT PRIMARY KEY,
+          username TEXT,
+          pfp TEXT,
+          fid INTEGER
+        )`)
+        await db.execute(`CREATE TABLE match3_stats (
+          address TEXT PRIMARY KEY,
+          data TEXT NOT NULL
+        )`)
+        await db.execute(`CREATE TABLE seasonal_reward_epochs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          period TEXT NOT NULL,
+          status TEXT NOT NULL,
+          token_address TEXT NOT NULL,
+          token_decimals INTEGER NOT NULL DEFAULT 18,
+          budget_raw TEXT NOT NULL,
+          min_games INTEGER NOT NULL DEFAULT 5,
+          start_at INTEGER NOT NULL,
+          end_at INTEGER NOT NULL,
+          created_at INTEGER NOT NULL,
+          finalized_at INTEGER,
+          distributed_at INTEGER,
+          metadata TEXT
+        )`)
+        await db.execute(`CREATE UNIQUE INDEX idx_seasonal_epoch_unique
+          ON seasonal_reward_epochs(period, token_address, start_at, end_at)`)
+        await db.execute(`CREATE TABLE seasonal_reward_allocations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          epoch_id INTEGER NOT NULL,
+          address TEXT NOT NULL,
+          rank INTEGER NOT NULL,
+          weight INTEGER NOT NULL,
+          score INTEGER NOT NULL,
+          amount_raw TEXT NOT NULL,
+          claimed INTEGER NOT NULL DEFAULT 0,
+          claimed_at INTEGER,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY(epoch_id) REFERENCES seasonal_reward_epochs(id)
+        )`)
+        await db.execute(`CREATE UNIQUE INDEX idx_seasonal_allocation_unique
+          ON seasonal_reward_allocations(epoch_id, address)`)
+        await db.execute(`CREATE INDEX idx_seasonal_allocations_address
+          ON seasonal_reward_allocations(address)`)
+        await db.execute(`CREATE TABLE seasonal_reward_fundings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          epoch_id INTEGER NOT NULL,
+          token_address TEXT NOT NULL,
+          amount_raw TEXT NOT NULL,
+          funded_by TEXT,
+          tx_hash TEXT,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY(epoch_id) REFERENCES seasonal_reward_epochs(id)
+        )`)
+
+        // Force all route modules to re-run ensureTables on next request
+        initialized = false
+
+        return NextResponse.json({ success: true, droppedAndRecreated: true })
       }
 
       // action === 'reset' — leaderboard only

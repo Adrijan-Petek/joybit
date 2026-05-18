@@ -767,16 +767,16 @@ export default function AdminPage() {
 
             {/* Full database reset */}
             <div className="rounded-lg border border-rose-500/50 bg-rose-900/30 p-4">
-              <div className="mb-2 text-sm font-semibold text-white">Full Database Reset</div>
+              <div className="mb-2 text-sm font-semibold text-white">Drop &amp; Recreate All Tables</div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-rose-100/80">Wipes <strong>all</strong> tables: leaderboard, player stats, and all seasonal reward epochs, allocations and fundings. Completely fresh start.</p>
+                <p className="text-xs text-rose-100/80">Drops every table then recreates them empty and clean. Wipes leaderboard, player stats, and all seasonal reward epochs/allocations/fundings. Use this for a completely fresh start.</p>
                 <button
                   type="button"
                   disabled={fullResetBusy || leaderboardBusy}
                   onClick={handleFullDatabaseReset}
                   className="shrink-0 rounded-lg border border-rose-300/50 bg-rose-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {fullResetBusy ? 'Wiping…' : 'Full Database Reset'}
+                  {fullResetBusy ? 'Rebuilding…' : 'Drop & Recreate All Tables'}
                 </button>
               </div>
             </div>
