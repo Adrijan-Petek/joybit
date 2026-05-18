@@ -878,34 +878,22 @@ export default function Match3Game() {
 
           {/* Bottom Row: Weekly Rewards */}
           <div
-            className="rounded-xl p-3 border shadow-sm"
+            className="rounded-xl p-2 border shadow-sm"
             style={{
               borderColor: 'color-mix(in srgb, var(--theme-accent) 70%, var(--theme-border))',
               background:
                 'linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 20%, transparent), color-mix(in srgb, var(--theme-primary) 12%, transparent), color-mix(in srgb, var(--theme-warning) 10%, transparent))'
             }}
           >
-            <div className="flex items-center justify-center gap-2 text-center text-[10px] font-bold mb-1.5" style={{ color: 'var(--theme-accent)' }}>
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 border text-[9px] uppercase tracking-[0.18em]"
-                style={{ borderColor: 'color-mix(in srgb, var(--theme-accent) 65%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-accent) 14%, transparent)' }}>
-                Weekly Rewards
-              </span>
-            </div>
-            <div className="text-center text-[9px] mb-2" style={{ color: 'var(--theme-text-secondary)' }}>
-              Earn JOYB as you progress through the week.
-            </div>
             {weeklyRewardSummary ? (
-              <div
-                className="rounded-lg border px-3 py-3 text-center"
-                style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 70%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-background) 40%, transparent)' }}
-              >
-                <div className="text-[9px] uppercase tracking-[0.16em] font-bold" style={{ color: 'var(--theme-accent)' }}>
+              <div className="mx-auto max-w-[220px] text-center py-1">
+                <div className="text-[8px] uppercase tracking-[0.14em] font-bold" style={{ color: 'var(--theme-accent)' }}>
                   Weekly Pool
                 </div>
-                <div className="text-sm md:text-base font-black" style={{ color: 'var(--theme-text)' }}>
+                <div className="text-xs md:text-sm font-black" style={{ color: 'var(--theme-text)' }}>
                   {weeklyRewardSummary.poolAmount} {weeklyRewardSummary.tokenSymbol}
                 </div>
-                <div className="text-[9px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
+                <div className="text-[8px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
                   Distributed across top {weeklyRewardSummary.winnersCount} players each week.
                 </div>
               </div>
@@ -1114,7 +1102,7 @@ export default function Match3Game() {
 
                 {/* Level Rewards Preview */}
                 <div
-                  className="rounded-xl p-2.5 md:p-3 border shadow-sm"
+                  className="rounded-xl p-2 md:p-2.5 border shadow-sm"
                   style={{
                       borderColor: 'color-mix(in srgb, var(--theme-accent) 70%, var(--theme-border))',
                     background:
@@ -1131,17 +1119,14 @@ export default function Match3Game() {
                         This week’s milestones and JOYB rewards.
                       </div>
                       {weeklyRewardSummary ? (
-                        <div
-                          className="rounded-lg border px-3 py-3 text-center"
-                          style={{ borderColor: 'color-mix(in srgb, var(--theme-border) 70%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-background) 45%, transparent)' }}
-                        >
-                          <div className="text-[9px] uppercase tracking-[0.16em] font-bold" style={{ color: 'var(--theme-accent)' }}>
+                        <div className="mx-auto max-w-[240px] text-center py-1">
+                          <div className="text-[8px] uppercase tracking-[0.14em] font-bold" style={{ color: 'var(--theme-accent)' }}>
                             Weekly Pool
                           </div>
-                          <div className="text-sm md:text-base font-black" style={{ color: 'var(--theme-text)' }}>
+                          <div className="text-xs md:text-sm font-black" style={{ color: 'var(--theme-text)' }}>
                             {weeklyRewardSummary.poolAmount} {weeklyRewardSummary.tokenSymbol}
                           </div>
-                          <div className="text-[9px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
+                          <div className="text-[8px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
                             Distributed across top {weeklyRewardSummary.winnersCount} players each week.
                           </div>
                     </div>
