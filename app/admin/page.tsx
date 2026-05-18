@@ -40,6 +40,15 @@ function formatExactToken(value: bigint, symbol: string): string {
   return `${formatEther(value)} ${symbol}`
 }
 
+function formatRawTokenAmount(raw: string | undefined, symbol: string): string {
+  if (!raw) return `0 ${symbol}`
+  try {
+    return `${formatEther(BigInt(raw))} ${symbol}`
+  } catch {
+    return `0 ${symbol}`
+  }
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -55,10 +64,10 @@ export default function AdminPage() {
   const [withdrawTokenAmount, setWithdrawTokenAmount] = useState('10')
   const [seasonalPeriod, setSeasonalPeriod] = useState<'weekly' | 'monthly'>('weekly')
   const [seasonalTokenAddress, setSeasonalTokenAddress] = useState<string>(CONTRACT_ADDRESSES.joybitToken || '')
-  const [seasonalBudgetRaw, setSeasonalBudgetRaw] = useState('100000000000000000000')
+  const [seasonalBudgetAmount, setSeasonalBudgetAmount] = useState('100')
   const [seasonalMinGames, setSeasonalMinGames] = useState('5')
   const [seasonalEpochId, setSeasonalEpochId] = useState('')
-  const [seasonalFundRaw, setSeasonalFundRaw] = useState('0')
+  const [seasonalFundAmount, setSeasonalFundAmount] = useState('0')
   const [adminSecret, setAdminSecret] = useState('')
   const [seasonalEpochs, setSeasonalEpochs] = useState<SeasonalEpoch[]>([])
   const [seasonalBusy, setSeasonalBusy] = useState(false)
@@ -253,6 +262,81 @@ export default function AdminPage() {
     }
   }
 
+  const getTokenSymbol = (tokenAddress: string) => {
+    const normalized = tokenAddress.toLowerCase()
+    if (normalized === (CONTRACT_ADDRESSES.joybitToken || '').toLowerCase()) return 'JOYB'
+
+    const configuredRewardTokens = (process.env.NEXT_PUBLIC_REWARD_TOKENS || '')
+      .split(',')
+      .map((entry) => {
+        const [addressPart, symbolPart] = entry.split(':').map((part) => part.trim())
+        return {
+          address: (addressPart || '').toLowerCase(),
+          symbol: symbolPart || 'TOKEN',
+        }
+      })
+
+    const configured = configuredRewardTokens.find((entry) => entry.address === normalized)
+    return configured?.symbol || 'TOKEN'
+  }
+
+  const handleFinalizeEpoch = () => {
+    try {
+      const budgetRaw = parseEther(seasonalBudgetAmount || '0').toString()
+      if (BigInt(budgetRaw) <= 0n) {
+        setStatus('Budget amount must be greater than 0.')
+        return
+      }
+
+      callSeasonalAction({
+        action: 'finalize',
+        period: seasonalPeriod,
+        tokenAddress: seasonalTokenAddress,
+        budgetRaw,
+        minGames: Number(seasonalMinGames || '5'),
+      }, `${seasonalPeriod} epoch finalized successfully.`)
+    } catch {
+      setStatus('Invalid budget amount. Use a valid decimal number, e.g. 100 or 12.5')
+    }
+  }
+
+  const handleFundEpoch = () => {
+    if (!seasonalEpochId || Number(seasonalEpochId) <= 0) {
+      setStatus('Enter a valid Epoch ID before funding.')
+      return
+    }
+
+    try {
+      const amountRaw = parseEther(seasonalFundAmount || '0').toString()
+      if (BigInt(amountRaw) <= 0n) {
+        setStatus('Fund amount must be greater than 0.')
+        return
+      }
+
+      callSeasonalAction({
+        action: 'fund',
+        epochId: Number(seasonalEpochId),
+        tokenAddress: seasonalTokenAddress,
+        amountRaw,
+        fundedBy: address || '',
+      }, 'Seasonal epoch funding recorded.')
+    } catch {
+      setStatus('Invalid fund amount. Use a valid decimal number, e.g. 10 or 0.5')
+    }
+  }
+
+  const handleDistributeEpoch = () => {
+    if (!seasonalEpochId || Number(seasonalEpochId) <= 0) {
+      setStatus('Enter a valid Epoch ID before distribution.')
+      return
+    }
+
+    callSeasonalAction({
+      action: 'distribute',
+      epochId: Number(seasonalEpochId),
+    }, 'Seasonal epoch marked distributed.')
+  }
+
   useEffect(() => {
     fetchSeasonalEpochs()
   }, [])
@@ -422,19 +506,20 @@ export default function AdminPage() {
 
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
             <h2 className="mb-3 text-lg font-bold">Seasonal Rewards (Weekly / Monthly)</h2>
-            <p className="mb-3 text-xs text-gray-400">Use finalize to snapshot rankings, then fund and mark distributed when payouts are executed.</p>
+            <p className="mb-3 text-xs text-gray-400">Use finalize to snapshot rankings, then fund and mark distributed when payouts are executed. All amounts below are in token units (not wei).</p>
 
             <div className="mb-3 grid gap-3 sm:grid-cols-2">
               <input
                 value={adminSecret}
                 onChange={(e) => setAdminSecret(e.target.value)}
-                placeholder="REWARDS_ADMIN_SECRET (optional if not configured)"
+                type="password"
+                placeholder="Admin secret (optional)"
                 className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
               />
               <input
                 value={seasonalTokenAddress}
                 onChange={(e) => setSeasonalTokenAddress(e.target.value)}
-                placeholder="Reward token address"
+                placeholder="Reward token address (0x...)"
                 className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
               />
             </div>
@@ -449,9 +534,9 @@ export default function AdminPage() {
                 <option value="monthly">Monthly</option>
               </select>
               <input
-                value={seasonalBudgetRaw}
-                onChange={(e) => setSeasonalBudgetRaw(e.target.value)}
-                placeholder="Budget raw (wei)"
+                value={seasonalBudgetAmount}
+                onChange={(e) => setSeasonalBudgetAmount(e.target.value)}
+                placeholder="Budget amount (e.g. 100)"
                 className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
               />
               <input
@@ -463,13 +548,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 disabled={seasonalBusy}
-                onClick={() => callSeasonalAction({
-                  action: 'finalize',
-                  period: seasonalPeriod,
-                  tokenAddress: seasonalTokenAddress,
-                  budgetRaw: seasonalBudgetRaw,
-                  minGames: Number(seasonalMinGames || '5'),
-                }, `${seasonalPeriod} epoch finalized successfully.`)}
+                onClick={handleFinalizeEpoch}
                 className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold"
               >
                 Finalize Epoch
@@ -484,22 +563,16 @@ export default function AdminPage() {
                 className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
               />
               <input
-                value={seasonalFundRaw}
-                onChange={(e) => setSeasonalFundRaw(e.target.value)}
-                placeholder="Fund amount raw"
+                value={seasonalFundAmount}
+                onChange={(e) => setSeasonalFundAmount(e.target.value)}
+                placeholder="Fund amount (e.g. 25)"
                 className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
               />
               <div className="flex gap-2">
                 <button
                   type="button"
                   disabled={seasonalBusy}
-                  onClick={() => callSeasonalAction({
-                    action: 'fund',
-                    epochId: Number(seasonalEpochId),
-                    tokenAddress: seasonalTokenAddress,
-                    amountRaw: seasonalFundRaw,
-                    fundedBy: address || '',
-                  }, 'Seasonal epoch funding recorded.')}
+                  onClick={handleFundEpoch}
                   className="theme-button-brand-soft rounded-lg px-4 py-2 text-sm font-bold"
                 >
                   Fund
@@ -507,10 +580,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   disabled={seasonalBusy}
-                  onClick={() => callSeasonalAction({
-                    action: 'distribute',
-                    epochId: Number(seasonalEpochId),
-                  }, 'Seasonal epoch marked distributed.')}
+                  onClick={handleDistributeEpoch}
                   className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold"
                 >
                   Distribute
@@ -528,8 +598,8 @@ export default function AdminPage() {
                       <span className="font-bold">#{epoch.id} {formatEpochPeriod(epoch.period)} - {String(epoch.status || '').toUpperCase() || 'UNKNOWN'}</span>
                       <span>Min games: {epoch.minGames}</span>
                     </div>
-                    <div className="mt-1 break-all">Token: {epoch.tokenAddress}</div>
-                    <div className="mt-1">Budget raw: {epoch.budgetRaw}</div>
+                    <div className="mt-1 break-all">Token: {getTokenSymbol(epoch.tokenAddress)} ({epoch.tokenAddress})</div>
+                    <div className="mt-1">Budget: {formatRawTokenAmount(epoch.budgetRaw, getTokenSymbol(epoch.tokenAddress))}</div>
                     <div className="mt-1">Window: {formatEpochDate(epoch.startAt)} - {formatEpochDate(epoch.endAt)}</div>
                   </div>
                 ))
