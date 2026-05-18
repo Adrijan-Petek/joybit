@@ -7,6 +7,7 @@ export type SeasonalAllocation = {
   period: RewardPeriod
   status: string
   tokenAddress: string
+  tokenDecimals: number
   amountRaw: string
   rank: number
   score: number

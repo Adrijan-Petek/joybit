@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAccount, useReadContract, useWriteContract } from 'wagmi'
-import { formatEther, isAddress, parseEther, zeroAddress } from 'viem'
+import { formatEther, formatUnits, isAddress, parseEther, parseUnits, zeroAddress } from 'viem'
 import { AudioButtons } from '@/components/AudioButtons'
 import { WalletButton } from '@/components/WalletButton'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
@@ -14,11 +14,21 @@ type SeasonalEpoch = {
   period: 'weekly' | 'monthly'
   status: string
   tokenAddress: string
+  tokenDecimals: number
   budgetRaw: string
-  minGames: number
   startAt: number
   endAt: number
 }
+
+const ERC20_META_ABI = [
+  {
+    type: 'function',
+    stateMutability: 'view',
+    name: 'decimals',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint8' }],
+  },
+] as const
 
 function formatEpochPeriod(period: unknown): string {
   const normalized = typeof period === 'string' ? period.toLowerCase() : ''
@@ -47,10 +57,10 @@ function formatDisplayToken(value: bigint, symbol: string, maxDecimals = 6): str
   return `${trimmed ? `${groupedInt}.${trimmed}` : groupedInt} ${symbol}`
 }
 
-function formatRawTokenAmount(raw: string | undefined, symbol: string): string {
+function formatRawTokenAmount(raw: string | undefined, symbol: string, decimals = 18): string {
   if (!raw) return `0 ${symbol}`
   try {
-    return `${formatEther(BigInt(raw))} ${symbol}`
+    return `${formatUnits(BigInt(raw), decimals)} ${symbol}`
   } catch {
     return `0 ${symbol}`
   }
@@ -72,7 +82,8 @@ export default function AdminPage() {
   const [seasonalPeriod, setSeasonalPeriod] = useState<'weekly' | 'monthly'>('weekly')
   const [seasonalTokenAddress, setSeasonalTokenAddress] = useState<string>(CONTRACT_ADDRESSES.joybitToken || '')
   const [seasonalBudgetAmount, setSeasonalBudgetAmount] = useState('100')
-  const [seasonalMinGames, setSeasonalMinGames] = useState('5')
+  const [seasonalWinnersCount, setSeasonalWinnersCount] = useState('10')
+  const [seasonalPayoutPercents, setSeasonalPayoutPercents] = useState('25,20,15,10,8,7,5,4,3,3')
   const [seasonalEpochId, setSeasonalEpochId] = useState('')
   const [seasonalFundAmount, setSeasonalFundAmount] = useState('0')
   const [adminSecret, setAdminSecret] = useState('')
@@ -94,6 +105,10 @@ export default function AdminPage() {
   const match3Address = validMatch3Address ? CONTRACT_ADDRESSES.match3Game : zeroAddress
   const treasuryAddress = validTreasuryAddress ? CONTRACT_ADDRESSES.treasury : zeroAddress
   const rewardTokenAddress = validRewardTokenAddress ? CONTRACT_ADDRESSES.joybitToken : zeroAddress
+  const validSeasonalTokenAddress = isAddress(seasonalTokenAddress)
+  const seasonalTokenAddressSafe = validSeasonalTokenAddress ? seasonalTokenAddress as `0x${string}` : zeroAddress
+  const validTokenManageAddress = isAddress(tokenManageAddress)
+  const tokenManageAddressSafe = validTokenManageAddress ? tokenManageAddress as `0x${string}` : zeroAddress
 
   useEffect(() => {
     setMounted(true)
@@ -158,6 +173,24 @@ export default function AdminPage() {
     functionName: 'getSupportedTokens',
     query: {
       enabled: validTreasuryAddress,
+    },
+  })
+
+  const { data: seasonalTokenDecimalsData } = useReadContract({
+    address: seasonalTokenAddressSafe,
+    abi: ERC20_META_ABI,
+    functionName: 'decimals',
+    query: {
+      enabled: validSeasonalTokenAddress,
+    },
+  })
+
+  const { data: tokenManageDecimalsData } = useReadContract({
+    address: tokenManageAddressSafe,
+    abi: ERC20_META_ABI,
+    functionName: 'decimals',
+    query: {
+      enabled: validTokenManageAddress,
     },
   })
 
@@ -245,7 +278,8 @@ export default function AdminPage() {
 
     setTokenManageBusy(true)
     try {
-      const minimumRaw = parseEther(tokenMinimumBalance || '0')
+      const decimals = Number(tokenManageDecimalsData ?? 18)
+      const minimumRaw = parseUnits(tokenMinimumBalance || '0', decimals)
       await writeContractAsync({
         address: CONTRACT_ADDRESSES.treasury,
         abi: TREASURY_ABI,
@@ -348,7 +382,25 @@ export default function AdminPage() {
 
   const handleFinalizeEpoch = () => {
     try {
-      const budgetRaw = parseEther(seasonalBudgetAmount || '0').toString()
+      const decimals = Number(seasonalTokenDecimalsData ?? 18)
+      const winnersCount = Math.max(1, Math.min(100, Number(seasonalWinnersCount || '10')))
+      const payoutPercents = seasonalPayoutPercents
+        .split(',')
+        .map((value) => Number(value.trim()))
+        .filter((value) => Number.isFinite(value) && value >= 0)
+
+      if (payoutPercents.length !== winnersCount) {
+        setStatus(`Payout split must contain exactly ${winnersCount} values.`)
+        return
+      }
+
+      const totalPercent = payoutPercents.reduce((acc, value) => acc + value, 0)
+      if (Math.abs(totalPercent - 100) > 0.0001) {
+        setStatus(`Payout split must total 100. Current total: ${totalPercent.toFixed(2)}`)
+        return
+      }
+
+      const budgetRaw = parseUnits(seasonalBudgetAmount || '0', decimals).toString()
       if (BigInt(budgetRaw) <= 0n) {
         setStatus('Budget amount must be greater than 0.')
         return
@@ -358,8 +410,10 @@ export default function AdminPage() {
         action: 'finalize',
         period: seasonalPeriod,
         tokenAddress: seasonalTokenAddress,
+        tokenDecimals: decimals,
         budgetRaw,
-        minGames: Number(seasonalMinGames || '5'),
+        winnersCount,
+        payoutPercents,
       }, `${seasonalPeriod} epoch finalized successfully.`)
     } catch {
       setStatus('Invalid budget amount. Use a valid decimal number, e.g. 100 or 12.5')
@@ -373,7 +427,8 @@ export default function AdminPage() {
     }
 
     try {
-      const amountRaw = parseEther(seasonalFundAmount || '0').toString()
+      const decimals = Number(seasonalTokenDecimalsData ?? 18)
+      const amountRaw = parseUnits(seasonalFundAmount || '0', decimals).toString()
       if (BigInt(amountRaw) <= 0n) {
         setStatus('Fund amount must be greater than 0.')
         return
@@ -624,42 +679,72 @@ export default function AdminPage() {
             <p className="mb-3 text-xs text-gray-400">Use finalize to snapshot rankings, then fund and mark distributed when payouts are executed. All amounts below are in token units (not wei).</p>
 
             <div className="mb-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Admin API Secret</div>
+                <input
+                  value={adminSecret}
+                  onChange={(e) => setAdminSecret(e.target.value)}
+                  type="password"
+                  placeholder="Matches REWARDS_ADMIN_SECRET on server"
+                  className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Reward Token Address</div>
+                <input
+                  value={seasonalTokenAddress}
+                  onChange={(e) => setSeasonalTokenAddress(e.target.value)}
+                  placeholder="Token to distribute in this epoch"
+                  className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Period Window</div>
+                <select
+                  value={seasonalPeriod}
+                  onChange={(e) => setSeasonalPeriod(e.target.value as 'weekly' | 'monthly')}
+                  className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+                >
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Total Reward Budget</div>
+                <input
+                  value={seasonalBudgetAmount}
+                  onChange={(e) => setSeasonalBudgetAmount(e.target.value)}
+                  placeholder="Total tokens to distribute"
+                  className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Number of Winners (Top N)</div>
+                <input
+                  value={seasonalWinnersCount}
+                  onChange={(e) => setSeasonalWinnersCount(e.target.value)}
+                  placeholder="e.g. 10"
+                  className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <div className="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Payout Split Percentages by Rank</div>
               <input
-                value={adminSecret}
-                onChange={(e) => setAdminSecret(e.target.value)}
-                type="password"
-                placeholder="Admin secret (optional)"
-                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
-              />
-              <input
-                value={seasonalTokenAddress}
-                onChange={(e) => setSeasonalTokenAddress(e.target.value)}
-                placeholder="Reward token address (0x...)"
-                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+                value={seasonalPayoutPercents}
+                onChange={(e) => setSeasonalPayoutPercents(e.target.value)}
+                placeholder="Comma list for rank #1..#N, must total 100 (e.g. 25,20,15,10,8,7,5,4,3,3)"
+                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
               />
             </div>
 
-            <div className="mb-3 grid gap-3 sm:grid-cols-4">
-              <select
-                value={seasonalPeriod}
-                onChange={(e) => setSeasonalPeriod(e.target.value as 'weekly' | 'monthly')}
-                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
-              >
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-              <input
-                value={seasonalBudgetAmount}
-                onChange={(e) => setSeasonalBudgetAmount(e.target.value)}
-                placeholder="Budget amount (e.g. 100)"
-                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
-              />
-              <input
-                value={seasonalMinGames}
-                onChange={(e) => setSeasonalMinGames(e.target.value)}
-                placeholder="Min games"
-                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
-              />
+            <div className="mb-3 flex justify-end">
               <button
                 type="button"
                 disabled={seasonalBusy}
@@ -705,16 +790,18 @@ export default function AdminPage() {
 
             <div className="space-y-2">
               {seasonalEpochs.length === 0 ? (
-                <p className="text-sm text-gray-400">No seasonal epochs yet.</p>
+                <div className="rounded-lg border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-gray-400">
+                  No seasonal epochs yet. Finalize one period first to create the first snapshot.
+                </div>
               ) : (
                 seasonalEpochs.map((epoch) => (
                   <div key={epoch.id} className="rounded-lg border border-white/10 bg-black/30 p-3 text-xs text-gray-300">
                     <div className="flex items-center justify-between">
                       <span className="font-bold">#{epoch.id} {formatEpochPeriod(epoch.period)} - {String(epoch.status || '').toUpperCase() || 'UNKNOWN'}</span>
-                      <span>Min games: {epoch.minGames}</span>
+                      <span>Token decimals: {epoch.tokenDecimals || 18}</span>
                     </div>
                     <div className="mt-1 break-all">Token: {getTokenSymbol(epoch.tokenAddress)} ({epoch.tokenAddress})</div>
-                    <div className="mt-1">Budget: {formatRawTokenAmount(epoch.budgetRaw, getTokenSymbol(epoch.tokenAddress))}</div>
+                    <div className="mt-1">Budget: {formatRawTokenAmount(epoch.budgetRaw, getTokenSymbol(epoch.tokenAddress), epoch.tokenDecimals || 18)}</div>
                     <div className="mt-1">Window: {formatEpochDate(epoch.startAt)} - {formatEpochDate(epoch.endAt)}</div>
                   </div>
                 ))

@@ -9,13 +9,10 @@ type RewardStatus = 'draft' | 'finalized' | 'distributed'
 type PlayerRow = {
   address: string
   leaderboardScore: number
-  gamesPlayed: number
-  lastPlayed: number
 }
 
 type RankedPlayer = PlayerRow & {
   rank: number
-  weight: number
   score: number
 }
 
@@ -80,20 +77,18 @@ function getPeriodBounds(period: RewardPeriod, now = Date.now()) {
   }
 }
 
-function getRankWeight(rank: number): number {
-  if (rank === 1) return 20
-  if (rank === 2) return 12
-  if (rank === 3) return 8
-  if (rank <= 10) return 4
-  if (rank <= 100) return 1
-  return 0
+function computePlayerScore(player: PlayerRow) {
+  return Math.max(0, player.leaderboardScore)
 }
 
-function computePlayerScore(player: PlayerRow, startAt: number, endAt: number) {
-  const leaderboardPart = Math.max(0, player.leaderboardScore) * 100
-  const consistencyPart = Math.min(Math.max(0, player.gamesPlayed), 200) * 25
-  const activeBonus = player.lastPlayed >= startAt && player.lastPlayed < endAt ? 2000 : 0
-  return leaderboardPart + consistencyPart + activeBonus
+function normalizeBps(values: number[]): number[] {
+  const total = values.reduce((acc, value) => acc + value, 0)
+  if (total <= 0) return values.map(() => 0)
+
+  const normalized = values.map((value) => Math.floor((value * 10000) / total))
+  const remainder = 10000 - normalized.reduce((acc, value) => acc + value, 0)
+  if (normalized.length > 0 && remainder > 0) normalized[0] += remainder
+  return normalized
 }
 
 function ensureAdmin(request: NextRequest) {
@@ -112,6 +107,7 @@ async function ensureTables(db: Client) {
       period TEXT NOT NULL,
       status TEXT NOT NULL,
       token_address TEXT NOT NULL,
+      token_decimals INTEGER NOT NULL DEFAULT 18,
       budget_raw TEXT NOT NULL,
       min_games INTEGER NOT NULL DEFAULT 5,
       start_at INTEGER NOT NULL,
@@ -167,6 +163,12 @@ async function ensureTables(db: Client) {
     )
   `)
 
+  try {
+    await db.execute('ALTER TABLE seasonal_reward_epochs ADD COLUMN token_decimals INTEGER NOT NULL DEFAULT 18')
+  } catch {
+    // Column already exists in deployed databases.
+  }
+
   initialized = true
 }
 
@@ -177,38 +179,28 @@ async function loadPlayers(db: Client): Promise<PlayerRow[]> {
       FROM leaderboard_scores
       WHERE score > 0
       GROUP BY LOWER(address)
-    ),
-    normalized_stats AS (
-      SELECT LOWER(address) AS address,
-             COALESCE(CAST(json_extract(data, '$.gamesPlayed') AS INTEGER), 0) AS games_played,
-             COALESCE(CAST(json_extract(data, '$.lastPlayed') AS INTEGER), 0) AS last_played
-      FROM match3_stats
     )
     SELECT ns.address,
-           ns.leaderboard_score,
-           COALESCE(nst.games_played, 0) AS games_played,
-           COALESCE(nst.last_played, 0) AS last_played
+           ns.leaderboard_score
     FROM normalized_scores ns
-    LEFT JOIN normalized_stats nst ON ns.address = nst.address
   `)
 
   return result.rows.map((row) => ({
     address: toText(row.address),
     leaderboardScore: toNumber(row.leaderboard_score),
-    gamesPlayed: toNumber(row.games_played),
-    lastPlayed: toNumber(row.last_played),
   }))
 }
 
-function allocateRewards(players: RankedPlayer[], budgetRaw: bigint) {
-  const totalWeight = players.reduce((acc, player) => acc + player.weight, 0)
-  if (totalWeight <= 0 || budgetRaw <= 0n) {
-    return players.map((player) => ({ ...player, amountRaw: '0' }))
+function allocateRewardsByBps(players: RankedPlayer[], budgetRaw: bigint, payoutBps: number[]) {
+  const totalBps = payoutBps.reduce((acc, value) => acc + value, 0)
+  if (totalBps <= 0 || budgetRaw <= 0n) {
+    return players.map((player, index) => ({ ...player, amountRaw: '0', payoutBps: payoutBps[index] || 0 }))
   }
 
   let distributed = 0n
   const allocations = players.map((player, index) => {
-    let amount = (budgetRaw * BigInt(player.weight)) / BigInt(totalWeight)
+    const bps = payoutBps[index] || 0
+    let amount = (budgetRaw * BigInt(bps)) / 10000n
 
     if (index === 0) {
       const remainder = budgetRaw - distributed - amount
@@ -219,6 +211,7 @@ function allocateRewards(players: RankedPlayer[], budgetRaw: bigint) {
     return {
       ...player,
       amountRaw: amount.toString(),
+      payoutBps: bps,
     }
   })
 
@@ -255,6 +248,7 @@ export async function GET(request: NextRequest) {
                  e.period,
                  e.status,
                  e.token_address,
+               e.token_decimals,
                  e.start_at,
                  e.end_at,
                  e.finalized_at,
@@ -273,6 +267,7 @@ export async function GET(request: NextRequest) {
         period: toText(row.period) as RewardPeriod,
         status: toText(row.status),
         tokenAddress: toText(row.token_address),
+        tokenDecimals: toNumber(row.token_decimals, 18),
         amountRaw: toText(row.amount_raw, '0'),
         rank: toNumber(row.rank),
         score: toNumber(row.score),
@@ -302,7 +297,7 @@ export async function GET(request: NextRequest) {
     }
 
     const latestEpochsResult = await db.execute(`
-      SELECT id, period, status, token_address, budget_raw, min_games, start_at, end_at, finalized_at, distributed_at
+      SELECT id, period, status, token_address, token_decimals, budget_raw, min_games, start_at, end_at, finalized_at, distributed_at
       FROM seasonal_reward_epochs
       ORDER BY end_at DESC
       LIMIT 10
@@ -313,6 +308,7 @@ export async function GET(request: NextRequest) {
       period: toText(row.period),
       status: toText(row.status),
       tokenAddress: toText(row.token_address),
+      tokenDecimals: toNumber(row.token_decimals, 18),
       budgetRaw: toText(row.budget_raw),
       minGames: toNumber(row.min_games),
       startAt: toNumber(row.start_at),
@@ -348,10 +344,26 @@ export async function POST(request: NextRequest) {
       const period = (toText(body.period, 'weekly') === 'monthly' ? 'monthly' : 'weekly') as RewardPeriod
       const tokenAddress = toText(body.tokenAddress, '').toLowerCase()
       const budgetRawText = toText(body.budgetRaw, '0')
-      const minGames = Math.max(1, toNumber(body.minGames, 5))
+      const tokenDecimals = Math.max(0, Math.min(36, toNumber(body.tokenDecimals, 18)))
+      const winnersCount = Math.max(1, Math.min(100, toNumber(body.winnersCount, 10)))
+      const payoutPercentsInput: unknown[] = Array.isArray(body.payoutPercents) ? body.payoutPercents : []
 
       if (!isAddress(tokenAddress)) {
         return NextResponse.json({ error: 'Invalid token address' }, { status: 400 })
+      }
+
+      if (payoutPercentsInput.length !== winnersCount) {
+        return NextResponse.json({ error: 'Payout percentages count must match winners count.' }, { status: 400 })
+      }
+
+      const payoutBps = payoutPercentsInput.map((value: unknown) => Math.round(toNumber(value, 0) * 100))
+      if (payoutBps.some((value) => value < 0)) {
+        return NextResponse.json({ error: 'Payout percentages must be non-negative.' }, { status: 400 })
+      }
+
+      const totalBps = payoutBps.reduce((acc, value) => acc + value, 0)
+      if (totalBps !== 10000) {
+        return NextResponse.json({ error: `Payout percentages must total 100. Current total: ${(totalBps / 100).toFixed(2)}` }, { status: 400 })
       }
 
       const budgetRaw = BigInt(budgetRawText)
@@ -375,38 +387,45 @@ export async function POST(request: NextRequest) {
       }
 
       const players = await loadPlayers(db)
-      const eligible = players
-        .filter((player) => player.gamesPlayed >= minGames)
+      const ranked = players
         .map((player) => ({
           ...player,
-          score: computePlayerScore(player, startAt, endAt),
+          score: computePlayerScore(player),
         }))
         .filter((player) => player.score > 0)
         .sort((a, b) => b.score - a.score)
-        .slice(0, 100)
+        .slice(0, winnersCount)
+        .map((player, index) => ({
+          ...player,
+          rank: index + 1,
+        }))
 
-      const ranked = eligible
-        .map((player, index) => {
-          const rank = index + 1
-          return {
-            ...player,
-            rank,
-            weight: getRankWeight(rank),
-          }
-        })
-        .filter((player) => player.weight > 0)
-
-      const allocations = allocateRewards(ranked, budgetRaw)
+      const effectivePayoutBps = normalizeBps(payoutBps.slice(0, ranked.length))
+      const allocations = allocateRewardsByBps(ranked, budgetRaw, effectivePayoutBps)
       const now = Date.now()
 
       const insertEpoch = await db.execute({
         sql: `
           INSERT INTO seasonal_reward_epochs
-            (period, status, token_address, budget_raw, min_games, start_at, end_at, created_at, finalized_at, metadata)
+            (period, status, token_address, token_decimals, budget_raw, start_at, end_at, created_at, finalized_at, metadata)
           VALUES
             (?, 'finalized', ?, ?, ?, ?, ?, ?, ?, ?)
         `,
-        args: [period, tokenAddress, budgetRaw.toString(), minGames, startAt, endAt, now, now, JSON.stringify({ players: allocations.length })],
+        args: [
+          period,
+          tokenAddress,
+          tokenDecimals,
+          budgetRaw.toString(),
+          startAt,
+          endAt,
+          now,
+          now,
+          JSON.stringify({
+            players: allocations.length,
+            winnersCount,
+            payoutPercents: payoutBps.map((value) => value / 100),
+          }),
+        ],
       })
 
       const epochId = Number(insertEpoch.lastInsertRowid)
@@ -419,7 +438,7 @@ export async function POST(request: NextRequest) {
             VALUES
               (?, ?, ?, ?, ?, ?, 0, ?)
           `,
-          args: [epochId, entry.address, entry.rank, entry.weight, entry.score, entry.amountRaw, now],
+          args: [epochId, entry.address, entry.rank, entry.payoutBps, entry.score, entry.amountRaw, now],
         }))
 
         await db.batch(statements, 'write')
@@ -430,6 +449,7 @@ export async function POST(request: NextRequest) {
         epochId,
         period,
         tokenAddress,
+        tokenDecimals,
         startAt,
         endAt,
         players: allocations.length,

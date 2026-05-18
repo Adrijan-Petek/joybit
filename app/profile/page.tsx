@@ -11,7 +11,7 @@ import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { useTreasury, useTreasuryData } from '@/lib/hooks/useTreasury'
 import { useSeasonalRewards } from '@/lib/hooks/useSeasonalRewards'
 import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
-import { isAddress } from 'viem'
+import { formatUnits, isAddress } from 'viem'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -71,7 +71,17 @@ export default function ProfilePage() {
     allocation.status === 'distributed' &&
     BigInt(allocation.amountRaw || '0') > 0n
   ))
-  const seasonalPendingRaw = seasonTab === 'weekly' ? seasonalRewards.weeklyPendingRaw : seasonalRewards.monthlyPendingRaw
+
+  const formatSeasonalAmount = (amountRaw: string, tokenDecimals?: number) => {
+    try {
+      const [intPart, decimalPart = ''] = formatUnits(BigInt(amountRaw || '0'), tokenDecimals ?? 18).split('.')
+      const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      const trimmed = decimalPart.slice(0, 6).replace(/0+$/, '')
+      return trimmed ? `${grouped}.${trimmed}` : grouped
+    } catch {
+      return '0'
+    }
+  }
 
   const getTokenLabel = (tokenAddress: string) => {
     const normalized = tokenAddress.toLowerCase()
@@ -209,8 +219,8 @@ export default function ProfilePage() {
               </div>
 
               <div className="mb-3 rounded-lg bg-black/30 px-3 py-2 text-sm">
-                <span className="text-gray-400">Pending {seasonTab} rewards: </span>
-                <span className="font-bold">{formatTokenBalance(BigInt(seasonalPendingRaw || '0'))}</span>
+                <span className="text-gray-400">Distributed rewards found: </span>
+                <span className="font-bold">{seasonalRows.length}</span>
               </div>
 
               {seasonalLoading ? (
@@ -223,7 +233,7 @@ export default function ProfilePage() {
                     <div key={`${entry.epochId}-${entry.tokenAddress}`} className="rounded-lg bg-black/30 px-3 py-2 text-sm">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold">Epoch #{entry.epochId} - Rank #{entry.rank}</span>
-                        <span className="font-bold">{formatTokenBalance(BigInt(entry.amountRaw || '0'))}</span>
+                        <span className="font-bold">{formatSeasonalAmount(entry.amountRaw || '0', entry.tokenDecimals)} {getTokenLabel(entry.tokenAddress)}</span>
                       </div>
                       <div className="mt-1 text-xs text-gray-400">Token: {getTokenLabel(entry.tokenAddress)}</div>
                       <div className="font-mono text-[11px] text-gray-500">{entry.tokenAddress}</div>
