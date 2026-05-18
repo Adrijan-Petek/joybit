@@ -145,17 +145,33 @@ export async function POST(request: NextRequest) {
       }
 
       if (action === 'reset-all') {
-        // Drop every table (child tables first to avoid FK violations)
-        const drops = [
-          'DROP TABLE IF EXISTS seasonal_reward_allocations',
-          'DROP TABLE IF EXISTS seasonal_reward_fundings',
-          'DROP TABLE IF EXISTS seasonal_reward_epochs',
-          'DROP TABLE IF EXISTS match3_stats',
-          'DROP TABLE IF EXISTS leaderboard_users',
-          'DROP TABLE IF EXISTS leaderboard_scores',
+        // Discover every table that actually exists (including old/unknown ones)
+        const tablesResult = await db.execute(
+          `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
+        )
+        const existingTables = tablesResult.rows.map((r) => String(r.name))
+
+        // Drop indexes first, then tables (disable FK checks not available in libsql,
+        // so drop child tables before parent tables)
+        const childFirst = [
+          'seasonal_reward_allocations',
+          'seasonal_reward_fundings',
+          'seasonal_reward_epochs',
         ]
-        for (const sql of drops) {
-          try { await db.execute(sql) } catch { /* ignore */ }
+        const ordered = [
+          ...childFirst.filter((t) => existingTables.includes(t)),
+          ...existingTables.filter((t) => !childFirst.includes(t)),
+        ]
+        for (const table of ordered) {
+          try { await db.execute(`DROP TABLE IF EXISTS "${table}"`) } catch { /* ignore */ }
+        }
+
+        // Also drop any leftover named indexes
+        const idxResult = await db.execute(
+          `SELECT name FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'`
+        )
+        for (const row of idxResult.rows) {
+          try { await db.execute(`DROP INDEX IF EXISTS "${String(row.name)}"`) } catch { /* ignore */ }
         }
 
         // Recreate all tables fresh
