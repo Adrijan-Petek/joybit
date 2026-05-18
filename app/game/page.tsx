@@ -659,10 +659,10 @@ export default function Match3Game() {
       `🏆 Score: ${gameState.score}\n` +
       `🎯 Level: ${gameState.level}\n\n` +
       `Come play Joybit! #Joybit`
-    const frameImageUrl = `${window.location.origin}/frame.png`
+    const frameUrl = window.location.origin
     const url = new URL('https://warpcast.com/~/compose')
     url.searchParams.set('text', shareText)
-    url.searchParams.append('embeds[]', frameImageUrl)
+    url.searchParams.append('embeds[]', frameUrl)
     if (channel) url.searchParams.set('channel', channel)
     window.open(url.toString(), '_blank', 'noopener,noreferrer')
   }, [gameResult, gameState.level, gameState.score])

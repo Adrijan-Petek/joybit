@@ -65,10 +65,10 @@ export default function Home() {
 
     const shareText =
       '🎮 Playing Joybit Match-3. Fast rounds, leaderboard competition, and wallet-ready rewards.'
-    const frameImageUrl = `${window.location.origin}/frame.png`
+    const frameUrl = window.location.origin
     const url = new URL('https://warpcast.com/~/compose')
     url.searchParams.set('text', shareText)
-    url.searchParams.append('embeds[]', frameImageUrl)
+    url.searchParams.append('embeds[]', frameUrl)
     window.open(url.toString(), '_blank', 'noopener,noreferrer')
   }, [])
 
