@@ -134,7 +134,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action, address, score, username, pfp, fid } = body
 
-    if (action === 'reset') {
+    const isAdminAction = action === 'reset' || action === 'reset-all'
+    if (isAdminAction) {
       const secret = process.env.REWARDS_ADMIN_SECRET
       if (secret) {
         const provided = request.headers.get('x-admin-secret') || ''
@@ -143,9 +144,20 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      if (action === 'reset-all') {
+        // Wipe every table in the Turso database
+        await db.execute('DELETE FROM leaderboard_scores')
+        await db.execute('DELETE FROM leaderboard_users')
+        await db.execute('DELETE FROM match3_stats')
+        try { await db.execute('DELETE FROM seasonal_reward_allocations') } catch { /* table may not exist yet */ }
+        try { await db.execute('DELETE FROM seasonal_reward_fundings') } catch { /* table may not exist yet */ }
+        try { await db.execute('DELETE FROM seasonal_reward_epochs') } catch { /* table may not exist yet */ }
+        return NextResponse.json({ success: true, resetAll: true })
+      }
+
+      // action === 'reset' — leaderboard only
       await db.execute('DELETE FROM leaderboard_scores')
       await db.execute('DELETE FROM leaderboard_users')
-
       return NextResponse.json({ success: true, reset: true })
     }
 

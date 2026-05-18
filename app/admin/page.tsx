@@ -93,6 +93,7 @@ export default function AdminPage() {
   const [tokenMinimumBalance, setTokenMinimumBalance] = useState('0')
   const [tokenManageBusy, setTokenManageBusy] = useState(false)
   const [leaderboardBusy, setLeaderboardBusy] = useState(false)
+  const [fullResetBusy, setFullResetBusy] = useState(false)
   const [status, setStatus] = useState('')
 
   const adminWalletList = (process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES || process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS || '')
@@ -360,6 +361,42 @@ export default function AdminPage() {
       setStatus(`Seasonal rewards action failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setSeasonalBusy(false)
+    }
+  }
+
+  const handleFullDatabaseReset = async () => {
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        'FULL DATABASE RESET\n\nThis will permanently delete:\n• All leaderboard scores\n• All player stats\n• All seasonal reward epochs, allocations and fundings\n\nThis cannot be undone. Are you absolutely sure?'
+      )
+      if (!confirmed) return
+      const doubleConfirm = window.confirm('Last chance — delete everything and start fresh?')
+      if (!doubleConfirm) return
+    }
+
+    setFullResetBusy(true)
+    try {
+      const response = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
+        },
+        body: JSON.stringify({ action: 'reset-all' }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        setStatus(data?.error || 'Full database reset failed.')
+        return
+      }
+
+      setSeasonalEpochs([])
+      setStatus('Full database reset complete. All tables are now empty.')
+    } catch (error) {
+      setStatus(`Full database reset failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setFullResetBusy(false)
     }
   }
 
@@ -706,23 +743,42 @@ export default function AdminPage() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-5">
-            <h2 className="mb-3 text-lg font-bold text-rose-200">Leaderboard Reset</h2>
-            <p className="mb-3 text-sm text-rose-100/80">
-              Clear all stored leaderboard scores and user metadata so the board starts fresh.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-xs text-rose-100/70">
-                This action removes old ranking data from the database. It does not touch seasonal reward epochs.
+          <section className="rounded-xl border border-rose-600/50 bg-rose-950/40 p-5 space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-rose-200">⚠️ Danger Zone</h2>
+              <p className="mt-1 text-xs text-rose-100/60">These actions delete data permanently and cannot be undone.</p>
+            </div>
+
+            {/* Leaderboard-only reset */}
+            <div className="rounded-lg border border-rose-500/30 bg-black/30 p-4">
+              <div className="mb-2 text-sm font-semibold text-rose-100">Reset Leaderboard</div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-rose-100/70">Clears scores and user metadata only. Seasonal epochs are untouched.</p>
+                <button
+                  type="button"
+                  disabled={leaderboardBusy || fullResetBusy}
+                  onClick={handleResetLeaderboard}
+                  className="shrink-0 rounded-lg border border-rose-400/40 bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {leaderboardBusy ? 'Resetting…' : 'Reset Leaderboard'}
+                </button>
               </div>
-              <button
-                type="button"
-                disabled={leaderboardBusy}
-                onClick={handleResetLeaderboard}
-                className="rounded-lg border border-rose-300/40 bg-rose-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Reset Leaderboard
-              </button>
+            </div>
+
+            {/* Full database reset */}
+            <div className="rounded-lg border border-rose-500/50 bg-rose-900/30 p-4">
+              <div className="mb-2 text-sm font-semibold text-white">Full Database Reset</div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-rose-100/80">Wipes <strong>all</strong> tables: leaderboard, player stats, and all seasonal reward epochs, allocations and fundings. Completely fresh start.</p>
+                <button
+                  type="button"
+                  disabled={fullResetBusy || leaderboardBusy}
+                  onClick={handleFullDatabaseReset}
+                  className="shrink-0 rounded-lg border border-rose-300/50 bg-rose-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {fullResetBusy ? 'Wiping…' : 'Full Database Reset'}
+                </button>
+              </div>
             </div>
           </section>
 
