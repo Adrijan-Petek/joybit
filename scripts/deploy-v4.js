@@ -15,8 +15,6 @@ async function main() {
   const usdc = process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS
   const gameSigner = (process.env.NEXT_PUBLIC_GAME_SIGNER_ADDRESS || process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS || '').trim()
   const adminAddress = (process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS || process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES?.split(',')[0] || '').trim()
-  const oldTreasuryAddress = (process.env.NEXT_PUBLIC_TREASURY_ADDRESS || '').trim()
-  const oldGameAddress = (process.env.NEXT_PUBLIC_MATCH3_GAME_ADDRESS || '').trim()
   const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org'
 
   if (!privateKey) throw new Error('PRIVATE_KEY is required')
@@ -36,8 +34,6 @@ async function main() {
   console.log('Admin owner:', adminAddress)
   console.log('USDC:', usdc)
   console.log('Game signer:', gameSigner)
-  console.log('Old Treasury:', oldTreasuryAddress || 'not provided')
-  console.log('Old Game:', oldGameAddress || 'not provided')
 
   const treasuryHash = await walletClient.deployContract({
     abi: treasuryArtifact.abi,

@@ -9,7 +9,8 @@
     "lint": "next lint",
     "hardhat:compile": "hardhat compile",
     "hardhat:test": "hardhat test",
-    "hardhat:deploy": "hardhat run scripts/deploy-new.js",
+    "hardhat:deploy": "node scripts/deploy-v4.js",
+    "hardhat:verify": "npx hardhat run scripts/verify-v4.js --network base",
     "generate-abis": "node scripts/generateAbisFile.js"
   },
   "dependencies": {
