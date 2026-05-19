@@ -1,60 +1,63 @@
 # Joybit
 
 <p align="center">
-	<img src="public/branding/logo.png" alt="Joybit logo" width="160" />
+  <img src="public/branding/frame.png" alt="Joybit frame preview" width="900" />
 </p>
 
-Joybit is a production-focused Match-3 mini app. The current scope is intentionally lean: one polished game loop, wallet-aware rewards, and clear player progression.
+Joybit is a USDC-powered Match-3 mini app built for Base. The project combines a fast game loop, wallet-native progression, and on-chain reward distribution with a production-focused web stack.
 
-## Product Scope
+## Highlights
 
-- Match-3 gameplay (`/game`)
-- Leaderboard and ranking (`/leaderboard`)
-- Player profile, stats, and claimable rewards (`/profile`)
-- Wallet integration for mini-app compatible environments
+- USDC-only gameplay economy for start, continue, and booster actions
+- On-chain rewards with claimable balances in player profiles
+- Admin panel for fee management, reward pool funding, and treasury controls
+- Seasonal reward workflows with leaderboard snapshots and distribution tracking
+- Base mainnet deployment with verified contracts
 
-## Architecture
+## Product Surfaces
+
+- `/` Home and navigation
+- `/game` Match-3 gameplay and booster shop
+- `/leaderboard` Ranking and score tracking
+- `/profile` Player stats and reward claims
+- `/admin` Contract controls and rewards operations
+
+## Tech Stack
 
 ### Frontend
 
 - Next.js App Router
 - React + TypeScript
 - Tailwind CSS
-- Wagmi + RainbowKit
+- wagmi + viem
 
 ### Smart Contracts
 
-- `contracts/Match3Game.sol`
-- `contracts/Treasury.sol`
-- `contracts/MockERC20.sol`
+- `contracts/Game-v4.sol`
+- `contracts/Treasury-v4.sol`
 
 ### Data Layer
 
-- Turso (LibSQL) for leaderboard and player stat persistence
-- API routes under `app/api/*`
+- Turso (LibSQL) for leaderboard and player stats
+- Next.js API routes under `app/api/*`
 
-## Routes
+## On-Chain Model (v4)
 
-- `/` Home and primary navigation
-- `/game` Match-3 gameplay
-- `/leaderboard` Ranked scores
-- `/profile` Wallet, stats, and rewards
+- Gameplay fees are charged in USDC only
+- Treasury splits charges between protocol fees and reward pool
+- Rewards are distributed and claimed in USDC
+- ETH is not used for gameplay accounting (ETH is only for Base gas)
 
-## Environment Configuration
+## Environment Variables
 
-Copy `.env.example` to `.env.local` and configure the required values.
-
-### Current Contract Addresses (Base Mainnet)
-
-- JOYBIT Token: `0xc732932ca7db558cf1bacc17b4f4f7e149e0eb07`
-- Treasury: `0x91F67245cE0ad7AFB5301EE5d8eaE29Db69078Af`
-- Match3 Game: `0x72cC365b09D7cB4bE3416279407655cA9BBdc532`
+Set environment values in `.env.local`.
 
 ### Required
 
-- `NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS`
+- `NEXT_PUBLIC_USDC_TOKEN_ADDRESS`
 - `NEXT_PUBLIC_TREASURY_ADDRESS`
 - `NEXT_PUBLIC_MATCH3_GAME_ADDRESS`
+- `NEXT_PUBLIC_GAME_SIGNER_ADDRESS`
 - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN`
@@ -64,8 +67,11 @@ Copy `.env.example` to `.env.local` and configure the required values.
 - `NEXT_PUBLIC_BASE_RPC_URL`
 - `NEXT_PUBLIC_ALCHEMY_API_KEY`
 - `NEXT_PUBLIC_ONCHAINKIT_API_KEY`
+- `NEXT_PUBLIC_ADMIN_WALLET_ADDRESS`
+- `NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES`
+- `NEXT_PUBLIC_ADMIN_FARCASTER_FID`
 
-### Deployment Scripts
+### Deployment/Verification
 
 - `PRIVATE_KEY`
 - `BASESCAN_API_KEY`
@@ -77,23 +83,37 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+App runs at `http://localhost:3000`.
 
-## Production Build
+## Build and Typecheck
 
 ```bash
 npm run build
+npx tsc -p tsconfig.json --noEmit
 ```
 
-## Contract Workflow
+## Contracts and Scripts
+
+Compile contracts:
 
 ```bash
-npm run hardhat:compile
-npm run hardhat:deploy
+npx hardhat compile
 ```
 
-Optional ABI generation:
+Deploy v4 contracts:
 
 ```bash
-npm run generate-abis
+node scripts/deploy-v4.js
 ```
+
+Verify v4 contracts:
+
+```bash
+npx hardhat run scripts/verify-v4.js --network base
+```
+
+## Security Notes
+
+- Never commit real secrets from `.env.local`
+- Rotate keys immediately if secrets are exposed
+- Keep admin and signer keys separated

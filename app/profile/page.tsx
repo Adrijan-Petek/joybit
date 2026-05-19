@@ -6,11 +6,11 @@ import { useAccount } from 'wagmi'
 import { AudioButtons } from '@/components/AudioButtons'
 import { WalletButton } from '@/components/WalletButton'
 import { useAudio } from '@/components/audio/AudioContext'
+import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
 import { useTreasury, useTreasuryData } from '@/lib/hooks/useTreasury'
 import { useSeasonalRewards } from '@/lib/hooks/useSeasonalRewards'
-import { formatTokenBalance } from '@/lib/utils/tokenFormatting'
 import { formatUnits, isAddress } from 'viem'
 
 export default function ProfilePage() {
@@ -46,17 +46,6 @@ export default function ProfilePage() {
     ? leaderboard.findIndex((entry) => entry.address.toLowerCase() === currentPlayer.address.toLowerCase()) + 1
     : 0
 
-  const configuredRewardTokens = (process.env.NEXT_PUBLIC_REWARD_TOKENS || '')
-    .split(',')
-    .map((entry) => {
-      const [addressPart, symbolPart] = entry.split(':').map((part) => part.trim())
-      return {
-        address: (addressPart || '').toLowerCase(),
-        symbol: symbolPart || 'TOKEN',
-      }
-    })
-    .filter((entry) => !!entry.address)
-
   const pendingRewards = allPendingRewards.tokens
     .map((token, index) => ({
       token,
@@ -84,17 +73,20 @@ export default function ProfilePage() {
   }
 
   const getTokenLabel = (tokenAddress: string) => {
-    const normalized = tokenAddress.toLowerCase()
-
-    if (isAddress(process.env.NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS || '') &&
-      normalized === (process.env.NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS || '').toLowerCase()) {
-      return 'JOYB'
+    if (isAddress(CONTRACT_ADDRESSES.rewardToken || '') &&
+      tokenAddress.toLowerCase() === (CONTRACT_ADDRESSES.rewardToken || '').toLowerCase()) {
+      return 'USDC'
     }
 
-    const configured = configuredRewardTokens.find((token) => token.address === normalized)
-    if (configured) return configured.symbol
+    return 'USDC'
+  }
 
-    return `${tokenAddress.slice(0, 6)}...${tokenAddress.slice(-4)}`
+  const formatRewardAmount = (amount: bigint, tokenAddress: string) => {
+    if (isAddress(CONTRACT_ADDRESSES.rewardToken || '') && tokenAddress.toLowerCase() === (CONTRACT_ADDRESSES.rewardToken || '').toLowerCase()) {
+      return `${formatUnits(amount, 6)} USDC`
+    }
+
+    return `${formatUnits(amount, 6)} USDC`
   }
 
   return (
@@ -170,7 +162,7 @@ export default function ProfilePage() {
                         <span className="font-mono text-[11px] text-gray-500">{reward.token}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold">{formatTokenBalance(reward.amount)}</span>
+                        <span className="font-bold">{formatRewardAmount(reward.amount, reward.token)}</span>
                         <button
                           type="button"
                           disabled={isClaiming || claimingToken === reward.token}

@@ -9,11 +9,11 @@ interface InfoModalProps {
 }
 
 const SECTIONS = [
-  { id: 'game',      label: '🎮 Game' },
-  { id: 'scoring',   label: '⭐ Scoring' },
-  { id: 'rewards',   label: '🎁 Rewards' },
-  { id: 'leaderboard', label: '🏆 Leaderboard' },
-  { id: 'claim',     label: '💰 Claiming' },
+  { id: 'game', label: 'Gameplay' },
+  { id: 'scoring', label: 'Scoring' },
+  { id: 'rewards', label: 'Rewards' },
+  { id: 'leaderboard', label: 'Leaderboard' },
+  { id: 'claim', label: 'Claims' },
 ]
 
 export function InfoModal({ isOpen, onClose }: InfoModalProps) {
@@ -37,8 +37,8 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between gap-4 px-5 pt-5 pb-3 shrink-0">
-              <h2 className="text-xl font-black">How Joybit Works</h2>
+            <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 shrink-0">
+              <h2 className="max-w-[80%] text-base font-bold leading-tight sm:text-lg">How Joybit Works</h2>
               <button
                 type="button"
                 onClick={onClose}
@@ -50,21 +50,29 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
             </div>
 
             {/* Tab bar */}
-            <div className="flex gap-1 overflow-x-auto px-5 pb-3 shrink-0 scrollbar-none">
-              {SECTIONS.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setActive(s.id)}
-                  className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition"
-                  style={{
-                    backgroundColor: active === s.id ? 'var(--theme-accent, #a78bfa)' : 'rgba(255,255,255,0.07)',
-                    color: active === s.id ? '#000' : '#ccc',
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
+            <div className="px-5 pb-3 shrink-0">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5" role="tablist" aria-label="Info sections">
+                {SECTIONS.map((s) => {
+                  const isActive = active === s.id
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setActive(s.id)}
+                      className="rounded-md border px-2 py-1.5 text-[11px] font-semibold transition sm:text-xs"
+                      style={{
+                        borderColor: isActive ? 'var(--theme-accent, #a78bfa)' : 'rgba(255,255,255,0.12)',
+                        backgroundColor: isActive ? 'color-mix(in srgb, var(--theme-accent, #a78bfa) 18%, transparent)' : 'rgba(255,255,255,0.04)',
+                        color: isActive ? '#ffffff' : 'var(--theme-text-secondary)',
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             {/* Content */}
@@ -72,10 +80,21 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
 
               {active === 'game' && (
                 <>
-                  <p>Joybit is a Match-3 game on Base. Connect your wallet, pay a small ETH fee to play, match tiles, and score as high as possible before time or moves run out.</p>
+                  <p>Joybit is a Match-3 game on Base with a USDC gameplay economy. Connect your wallet, start a session, and push your score before moves or time run out.</p>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
-                    <h3 className="mb-1 font-bold text-white">How To Play</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">How Joybit Works</h3>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Start a Match-3 session from the <strong>Game</strong> page.</li>
+                      <li>Gameplay actions are paid in <strong>USDC</strong> (start, continue, boosters).</li>
+                      <li>Session results update leaderboard/stats, and signed rewards are credited.</li>
+                      <li>Claim pending rewards from your <strong>Profile</strong>.</li>
+                    </ol>
+                    <p className="text-xs text-gray-400">Fees are charged in USDC. Gas is paid in Base ETH by the wallet sending each transaction.</p>
+                  </div>
+
+                  <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">How To Play</h3>
                     <ol className="list-decimal list-inside space-y-1">
                       <li>Connect your wallet on the home screen.</li>
                       <li>Go to <strong>Game</strong> and tap <strong>Start from Level 1</strong> or <strong>Continue</strong>.</li>
@@ -87,7 +106,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   </div>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
-                    <h3 className="mb-1 font-bold text-white">Boosters</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">Boosters</h3>
                     <ul className="space-y-1">
                       <li>🔨 <strong>Hammer</strong> — tap any single tile to remove it instantly.</li>
                       <li>🔀 <strong>Shuffle</strong> — reshuffles all tiles on the board.</li>
@@ -97,8 +116,8 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   </div>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-                    <h3 className="mb-1 font-bold text-white">Free Play</h3>
-                    <p>New players get a free first game. After that, each session costs a small ETH play fee set by the contract. Fees fund the Treasury, which funds weekly rewards.</p>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">Free Play</h3>
+                    <p>Play, continue, and booster costs are configured in USDC by the game contract. Fees route through Treasury and are split into protocol fees and reward pool.</p>
                   </div>
                 </>
               )}
@@ -108,7 +127,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   <p>Your leaderboard score is the cumulative score you accumulate across all games. Higher scores move you up the leaderboard and into the weekly reward pool.</p>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
-                    <h3 className="mb-1 font-bold text-white">How Score Is Calculated</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">How Score Is Calculated</h3>
                     <ul className="space-y-1">
                       <li>Every tile match adds to your in-game score.</li>
                       <li>Longer chains and combos score more.</li>
@@ -118,28 +137,28 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   </div>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-1">
-                    <h3 className="mb-1 font-bold text-white">Leaderboard Ranking</h3>
-                    <p>Rankings are decided purely by leaderboard score. The higher your score, the higher your rank. At the end of each weekly or monthly period, the top players receive JOYB rewards based on their rank.</p>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">Leaderboard Ranking</h3>
+                    <p>Rankings are decided purely by leaderboard score. The higher your score, the higher your rank. At the end of each weekly or monthly period, top players receive configured reward-token payouts based on rank.</p>
                   </div>
                 </>
               )}
 
               {active === 'rewards' && (
                 <>
-                  <p>Joybit runs a <strong>Weekly</strong> and <strong>Monthly</strong> reward system. At the end of each period, the top-ranked players share a reward pool funded in JOYB (or other supported tokens).</p>
+                  <p>Joybit runs <strong>Weekly</strong> and <strong>Monthly</strong> reward cycles. At the end of each period, top-ranked players share the funded reward pool.</p>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
-                    <h3 className="mb-1 font-bold text-white">How The Reward Cycle Works</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">How The Reward Cycle Works</h3>
                     <ol className="list-decimal list-inside space-y-1">
                       <li><strong>Admin finalizes the epoch</strong> — a snapshot of the leaderboard is taken at the end of the week/month. Top N players are ranked by score and their reward amounts are calculated.</li>
-                      <li><strong>Admin funds the epoch</strong> — JOYB tokens are sent to the Treasury contract to cover the reward amounts.</li>
+                      <li><strong>Admin funds the epoch</strong> — reward tokens are allocated to cover the configured payouts.</li>
                       <li><strong>Admin distributes</strong> — rewards are marked as claimable in the database and the leaderboard resets automatically for the next cycle.</li>
-                      <li><strong>Players claim</strong> — eligible players go to their Profile to claim JOYB rewards on-chain.</li>
+                      <li><strong>Players claim</strong> — eligible players go to Profile to claim rewards on-chain.</li>
                     </ol>
                   </div>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
-                    <h3 className="mb-1 font-bold text-white">Payout Split</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">Payout Split</h3>
                     <p>The admin sets the number of winners (Top N) and a percentage split per rank. For example with 10 winners:</p>
                     <div className="grid grid-cols-5 gap-1 text-center text-xs mt-2">
                       {['#1','#2','#3','#4','#5','#6','#7','#8','#9','#10'].map((r, i) => (
@@ -153,7 +172,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   </div>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-                    <h3 className="mb-1 font-bold text-white">Leaderboard Reset</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">Leaderboard Reset</h3>
                     <p>When a weekly or monthly epoch is distributed, the leaderboard resets automatically. Every new cycle is a fresh competition. Your stats (games played, high score) are kept separately.</p>
                   </div>
                 </>
@@ -164,7 +183,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   <p>The leaderboard shows the top 50 players ranked by their best score this cycle. It resets at the end of each weekly or monthly reward period.</p>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
-                    <h3 className="mb-1 font-bold text-white">Tips To Rank Higher</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">Tips To Rank Higher</h3>
                     <ul className="list-disc list-inside space-y-1">
                       <li>Focus on large combos — cascades multiply your score.</li>
                       <li>Use boosters strategically to clear difficult boards.</li>
@@ -174,7 +193,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   </div>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-                    <h3 className="mb-1 font-bold text-white">When Is The Snapshot Taken?</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">When Is The Snapshot Taken?</h3>
                     <p>The admin manually finalizes the epoch at the end of the period (weekly = end of week, monthly = end of month). Scores at that exact moment determine the winner rankings.</p>
                   </div>
                 </>
@@ -185,24 +204,24 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   <p>If you are in the top N for a completed weekly or monthly epoch, your reward will appear in your <strong>Profile</strong> page as a pending claim.</p>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
-                    <h3 className="mb-1 font-bold text-white">How To Claim</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">How To Claim</h3>
                     <ol className="list-decimal list-inside space-y-1">
                       <li>Go to <strong>Profile</strong>.</li>
                       <li>Scroll to the <strong>Pending Rewards</strong> section.</li>
                       <li>Tap <strong>Claim All</strong> or claim a specific token.</li>
                       <li>Approve the transaction in your wallet.</li>
-                      <li>JOYB (or other tokens) are sent directly to your wallet from the Treasury contract.</li>
+                      <li>Reward tokens are sent directly to your wallet from the Treasury contract.</li>
                     </ol>
                   </div>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-1">
-                    <h3 className="mb-1 font-bold text-white">Seasonal History</h3>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">Seasonal History</h3>
                     <p>Past distributed rewards are shown under <strong>Seasonal Rewards</strong> in your Profile, including the epoch period, your rank, score, and amount received.</p>
                   </div>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-                    <h3 className="mb-1 font-bold text-white">Multi-Token Support</h3>
-                    <p>Rewards can be paid in JOYB or other supported tokens (e.g. USDC). Each epoch specifies its own token. You can claim each token independently from your Profile.</p>
+                    <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">Multi-Token Support</h3>
+                    <p>Each epoch specifies a reward token. You can claim pending rewards directly from your Profile once distribution is completed.</p>
                   </div>
                 </>
               )}

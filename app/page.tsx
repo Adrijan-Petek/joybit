@@ -117,7 +117,7 @@ export default function Home() {
       style={{
         backgroundColor: 'var(--theme-background)',
         backgroundImage:
-          'radial-gradient(70rem 32rem at 80% -8%, rgba(22,82,240,0.24), transparent 62%), radial-gradient(52rem 28rem at -10% 100%, rgba(245,158,11,0.16), transparent 60%)',
+          'radial-gradient(70rem 32rem at 80% -8%, color-mix(in srgb, var(--theme-primary) 24%, transparent), transparent 62%), radial-gradient(52rem 28rem at -10% 100%, color-mix(in srgb, var(--theme-accent) 16%, transparent), transparent 60%)',
         color: 'var(--theme-text)'
       }}
     >
@@ -156,11 +156,11 @@ export default function Home() {
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-blue-300">
             Joybit Mini App
           </p>
-          <h1 className="mb-4 text-4xl font-black leading-tight text-white md:text-6xl">
+          <h1 className="mb-4 text-3xl font-black leading-tight text-white sm:text-4xl md:text-5xl">
             Match. Climb. Earn.
           </h1>
           <p className="mb-7 text-base leading-7 text-gray-300 md:text-lg">
-            A focused Match-3 experience built for fast rounds, competitive rankings, and seamless wallet-ready rewards.
+            A production-ready Match-3 mini app with a USDC economy, on-chain reward accounting, and competitive leaderboard progression.
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row md:justify-center">
@@ -194,6 +194,7 @@ export default function Home() {
               <div className="text-xs text-gray-400">Seamless connection flow</div>
             </div>
           </div>
+
         </div>
       </section>
 

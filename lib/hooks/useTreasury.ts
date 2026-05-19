@@ -32,6 +32,10 @@ export function useTreasury() {
       throw new Error('Token address is invalid.')
     }
 
+    if (token.toLowerCase() !== (CONTRACT_ADDRESSES.rewardToken || '').toLowerCase()) {
+      throw new Error('Only USDC rewards are supported.')
+    }
+
     const hash = await claimRewardsWrite({
       address: CONTRACT_ADDRESSES.treasury as `0x${string}`,
       abi: TREASURY_ABI,
@@ -51,7 +55,7 @@ export function useTreasury() {
 }
 
 export function useTreasuryData(address?: string) {
-  const hasValidJoybAddress = isAddress(CONTRACT_ADDRESSES.joybitToken)
+  const hasValidUsdcAddress = isAddress(CONTRACT_ADDRESSES.rewardToken)
 
   const { data: allPendingRewards, isLoading: isLoadingAllRewards, refetch: refetchAllRewards } = useReadContract({
     address: CONTRACT_ADDRESSES.treasury as `0x${string}`,
@@ -63,13 +67,13 @@ export function useTreasuryData(address?: string) {
     },
   })
 
-  const { data: joybRewards, isLoading: isLoadingJoybRewards } = useReadContract({
+  const { data: usdcRewards, isLoading: isLoadingUsdcRewards } = useReadContract({
     address: CONTRACT_ADDRESSES.treasury as `0x${string}`,
     abi: TREASURY_ABI,
     functionName: 'getPendingRewards',
-    args: address ? [address as `0x${string}`, CONTRACT_ADDRESSES.joybitToken] : undefined,
+    args: address ? [address as `0x${string}`, CONTRACT_ADDRESSES.rewardToken] : undefined,
     query: {
-      enabled: !!address && hasValidJoybAddress,
+      enabled: !!address && hasValidUsdcAddress,
     },
   })
 
@@ -79,13 +83,13 @@ export function useTreasuryData(address?: string) {
     functionName: 'treasuryBalanceETH',
   })
 
-  const { data: joybBalance, isLoading: isLoadingJOYB } = useReadContract({
+  const { data: usdcBalance, isLoading: isLoadingUSDC } = useReadContract({
     address: CONTRACT_ADDRESSES.treasury as `0x${string}`,
     abi: TREASURY_ABI,
     functionName: 'treasuryBalanceToken',
-    args: [CONTRACT_ADDRESSES.joybitToken],
+    args: [CONTRACT_ADDRESSES.rewardToken],
     query: {
-      enabled: hasValidJoybAddress,
+      enabled: hasValidUsdcAddress,
     },
   })
 
@@ -95,29 +99,35 @@ export function useTreasuryData(address?: string) {
     functionName: 'totalETHCollected',
   })
 
-  const { data: totalJOYBDistributed } = useReadContract({
+  const { data: totalUSDCDistributed } = useReadContract({
     address: CONTRACT_ADDRESSES.treasury as `0x${string}`,
     abi: TREASURY_ABI,
     functionName: 'totalTokenDistributed',
-    args: [CONTRACT_ADDRESSES.joybitToken],
+    args: [CONTRACT_ADDRESSES.rewardToken],
     query: {
-      enabled: hasValidJoybAddress,
+      enabled: hasValidUsdcAddress,
     },
   })
 
   const pendingRewardsTuple = allPendingRewards as [`0x${string}`[], bigint[]] | undefined
+  const supportedRewardTokens = new Set([(CONTRACT_ADDRESSES.rewardToken || '').toLowerCase()])
+  const filteredPendingRewards = pendingRewardsTuple
+    ? pendingRewardsTuple[0]
+        .map((token, index) => ({ token, amount: pendingRewardsTuple[1][index] || 0n }))
+        .filter((reward) => supportedRewardTokens.has(reward.token.toLowerCase()))
+    : []
 
   return {
-    pendingRewards: joybRewards as bigint, // Keep for backward compatibility
-    allPendingRewards: pendingRewardsTuple ? {
-      tokens: pendingRewardsTuple[0],
-      amounts: pendingRewardsTuple[1]
-    } : { tokens: [], amounts: [] },
+    pendingRewards: usdcRewards as bigint, // Keep for backward compatibility
+    allPendingRewards: {
+      tokens: filteredPendingRewards.map((reward) => reward.token),
+      amounts: filteredPendingRewards.map((reward) => reward.amount),
+    },
     ethBalance: ethBalance as bigint,
-    joybBalance: joybBalance as bigint,
+    joybBalance: usdcBalance as bigint,
     totalETHCollected: totalETHCollected as bigint,
-    totalJOYBDistributed: totalJOYBDistributed as bigint,
-    isLoading: isLoadingAllRewards || isLoadingJoybRewards || isLoadingETH || isLoadingJOYB,
+    totalJOYBDistributed: totalUSDCDistributed as bigint,
+    isLoading: isLoadingAllRewards || isLoadingUsdcRewards || isLoadingETH || isLoadingUSDC,
     refetch: refetchAllRewards,
   }
 }

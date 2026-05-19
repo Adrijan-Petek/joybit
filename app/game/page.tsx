@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAccount, useBalance } from 'wagmi'
-import { formatEther, formatUnits } from 'viem'
+import { useAccount, useBalance, useReadContract } from 'wagmi'
+import { formatUnits, isAddress, zeroAddress } from 'viem'
 import { useAudio } from '@/components/audio/AudioContext'
 import { WalletButton } from '@/components/WalletButton'
 import { AudioButtons } from '@/components/AudioButtons'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
+import { TREASURY_ABI } from '@/lib/contracts/abis'
 import { getStorageItem, setStorageItem } from '@/lib/utils/storage'
 import { useMatch3Game, useMatch3GameData } from '@/lib/hooks/useMatch3Game'
 import { useMatch3Stats } from '@/lib/hooks/useMatch3Stats'
@@ -43,10 +44,10 @@ function formatRewardAmount(rawAmount: bigint, tokenDecimals: number) {
 
 function getRewardTokenSymbol(tokenAddress: string) {
   const normalizedAddress = tokenAddress.toLowerCase()
-  const configuredToken = CONTRACT_ADDRESSES.joybitToken.toLowerCase()
+  const configuredToken = CONTRACT_ADDRESSES.rewardToken.toLowerCase()
 
   if (normalizedAddress && normalizedAddress === configuredToken) {
-    return 'JOYB'
+    return 'USDC'
   }
 
   const configuredRewardTokens = (process.env.NEXT_PUBLIC_REWARD_TOKENS || '')
@@ -78,10 +79,27 @@ type WeeklyRewardSummary = {
 export default function Match3Game() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
+  const rewardTokenAddress = isAddress(CONTRACT_ADDRESSES.rewardToken) ? CONTRACT_ADDRESSES.rewardToken as `0x${string}` : undefined
   const { data: nativeBalance } = useBalance({
     address,
     query: {
       enabled: !!address,
+    },
+  })
+  const { data: usdcBalance } = useBalance({
+    address,
+    token: rewardTokenAddress,
+    query: {
+      enabled: !!address && !!rewardTokenAddress,
+    },
+  })
+  const { data: depositedUsdc } = useReadContract({
+    address: CONTRACT_ADDRESSES.treasury as `0x${string}`,
+    abi: TREASURY_ABI,
+    functionName: 'balances',
+    args: [address || zeroAddress, (CONTRACT_ADDRESSES.rewardToken || zeroAddress) as `0x${string}`],
+    query: {
+      enabled: !!address && isAddress(CONTRACT_ADDRESSES.rewardToken),
     },
   })
   const { playSound, playMusic } = useAudio()
@@ -91,6 +109,7 @@ export default function Match3Game() {
   // Hook for contract interaction
   const { 
     startGame: startGameContract, 
+    continueLevel,
     completeLevel,
     isStarting, 
     buyHammer,
@@ -100,7 +119,7 @@ export default function Match3Game() {
     buyShufflePack,
     buyColorBombPack
   } = useMatch3Game()
-  const { playerData, canPlayFree, playFee, boosterPrices, refetch } = useMatch3GameData(address)
+  const { playFee, continueFee, maxReward, nextSessionId, boosterPrices, refetch } = useMatch3GameData(address)
   const { stats: match3Stats, saveStats } = useMatch3Stats(address)
   
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -131,6 +150,7 @@ export default function Match3Game() {
   const [sessionId, setSessionId] = useState<bigint | null>(null)
   const [buyingBooster, setBuyingBooster] = useState<string | null>(null)
   const [activeBooster, setActiveBooster] = useState<'hammer' | 'colorBomb' | null>(null)
+  const [boosterPaymentSource, setBoosterPaymentSource] = useState<'wallet' | 'deposit'>('wallet')
   const [userData, setUserData] = useState<{ username?: string; pfpUrl?: string; fid?: number }>({})
   const [weeklyRewardSummary, setWeeklyRewardSummary] = useState<WeeklyRewardSummary | null>(null)
 
@@ -160,8 +180,7 @@ export default function Match3Game() {
     initSDK()
   }, [playMusic])
 
-  // Get last played level from contract
-  const lastPlayedLevel = playerData && Array.isArray(playerData) ? Number(playerData[2]) || 1 : 1
+  const lastPlayedLevel = Math.max(1, gameState.level)
 
   // Load boosters from storage on mount
   useEffect(() => {
@@ -246,23 +265,40 @@ export default function Match3Game() {
     }
   }, [])
 
-  const ensureCanPay = useCallback((value: bigint, actionLabel: string) => {
+  const ensureCanPayUsdc = useCallback((value: bigint, actionLabel: string) => {
     if (value <= 0n) return true
 
-    if (!nativeBalance) {
-      alert('Unable to verify wallet balance yet. Please try again in a moment.')
+    if (!usdcBalance) {
+      alert('Unable to verify USDC balance yet. Please try again in a moment.')
       return false
     }
 
-    if (nativeBalance.value < value) {
+    if (usdcBalance.value < value) {
       alert(
-        `Insufficient funds for ${actionLabel}. Need ${formatEther(value)} ETH, but wallet has ${formatEther(nativeBalance.value)} ETH.`
+        `Insufficient USDC for ${actionLabel}. Need ${formatUnits(value, 6)} USDC, but wallet has ${formatUnits(usdcBalance.value, 6)} USDC.`
       )
       return false
     }
 
     return true
-  }, [nativeBalance])
+  }, [usdcBalance])
+
+  const ensureCanPayBooster = useCallback((value: bigint, actionLabel: string) => {
+    if (boosterPaymentSource === 'wallet') {
+      return ensureCanPayUsdc(value, actionLabel)
+    }
+
+    const current = (depositedUsdc as bigint) || 0n
+    if (current < value) {
+      alert(`Insufficient deposited USDC for ${actionLabel}. Need ${formatUnits(value, 6)} USDC, deposit has ${formatUnits(current, 6)} USDC.`)
+      return false
+    }
+    return true
+  }, [boosterPaymentSource, ensureCanPayUsdc, depositedUsdc])
+
+  const formatBoosterPrice = useCallback((value: bigint) => {
+    return `${formatUnits(value, 6)} USDC`
+  }, [])
 
   // Start game
   const startGame = useCallback(async (level: number, isPaid: boolean = false) => {
@@ -271,23 +307,21 @@ export default function Match3Game() {
     try {
       const config = getLevelConfig(level)
       
-      // If continuing from last level, user must pay
-      // If starting from level 1, can use free play if available
-      const shouldPay = isPaid || (level > 1)
-      if (shouldPay && playFee === undefined) {
-        console.log('Paid game fee is still loading, skipping paid start request.')
+      // Start fees are charged in USDC via Treasury-v4.
+      if (playFee === undefined) {
+        console.log('Game fee is still loading, skipping start request.')
         return
       }
 
-      const value = shouldPay ? (playFee as bigint) : (canPlayFree ? 0n : (playFee ?? 0n))
+      const value = playFee
 
-      if (!ensureCanPay(value, shouldPay ? 'starting the game' : 'playing this round')) {
+      if (!ensureCanPayUsdc(value, 'starting the game')) {
         return
       }
       
+      const sessionPreview = nextSessionId ? BigInt(nextSessionId) : null
       await startGameContract(level, value)
-      const newSessionId = BigInt(Date.now())
-      setSessionId(newSessionId)
+      setSessionId(sessionPreview ?? BigInt(Date.now()))
       
       setGameState({
         grid: initializeGrid(config.tileTypes),
@@ -306,7 +340,7 @@ export default function Match3Game() {
     } catch (error) {
       console.error('Failed to start game:', error)
     }
-  }, [playSound, gameState.boosters, canPlayFree, playFee, startGameContract, isConnected, address, refetch, ensureCanPay])
+  }, [playSound, gameState.boosters, playFee, startGameContract, isConnected, address, refetch, ensureCanPayUsdc, nextSessionId])
 
   // Submit game result
   const endGame = useCallback(async (won: boolean) => {
@@ -352,6 +386,31 @@ export default function Match3Game() {
           fid: userData.fid,
         }),
       })
+
+      if (won && sessionId) {
+        const rewardCap = typeof maxReward === 'bigint' ? maxReward : BigInt(gameState.score)
+        const rewardAmount = BigInt(gameState.score) > rewardCap ? rewardCap : BigInt(gameState.score)
+
+        const signatureResponse = await fetch('/api/match3/sign', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sessionId: sessionId.toString(),
+            reward: rewardAmount.toString(),
+            player: address,
+            token: CONTRACT_ADDRESSES.rewardToken,
+          }),
+        })
+
+        if (signatureResponse.ok) {
+          const signatureData = await signatureResponse.json() as { signature?: `0x${string}` }
+          if (signatureData.signature) {
+            await completeLevel(sessionId, rewardAmount, signatureData.signature)
+          }
+        }
+      }
     } catch (error) {
       console.error('❌ Failed to save game stats:', error)
     }
@@ -363,7 +422,7 @@ export default function Match3Game() {
     if (!won) {
       playSound?.('game-over')
     }
-  }, [sessionId, address, gameState.score, gameState.level, gameState.targetScore, playSound, saveStats, match3Stats.gamesPlayed, userData.username, userData.pfpUrl, userData.fid])
+  }, [sessionId, address, gameState.score, gameState.level, gameState.targetScore, playSound, saveStats, match3Stats.gamesPlayed, userData.username, userData.pfpUrl, userData.fid, completeLevel, maxReward])
 
   // Process matches and cascading with improved timing
   const processMatches = useCallback(async (grid: Tile[][]) => {
@@ -682,24 +741,22 @@ export default function Match3Game() {
   }, [gameResult, gameState.level, gameState.score])
 
   const handleContinueLevel = useCallback(async () => {
-    if (!isConnected || !address) return
+    if (!isConnected || !address || !sessionId) return
     
     try {
-      // Continue current level - always payable (no free continues)
-      if (playFee === undefined) {
+      // Continue current session - charged in USDC
+      if (continueFee === undefined) {
         console.log('Game fee is still loading, skipping continue request.')
         return
       }
 
-      const value = playFee
+      const value = continueFee
 
-      if (!ensureCanPay(value, 'continuing this level')) {
+      if (!ensureCanPayUsdc(value, 'continuing this level')) {
         return
       }
 
-      await startGameContract(gameState.level, value)
-      const newSessionId = BigInt(Date.now())
-      setSessionId(newSessionId)
+      await continueLevel(sessionId, value)
       
       const config = getLevelConfig(gameState.level)
       setGameState(prev => ({
@@ -719,7 +776,7 @@ export default function Match3Game() {
     } catch (error) {
       console.error('Failed to continue level:', error)
     }
-  }, [gameState.level, playFee, startGameContract, isConnected, address, playSound, refetch, ensureCanPay])
+  }, [gameState.level, continueFee, continueLevel, isConnected, address, playSound, refetch, ensureCanPayUsdc, sessionId])
 
   const handleNextLevel = () => {
     const nextLevel = gameState.level + 1
@@ -763,30 +820,30 @@ export default function Match3Game() {
           alert('Booster price is still loading. Please try again.')
           return
         }
-        if (!ensureCanPay(cost, `buying ${isPack ? 'Hammer Pack' : 'Hammer'}`)) return
+        if (!ensureCanPayBooster(cost, `buying ${isPack ? 'Hammer Pack' : 'Hammer'}`)) return
         hash = isPack 
-          ? await buyHammerPack(cost)
-          : await buyHammer(cost)
+          ? await buyHammerPack(cost, boosterPaymentSource)
+          : await buyHammer(cost, boosterPaymentSource)
       } else if (type === 'shuffle') {
         cost = isPack ? boosterPrices.shufflePack : boosterPrices.shuffle
         if (cost === undefined || cost === null) {
           alert('Booster price is still loading. Please try again.')
           return
         }
-        if (!ensureCanPay(cost, `buying ${isPack ? 'Shuffle Pack' : 'Shuffle'}`)) return
+        if (!ensureCanPayBooster(cost, `buying ${isPack ? 'Shuffle Pack' : 'Shuffle'}`)) return
         hash = isPack
-          ? await buyShufflePack(cost)
-          : await buyShuffle(cost)
+          ? await buyShufflePack(cost, boosterPaymentSource)
+          : await buyShuffle(cost, boosterPaymentSource)
       } else if (type === 'colorBomb') {
         cost = isPack ? boosterPrices.colorBombPack : boosterPrices.colorBomb
         if (cost === undefined || cost === null) {
           alert('Booster price is still loading. Please try again.')
           return
         }
-        if (!ensureCanPay(cost, `buying ${isPack ? 'Color Bomb Pack' : 'Color Bomb'}`)) return
+        if (!ensureCanPayBooster(cost, `buying ${isPack ? 'Color Bomb Pack' : 'Color Bomb'}`)) return
         hash = isPack
-          ? await buyColorBombPack(cost)
-          : await buyColorBomb(cost)
+          ? await buyColorBombPack(cost, boosterPaymentSource)
+          : await buyColorBomb(cost, boosterPaymentSource)
       }
       
       // Wait for transaction confirmation
@@ -1107,9 +1164,9 @@ export default function Match3Game() {
                     <span style={{ color: 'var(--theme-primary)' }} className="font-bold">Level {lastPlayedLevel}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span style={{ color: 'var(--theme-text-secondary)' }}>Free Play:</span>
-                    <span style={{ color: canPlayFree ? 'var(--theme-success)' : 'var(--theme-error)' }}>
-                      {canPlayFree ? '✅ Available' : '❌ Not Available'}
+                      <span style={{ color: 'var(--theme-text-secondary)' }}>Start Fee:</span>
+                      <span style={{ color: 'var(--theme-success)' }}>
+                        {formatUnits(playFee || 0n, 6)} USDC
                     </span>
                   </div>
                 </div>
@@ -1185,15 +1242,15 @@ export default function Match3Game() {
                   >
                     <div className="text-base md:text-lg mb-1">🆕 Start from Level 1</div>
                     <div className="text-xs opacity-90">
-                      {canPlayFree ? 'FREE ✅' : `${formatEther(playFee || 0n)} ETH`}
+                      {`${formatUnits(playFee || 0n, 6)} USDC`}
                     </div>
                   </button>
 
                   {/* Continue from Last Level */}
                   {lastPlayedLevel > 1 && (
                     <button
-                      onClick={() => startGame(lastPlayedLevel, true)}
-                      disabled={isStarting || playFee === undefined}
+                      onClick={handleContinueLevel}
+                      disabled={isStarting || continueFee === undefined || !sessionId}
                       className="theme-button-secondary w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
                       style={{
                         backgroundColor: 'var(--theme-secondary)',
@@ -1202,7 +1259,7 @@ export default function Match3Game() {
                     >
                       <div className="text-base md:text-lg mb-1">▶️ Continue from Level {lastPlayedLevel}</div>
                       <div className="text-xs opacity-90">
-                        {formatEther(playFee || 0n)} ETH (Required)
+                        {formatUnits(continueFee || 0n, 6)} USDC (Required)
                       </div>
                     </button>
                   )}
@@ -1275,14 +1332,14 @@ export default function Match3Game() {
                   {gameResult === 'lose' && (
                     <button
                       onClick={handleContinueLevel}
-                      disabled={playFee === undefined}
+                      disabled={continueFee === undefined || !sessionId}
                       className="theme-button-secondary w-full px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all shadow-lg text-sm md:text-base hover:opacity-90"
                       style={{
                         background: 'linear-gradient(90deg, var(--theme-secondary), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-secondary)))',
                         color: 'var(--theme-text)'
                       }}
                     >
-                      🔄 Continue Level ({formatEther(playFee || 0n)} ETH)
+                      🔄 Continue Level ({formatUnits(continueFee || 0n, 6)} USDC)
                     </button>
                   )}
                   {gameResult === 'lose' && (
@@ -1350,13 +1407,26 @@ export default function Match3Game() {
             >
               <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--theme-primary)' }}>🛒 Booster Shop</h2>
               <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2 rounded-lg border p-2" style={{ backgroundColor: 'var(--theme-background)', borderColor: 'var(--theme-border)' }}>
+                  <div className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-center">
+                    USDC
+                  </div>
+                  <select
+                    value={boosterPaymentSource}
+                    onChange={(e) => setBoosterPaymentSource(e.target.value as 'wallet' | 'deposit')}
+                    className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs"
+                  >
+                    <option value="wallet">Wallet</option>
+                    <option value="deposit">Treasury Deposit</option>
+                  </select>
+                </div>
                 <div className="rounded-lg p-3 border" style={{ backgroundColor: 'var(--theme-background)', borderColor: 'var(--theme-border)' }}>
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-bold">🔨 Hammer</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <div className="text-xs mb-1" style={{ color: 'var(--theme-warning)' }}>{formatEther(boosterPrices?.hammer || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-warning)' }}>{formatBoosterPrice(boosterPrices?.hammer || 0n)}</div>
                       <button 
                         onClick={() => handleBuyBooster('hammer', false)}
                         disabled={!!buyingBooster}
@@ -1367,7 +1437,7 @@ export default function Match3Game() {
                       </button>
                     </div>
                     <div>
-                      <div className="text-xs mb-1" style={{ color: 'var(--theme-warning)' }}>{formatEther(boosterPrices?.hammerPack || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-warning)' }}>{formatBoosterPrice(boosterPrices?.hammerPack || 0n)}</div>
                       <button 
                         onClick={() => handleBuyBooster('hammer', true)}
                         disabled={!!buyingBooster}
@@ -1385,7 +1455,7 @@ export default function Match3Game() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <div className="text-xs mb-1" style={{ color: 'var(--theme-secondary)' }}>{formatEther(boosterPrices?.shuffle || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-secondary)' }}>{formatBoosterPrice(boosterPrices?.shuffle || 0n)}</div>
                       <button 
                         onClick={() => handleBuyBooster('shuffle', false)}
                         disabled={!!buyingBooster}
@@ -1396,7 +1466,7 @@ export default function Match3Game() {
                       </button>
                     </div>
                     <div>
-                      <div className="text-xs mb-1" style={{ color: 'var(--theme-secondary)' }}>{formatEther(boosterPrices?.shufflePack || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-secondary)' }}>{formatBoosterPrice(boosterPrices?.shufflePack || 0n)}</div>
                       <button 
                         onClick={() => handleBuyBooster('shuffle', true)}
                         disabled={!!buyingBooster}
@@ -1414,7 +1484,7 @@ export default function Match3Game() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <div className="text-xs mb-1" style={{ color: 'var(--theme-error)' }}>{formatEther(boosterPrices?.colorBomb || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-error)' }}>{formatBoosterPrice(boosterPrices?.colorBomb || 0n)}</div>
                       <button 
                         onClick={() => handleBuyBooster('colorBomb', false)}
                         disabled={!!buyingBooster}
@@ -1425,7 +1495,7 @@ export default function Match3Game() {
                       </button>
                     </div>
                     <div>
-                      <div className="text-xs mb-1" style={{ color: 'var(--theme-error)' }}>{formatEther(boosterPrices?.colorBombPack || 0n)} ETH</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--theme-error)' }}>{formatBoosterPrice(boosterPrices?.colorBombPack || 0n)}</div>
                       <button 
                         onClick={() => handleBuyBooster('colorBomb', true)}
                         disabled={!!buyingBooster}
