@@ -728,7 +728,7 @@ export default function Match3Game() {
   const handleShareResult = useCallback((channel?: 'base') => {
     if (typeof window === 'undefined') return
     const outcome = gameResult === 'win' ? 'won' : 'hit Game Over'
-    const shareText = `🎮 I ${outcome} in Joybit Match-3!\n` +
+    const shareText = `🎮 I ${outcome} in Joybit Blast!\n`  +
       `🏆 Score: ${gameState.score}\n` +
       `🎯 Level: ${gameState.level}\n\n` +
       `Come play Joybit! #Joybit`
@@ -908,7 +908,7 @@ export default function Match3Game() {
           >
             ← Back
           </button>
-          <h1 className="text-base font-bold">🎮 Match-3</h1>
+          <h1 className="text-base font-bold">🎮 Joybit Blast</h1>
           <button
             onClick={() => setShowBoosterShop(!showBoosterShop)}
             className="theme-button-primary px-3 py-1.5 rounded-lg transition-all text-xs hover:opacity-90"
@@ -1154,7 +1154,7 @@ export default function Match3Game() {
               style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-primary)' }}
             >
               <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-center" style={{ color: 'var(--theme-primary)' }}>
-                🎮 Match-3 Game
+                🎮 Joybit Blast
               </h2>
               
               <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">

@@ -7,14 +7,14 @@ import { ThemeProvider } from '@/components/theme/ThemeContext'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://joybit.vercel.app'),
-  title: 'Joybit - Match-3 Game',
-  description: 'Play Match-3, compete on the leaderboard, and earn JOYB rewards.',
+  title: 'Joybit Blast',
+  description: 'Play Joybit Blast, match tiles, climb the leaderboard, and earn rewards on Base.',  
   icons: {
     icon: '/branding/favicon.ico',
   },
   openGraph: {
-    title: 'Joybit - Match-3 Gaming',
-    description: 'Play Match-3, compete on the leaderboard, and earn JOYB rewards.',
+    title: 'Joybit Blast',
+    description: 'Play Joybit Blast, match tiles, climb the leaderboard, and earn rewards on Base.',
     url: 'https://joybit.vercel.app',
     siteName: 'Joybit',
     images: [
@@ -29,8 +29,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Joybit - Match-3',
-    description: 'Play Match-3, compete on the leaderboard, and earn JOYB rewards.',
+    title: 'Joybit Blast',
+    description: 'Play Joybit Blast, match tiles, climb the leaderboard, and earn rewards on Base.',
     images: ['https://joybit.vercel.app/frame-7.png'],
   },
   other: {

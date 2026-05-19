@@ -80,12 +80,12 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
 
               {active === 'game' && (
                 <>
-                  <p>Joybit is a Match-3 game on Base with a USDC gameplay economy. Connect your wallet, start a session, and push your score before moves or time run out.</p>
+                  <p>Joybit Blast is a fast tile-matching game on Base. Connect your wallet, pay USDC to start, match tiles to score, and compete for leaderboard rewards.</p>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
                     <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">How Joybit Works</h3>
                     <ol className="list-decimal list-inside space-y-1">
-                      <li>Start a Match-3 session from the <strong>Game</strong> page.</li>
+                      <li>Start a Joybit Blast session from the <strong>Game</strong> page.</li>
                       <li>Gameplay actions are paid in <strong>USDC</strong> (start, continue, boosters).</li>
                       <li>Session results update leaderboard/stats, and signed rewards are credited.</li>
                       <li>Claim pending rewards from your <strong>Profile</strong>.</li>
@@ -95,13 +95,14 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 space-y-2">
                     <h3 className="mb-1 text-xs font-semibold text-white sm:text-sm">How To Play</h3>
-                    <ol className="list-decimal list-inside space-y-1">
+                    <p className="text-xs text-gray-300">Swap adjacent tiles to match 3 or more of the same color. Clear combinations to score points and reach the level target before your moves run out.</p>
+                    <ol className="list-decimal list-inside space-y-1 text-xs">
                       <li>Connect your wallet on the home screen.</li>
                       <li>Go to <strong>Game</strong> and tap <strong>Start from Level 1</strong> or <strong>Continue</strong>.</li>
                       <li>Tap a tile, then tap an adjacent tile to swap them.</li>
                       <li>Match 3 or more tiles of the same colour to clear them and score points.</li>
                       <li>Reach the target score before moves or time run out to win the level.</li>
-                      <li>Each level gets harder — higher target score, fewer moves.</li>
+                      <li>Each level gets harder — higher target score, fewer moves. Reach higher levels for bigger rewards.</li>
                     </ol>
                   </div>
 

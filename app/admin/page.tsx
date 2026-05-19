@@ -1027,14 +1027,14 @@ export default function AdminPage() {
             </div>
 
             <div className="mt-4 grid gap-2 text-xs text-gray-400">
-              <div className="rounded border border-white/10 bg-black/30 px-3 py-2 break-all">Match3: {CONTRACT_ADDRESSES.match3Game || 'Not configured'}</div>
+              <div className="rounded border border-white/10 bg-black/30 px-3 py-2 break-all">Joybit Blast: {CONTRACT_ADDRESSES.match3Game || 'Not configured'}</div>
               <div className="rounded border border-white/10 bg-black/30 px-3 py-2 break-all">Treasury: {CONTRACT_ADDRESSES.treasury || 'Not configured'}</div>
               <div className="rounded border border-white/10 bg-black/30 px-3 py-2 break-all">Reward Token: {CONTRACT_ADDRESSES.rewardToken || 'Not configured'}</div>
             </div>
           </section>
 
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
-            <h2 className="mb-3 text-lg font-bold">Match-3 Fee</h2>
+            <h2 className="mb-3 text-lg font-bold">Joybit Blast Fee</h2>
             <p className="mb-1 text-sm text-gray-300">Current fee: {formatDisplayToken(playFeeValue, 'USDC')}</p>
             <p className="mb-3 font-mono text-xs text-gray-500">Exact: {formatExactToken(playFeeValue, 'USDC')}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -1056,7 +1056,7 @@ export default function AdminPage() {
           </section>
 
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
-            <h2 className="mb-3 text-lg font-bold">Match-3 Treasury Contract</h2>
+            <h2 className="mb-3 text-lg font-bold">Joybit Blast Treasury Contract</h2>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 value={newTreasuryAddress}

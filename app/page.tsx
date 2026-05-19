@@ -64,7 +64,7 @@ export default function Home() {
     if (typeof window === 'undefined') return
 
     const shareText =
-      '🎮 Playing Joybit Match-3. Fast rounds, leaderboard competition, and wallet-ready rewards.'
+      '🎮 Playing Joybit Blast on Base. Fast tile-matching rounds, real leaderboards, and claimable rewards.'
     const frameUrl = window.location.origin
     const url = new URL('https://warpcast.com/~/compose')
     url.searchParams.set('text', shareText)
@@ -160,7 +160,7 @@ export default function Home() {
             Match. Climb. Earn.
           </h1>
           <p className="mb-7 text-base leading-7 text-gray-300 md:text-lg">
-            A production-ready Match-3 mini app with a USDC economy, on-chain reward accounting, and competitive leaderboard progression.
+            Connect your wallet, match tiles in fast-paced levels, and earn real USDC rewards. Climb the leaderboard in a production-ready game built on Base with instant reward claims.
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row md:justify-center">

@@ -133,7 +133,7 @@ export default function ProfilePage() {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold">Pending Rewards</h2>
-                  <p className="text-sm text-gray-400">Claim rewards earned from Match-3.</p>
+                  <p className="text-sm text-gray-400">Claim rewards earned from Joybit Blast.</p>
                 </div>
                 <button
                   type="button"
