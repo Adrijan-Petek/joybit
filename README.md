@@ -1,7 +1,7 @@
 # Joybit
 
 <p align="center">
-  <img src="public/branding/frame.png" alt="Joybit frame preview" width="900" />
+  <img src="public/branding/frame.png" alt="Joybit frame preview" width="600" />
 </p>
 
 Joybit is a USDC-powered Match-3 mini app built for Base. The project combines a fast game loop, wallet-native progression, and on-chain reward distribution with a production-focused web stack.
