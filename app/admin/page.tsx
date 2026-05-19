@@ -89,9 +89,11 @@ export default function AdminPage() {
   const [isUnlocked, setIsUnlocked] = useState(false)
 
   const [newPlayFeeUsdc, setNewPlayFeeUsdc] = useState('0.5')
+  const [newContinueFeeUsdc, setNewContinueFeeUsdc] = useState('0.25')
   const [newTreasuryAddress, setNewTreasuryAddress] = useState<string>(CONTRACT_ADDRESSES.treasury || '')
   const [newGameSignerAddress, setNewGameSignerAddress] = useState<string>(process.env.NEXT_PUBLIC_GAME_SIGNER_ADDRESS || '')
   const [newGameMaxRewardEth, setNewGameMaxRewardEth] = useState('1000')
+  const [newMaxContinues, setNewMaxContinues] = useState('3')
   const [newGameOwnershipAddress, setNewGameOwnershipAddress] = useState<string>(address || '')
   const [newTreasuryOwnershipAddress, setNewTreasuryOwnershipAddress] = useState<string>(address || '')
   const [newAuthorizedGameAddress, setNewAuthorizedGameAddress] = useState<string>(CONTRACT_ADDRESSES.match3Game || '')
@@ -176,6 +178,15 @@ export default function AdminPage() {
     },
   })
 
+  const { data: continueFee, refetch: refetchContinueFee } = useReadContract({
+    address: match3Address,
+    abi: MATCH3_GAME_ABI,
+    functionName: 'continueFee',
+    query: {
+      enabled: validMatch3Address,
+    },
+  })
+
   const { data: gameSigner, refetch: refetchGameSigner } = useReadContract({
     address: match3Address,
     abi: MATCH3_GAME_ABI,
@@ -189,6 +200,24 @@ export default function AdminPage() {
     address: match3Address,
     abi: MATCH3_GAME_ABI,
     functionName: 'maxReward',
+    query: {
+      enabled: validMatch3Address,
+    },
+  })
+
+  const { data: gameMaxContinues, refetch: refetchGameMaxContinues } = useReadContract({
+    address: match3Address,
+    abi: MATCH3_GAME_ABI,
+    functionName: 'maxContinues',
+    query: {
+      enabled: validMatch3Address,
+    },
+  })
+
+  const { data: gameSessionDuration, refetch: refetchGameSessionDuration } = useReadContract({
+    address: match3Address,
+    abi: MATCH3_GAME_ABI,
+    functionName: 'sessionDuration',
     query: {
       enabled: validMatch3Address,
     },
@@ -370,6 +399,23 @@ export default function AdminPage() {
     }
   }
 
+  const handleUpdateContinueFee = async () => {
+    try {
+      setStatus('Submitting continue fee update...')
+      const fee = parseUnits(newContinueFeeUsdc || '0', 6)
+      await writeContractAsync({
+        address: CONTRACT_ADDRESSES.match3Game,
+        abi: MATCH3_GAME_ABI,
+        functionName: 'setContinueFee',
+        args: [fee],
+      })
+      await refetchContinueFee()
+      setStatus('Continue fee updated successfully.')
+    } catch (error) {
+      setStatus(`Continue fee update failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
   const handleSetTreasuryContract = async () => {
     try {
       if (!isAddress(newTreasuryAddress)) {
@@ -490,6 +536,34 @@ export default function AdminPage() {
       setStatus('Max reward updated successfully.')
     } catch (error) {
       setStatus(`Set max reward failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleSetMaxContinues = async () => {
+    try {
+      const maxContinues = Number(newMaxContinues || '0')
+      if (!Number.isFinite(maxContinues) || maxContinues < 0 || maxContinues > 255) {
+        setStatus('Max continues must be a whole number between 0 and 255.')
+        return
+      }
+
+      const sessionDuration = (gameSessionDuration as bigint) || 0n
+      if (sessionDuration <= 0n) {
+        setStatus('Session duration is not loaded yet. Please retry in a moment.')
+        return
+      }
+
+      setStatus('Updating max continues...')
+      await writeContractAsync({
+        address: CONTRACT_ADDRESSES.match3Game,
+        abi: MATCH3_GAME_ABI,
+        functionName: 'setSessionConfig',
+        args: [maxContinues, sessionDuration],
+      })
+      await Promise.all([refetchGameMaxContinues(), refetchGameSessionDuration()])
+      setStatus('Max continues updated successfully.')
+    } catch (error) {
+      setStatus(`Set max continues failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -968,6 +1042,7 @@ export default function AdminPage() {
   }, [hammerPriceRaw, shufflePriceRaw, colorBombPriceRaw, hammerPackPriceRaw, shufflePackPriceRaw, colorBombPackPriceRaw])
 
   const playFeeValue = (playFee as bigint) || 0n
+  const continueFeeValue = (continueFee as bigint) || 0n
   const ethTreasuryValue = (treasuryEthBalance as bigint) || 0n
   const rewardTreasuryValue = (treasuryRewardTokenBalance as bigint) || 0n
   const rewardPoolValue = (treasuryRewardPool as bigint) || 0n
@@ -1028,6 +1103,11 @@ export default function AdminPage() {
                 <div className="mt-1 font-mono text-[11px] text-gray-500">Exact: {formatExactToken(playFeeValue, 'USDC')}</div>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-gray-400">Continue Fee</div>
+                <div className="mt-1 text-sm font-bold text-white">{formatDisplayToken(continueFeeValue, 'USDC')}</div>
+                <div className="mt-1 font-mono text-[11px] text-gray-500">Exact: {formatExactToken(continueFeeValue, 'USDC')}</div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <div className="text-xs uppercase tracking-wide text-gray-400">USDC Reward Pool</div>
                 <div className="mt-1 text-sm font-bold text-white">{formatTokenAmount(rewardPoolValue, rewardTokenDecimals)} USDC</div>
                 <div className="mt-1 font-mono text-[11px] text-gray-500">Exact: {formatUnits(rewardPoolValue, rewardTokenDecimals)} USDC</div>
@@ -1069,6 +1149,45 @@ export default function AdminPage() {
                 className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold"
               >
                 Update Fee
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
+            <h2 className="mb-3 text-lg font-bold">Continue Level Fee</h2>
+            <p className="mb-1 text-sm text-gray-300">Current continue fee: {formatDisplayToken(continueFeeValue, 'USDC')}</p>
+            <p className="mb-3 font-mono text-xs text-gray-500">Exact: {formatExactToken(continueFeeValue, 'USDC')}</p>
+            <p className="mb-3 text-xs text-gray-400">Current max continues per session: <span className="font-mono text-gray-300">{String((gameMaxContinues as number) ?? 0)}</span></p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input
+                value={newContinueFeeUsdc}
+                onChange={(e) => setNewContinueFeeUsdc(e.target.value)}
+                placeholder="0.25"
+                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={handleUpdateContinueFee}
+                className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold"
+              >
+                Update Continue Fee
+              </button>
+            </div>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <input
+                value={newMaxContinues}
+                onChange={(e) => setNewMaxContinues(e.target.value)}
+                placeholder="3"
+                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={handleSetMaxContinues}
+                className="theme-button-brand-soft rounded-lg px-4 py-2 text-sm font-bold"
+              >
+                Update Max Continues
               </button>
             </div>
           </section>
@@ -1285,6 +1404,7 @@ export default function AdminPage() {
                   Update Max Reward
                 </button>
               </div>
+
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
