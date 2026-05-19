@@ -324,73 +324,56 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="mt-8 grid grid-cols-3 gap-3 md:text-center">
-            <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
-              <div className="text-lg font-bold text-white">1</div>
-              <div className="text-xs text-gray-400">One polished game mode</div>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
-              <div className="text-lg font-bold text-white">Fast</div>
-              <div className="text-xs text-gray-400">Quick competitive rounds</div>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
-              <div className="text-lg font-bold text-white">Wallet</div>
-              <div className="text-xs text-gray-400">Seamless connection flow</div>
-            </div>
-          </div>
 
-          <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.04] p-2 text-left md:text-center">
-            <div className="mb-2 text-sm font-bold text-white">USDC Wallet & Treasury</div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-                <div className="text-[10px] uppercase tracking-wide text-gray-400">Wallet USDC</div>
-                <div className="mt-0.5 text-sm font-bold text-white">{formatUnits(walletUsdcValue, tokenDecimals)} USDC</div>
+
+          <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-gray-400">Wallet USDC</div>
+                <div className="mt-1 text-lg font-bold text-white">{formatUnits(walletUsdcValue, tokenDecimals)} USDC</div>
               </div>
-              <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-                <div className="text-[10px] uppercase tracking-wide text-gray-400">Deposited USDC</div>
-                <div className="mt-0.5 text-sm font-bold text-white">{formatUnits(depositedUsdcValue, tokenDecimals)} USDC</div>
+              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-gray-400">Deposited USDC</div>
+                <div className="mt-1 text-lg font-bold text-white">{formatUnits(depositedUsdcValue, tokenDecimals)} USDC</div>
               </div>
             </div>
 
-            <div className="mt-1.5 flex flex-col gap-1 sm:flex-row">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
+              <div className="text-sm font-semibold text-gray-300 whitespace-nowrap">Manage Funds</div>
+              
               <input
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="Deposit"
-                className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs text-white"
+                placeholder="10"
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white w-20"
               />
               <button
                 type="button"
                 disabled={!isConnected || depositBusy || !rewardTokenAddress || !treasuryAddress}
                 onClick={handleDepositUsdc}
-                className="theme-button-brand rounded-lg px-2 py-1 text-xs font-bold disabled:opacity-50 w-24 text-center"
+                className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-50 whitespace-nowrap"
               >
                 {depositBusy ? 'Depositing...' : 'Deposit'}
               </button>
-            </div>
-
-            <div className="mt-1 flex flex-col gap-1 sm:flex-row">
-              <input
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
-                placeholder="Withdraw"
-                className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs text-white"
-              />
               <button
                 type="button"
                 disabled={!isConnected || withdrawBusy || !rewardTokenAddress || !treasuryAddress}
                 onClick={handleWithdrawUsdc}
-                className="theme-button-brand-soft rounded-lg px-2 py-1 text-xs font-bold disabled:opacity-50 w-24 text-center"
+                className="theme-button-brand-soft rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-50 whitespace-nowrap"
               >
                 {withdrawBusy ? 'Withdrawing...' : 'Withdraw'}
               </button>
             </div>
 
-            {depositStatus ? (
-              <div className="mt-1 text-xs text-gray-300">{depositStatus}</div>
-            ) : null}
-            {withdrawStatus ? (
-              <div className="mt-1 text-xs text-gray-300">{withdrawStatus}</div>
+            {(depositStatus || withdrawStatus) ? (
+              <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3">
+                {depositStatus ? (
+                  <div className="text-sm text-gray-300">{depositStatus}</div>
+                ) : null}
+                {withdrawStatus ? (
+                  <div className="text-sm text-gray-300">{withdrawStatus}</div>
+                ) : null}
+              </div>
             ) : null}
           </div>
 
