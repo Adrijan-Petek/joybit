@@ -728,10 +728,15 @@ export default function Match3Game() {
   const handleShareResult = useCallback((channel?: 'base') => {
     if (typeof window === 'undefined') return
     const outcome = gameResult === 'win' ? 'won' : 'hit Game Over'
-    const shareText = `🎮 I ${outcome} in Joybit Blast!\n`  +
-      `🏆 Score: ${gameState.score}\n` +
-      `🎯 Level: ${gameState.level}\n\n` +
-      `Come play Joybit! #Joybit`
+    const shareTemplates = [
+      `🎮 I ${outcome} in Joybit Blast!\n🏆 Score: ${gameState.score} | Level: ${gameState.level}\nEarn real USDC rewards on Base. Join me!`,
+      `🎯 Joybit Blast: ${gameState.score} points, Level ${gameState.level}!\nMatch tiles, climb ranks, earn USDC. Can you beat my score?`,
+      `${gameResult === 'win' ? '🏅' : '💪'} ${outcome.charAt(0).toUpperCase() + outcome.slice(1)} in Joybit Blast\nScore: ${gameState.score} | Level: ${gameState.level}\nPlay now and earn real rewards!`,
+      `🔥 Joybit Blast run: ${gameState.score} pts, Lvl ${gameState.level}\nFast tile-matching gameplay with real USDC rewards on Base.`,
+      `🎪 Playing Joybit Blast: ${gameState.score} points, Level ${gameState.level}\nCome compete on the leaderboard and earn USDC rewards!`,
+      `⚡ Just ${outcome} in Joybit Blast! ${gameState.score} pts, Level ${gameState.level}\nInstant USDC rewards, wallet-native gaming on Base.`
+    ]
+    const shareText = shareTemplates[Math.floor(Math.random() * shareTemplates.length)]
     const frameUrl = window.location.origin
     const url = new URL('https://warpcast.com/~/compose')
     url.searchParams.set('text', shareText)

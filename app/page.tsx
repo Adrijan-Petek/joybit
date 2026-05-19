@@ -63,8 +63,16 @@ export default function Home() {
   const handleRecastApp = useCallback(() => {
     if (typeof window === 'undefined') return
 
-    const shareText =
-      '🎮 Playing Joybit Blast on Base. Fast tile-matching rounds, real leaderboards, and claimable rewards.'
+    const shareTexts = [
+      '🎮 Just matched tiles in Joybit Blast! Fast gameplay, real USDC rewards, leaderboard competition on Base. Connect your wallet and start earning.',
+      'Swap tiles, reach targets, climb ranks. Joybit Blast is a production-ready game on Base with instant USDC reward claims. Who\'s next?',
+      '🏆 Competing on the Joybit Blast leaderboard! Match tiles in fast-paced levels to earn real USDC rewards. Built on Base with wallet integration.',
+      '🎯 Joybit Blast: Match tiles → Score points → Earn USDC. Fast rounds, real rewards, leaderboard battles on Base.',
+      'Just started Joybit Blast on Base. Match tiles, climb leaderboards, and claim USDC rewards instantly. Try it:',
+      'Fast tile-matching + real USDC rewards + production game = Joybit Blast on Base. Connect your wallet and join the leaderboard now!'
+    ]
+    
+    const shareText = shareTexts[Math.floor(Math.random() * shareTexts.length)]
     const frameUrl = window.location.origin
     const url = new URL('https://warpcast.com/~/compose')
     url.searchParams.set('text', shareText)
