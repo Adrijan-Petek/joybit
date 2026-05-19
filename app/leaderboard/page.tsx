@@ -15,7 +15,7 @@ export default function Leaderboard() {
   const router = useRouter()
   const { address } = useAccount()
   const { playMusic } = useAudio()
-  const { leaderboard, loading, error, refetch } = useLeaderboard()
+  const { leaderboard, loading, error, refetchSilently } = useLeaderboard()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -30,12 +30,19 @@ export default function Leaderboard() {
   }, [playMusic])
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      refetch()
-    }, 5000)
+    const stream = new EventSource('/api/leaderboard/stream')
 
-    return () => clearInterval(timer)
-  }, [refetch])
+    const handleUpdate = () => {
+      refetchSilently()
+    }
+
+    stream.addEventListener('leaderboard-updated', handleUpdate)
+
+    return () => {
+      stream.removeEventListener('leaderboard-updated', handleUpdate)
+      stream.close()
+    }
+  }, [refetchSilently])
 
   if (!mounted) return null
 
@@ -63,20 +70,14 @@ export default function Leaderboard() {
             Back
           </button>
           <h1 className="text-2xl font-black">Leaderboard</h1>
-          <button
-            type="button"
-            onClick={refetch}
-            className="rounded-lg px-4 py-2 text-sm font-semibold"
-          >
-            Refresh
-          </button>
+          <div className="w-[78px]" aria-hidden="true" />
         </div>
 
         <section className="mb-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
           <div className="grid gap-3 text-sm sm:grid-cols-3">
             <div>
               <div className="text-xl font-black">Live</div>
-              <div className="text-gray-400">Auto refresh (5s)</div>
+              <div className="text-gray-400">Updates on score changes</div>
             </div>
             <div>
               <div className="text-xl font-black">Run Score</div>

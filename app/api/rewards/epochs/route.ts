@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@libsql/client'
 import type { Client, InStatement } from '@libsql/client'
-import { isAddress } from 'viem'
+import { isAddress, zeroAddress } from 'viem'
 
 type RewardPeriod = 'weekly' | 'monthly'
 type RewardStatus = 'draft' | 'finalized' | 'distributed'
@@ -96,6 +96,15 @@ function ensureAdmin(request: NextRequest) {
   if (!secret) return true
   const provided = request.headers.get('x-admin-secret') || ''
   return provided === secret
+}
+
+function getRewardTokenAddress() {
+  return (process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS || '').toLowerCase()
+}
+
+function isSupportedRewardToken(tokenAddress: string) {
+  const normalized = tokenAddress.toLowerCase()
+  return normalized === zeroAddress.toLowerCase() || normalized === getRewardTokenAddress()
 }
 
 async function ensureTables(db: Client) {
@@ -358,6 +367,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid token address' }, { status: 400 })
       }
 
+      if (!isSupportedRewardToken(tokenAddress)) {
+        return NextResponse.json({ error: 'Only ETH and USDC rewards are supported' }, { status: 400 })
+      }
+
       if (payoutPercentsInput.length !== winnersCount) {
         return NextResponse.json({ error: 'Payout percentages count must match winners count.' }, { status: 400 })
       }
@@ -471,6 +484,10 @@ export async function POST(request: NextRequest) {
 
       if (!epochId || !isAddress(tokenAddress)) {
         return NextResponse.json({ error: 'epochId and tokenAddress are required' }, { status: 400 })
+      }
+
+      if (!isSupportedRewardToken(tokenAddress)) {
+        return NextResponse.json({ error: 'Only ETH and USDC rewards are supported' }, { status: 400 })
       }
 
       const amount = BigInt(amountRaw)

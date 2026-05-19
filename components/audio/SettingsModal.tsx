@@ -101,7 +101,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   onClick={() => setActiveTab('audio')}
                   className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
                     activeTab === 'audio'
-                      ? 'bg-purple-500 text-white'
+                      ? 'bg-blue-500 text-white'
                       : 'text-gray-400 hover:text-white hover:bg-white/10'
                   }`}
                 >
@@ -111,7 +111,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   onClick={() => setActiveTab('theme')}
                   className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
                     activeTab === 'theme'
-                      ? 'bg-purple-500 text-white'
+                      ? 'bg-blue-500 text-white'
                       : 'text-gray-400 hover:text-white hover:bg-white/10'
                   }`}
                 >
@@ -262,7 +262,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           onClick={() => setTheme(key)}
                           className={`p-3 rounded-lg border-2 transition-colors text-left ${
                             currentTheme.name === theme.name
-                              ? 'border-purple-500 bg-purple-500/20'
+                              ? 'border-blue-500 bg-purple-500/20'
                               : 'border-gray-600 hover:border-gray-500'
                           }`}
                         >

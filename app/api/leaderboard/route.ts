@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@libsql/client'
 import type { Client } from '@libsql/client'
+import { broadcastLeaderboardUpdated } from '@/lib/server/leaderboardEvents'
 
 let client: Client | null = null
 let initialized = false
@@ -237,12 +238,15 @@ export async function POST(request: NextRequest) {
         // Force all route modules to re-run ensureTables on next request
         initialized = false
 
+        broadcastLeaderboardUpdated('admin-reset-all')
+
         return NextResponse.json({ success: true, droppedAndRecreated: true })
       }
 
       // action === 'reset' — leaderboard only
       await db.execute('DELETE FROM leaderboard_scores')
       await db.execute('DELETE FROM leaderboard_users')
+      broadcastLeaderboardUpdated('admin-reset')
       return NextResponse.json({ success: true, reset: true })
     }
 
@@ -270,6 +274,8 @@ export async function POST(request: NextRequest) {
         args: [normalizedAddress, username || null, pfp || null, normalizeFid(fid) ?? null],
       })
     }
+
+    broadcastLeaderboardUpdated('score-updated')
 
     return NextResponse.json({ success: true, updated: true })
   } catch (error) {

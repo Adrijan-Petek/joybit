@@ -2,16 +2,16 @@ const hre = require("hardhat");
 require("dotenv").config({ path: ".env.local" });
 
 async function main() {
-  const joybitToken = process.env.NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS;
+  const usdcToken = process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS;
 
-  if (!joybitToken) {
-    throw new Error("NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS is required");
+  if (!usdcToken) {
+    throw new Error("NEXT_PUBLIC_USDC_TOKEN_ADDRESS is required");
   }
 
   console.log("Deploying Joybit Match-3 contracts...\n");
 
   const Treasury = await hre.ethers.getContractFactory("Treasury");
-  const treasury = await Treasury.deploy(joybitToken);
+  const treasury = await Treasury.deploy(usdcToken);
   await treasury.waitForDeployment();
   const treasuryAddress = await treasury.getAddress();
   console.log("Treasury:", treasuryAddress);

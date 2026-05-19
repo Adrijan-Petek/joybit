@@ -9,7 +9,6 @@ import { RainbowKitProvider, darkTheme, connectorsForWallets } from '@rainbow-me
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets'
 import '@rainbow-me/rainbowkit/styles.css'
-import { ThemeProvider } from './theme/ThemeContext'
 
 const getBaseRpcUrl = () => {
   const alchemyKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
@@ -119,7 +118,6 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config} reconnectOnMount={true}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
           <RainbowKitProvider 
           theme={darkTheme({
             accentColor: '#ee3dff',
@@ -136,7 +134,6 @@ export function Providers({ children }: { children: ReactNode }) {
         >
           {children}
         </RainbowKitProvider>
-        </ThemeProvider>
       </QueryClientProvider>
     </WagmiProvider>
   )

@@ -4,8 +4,9 @@
 
 :root {
   --theme-primary: #1652F0;
-  --theme-secondary: #0891b2;
-  --theme-accent: #f59e0b;
+  --theme-primary-light: #4f7cf3;
+  --theme-secondary: #2563eb;
+  --theme-accent: #60a5fa;
   --theme-background: #000000;
   --theme-surface: #1a1a1a;
   --theme-surface-elevated: color-mix(in srgb, var(--theme-surface) 85%, var(--theme-background));
@@ -55,9 +56,9 @@ h1, h2, h3, h4, h5, h6 {
 
 button,
 .theme-button {
-  background-color: var(--theme-surface) !important;
+  background: linear-gradient(135deg, #1652f0 0%, #4f7cf3 100%) !important;
   color: var(--theme-text) !important;
-  border: 1px solid var(--theme-border) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 72%, var(--theme-border)) !important;
   box-shadow: var(--theme-shadow);
   transition: background-color var(--theme-animation-duration) ease,
     color var(--theme-animation-duration) ease,
@@ -83,25 +84,25 @@ button:disabled,
 }
 
 .theme-button-primary {
-  background-color: var(--theme-primary) !important;
+  background: linear-gradient(135deg, #1652f0 0%, #4f7cf3 100%) !important;
   border-color: color-mix(in srgb, var(--theme-primary) 70%, var(--theme-border)) !important;
 }
 
 .theme-button-secondary {
-  background-color: var(--theme-secondary) !important;
-  border-color: color-mix(in srgb, var(--theme-secondary) 70%, var(--theme-border)) !important;
+  background: linear-gradient(135deg, #1652f0 0%, #4f7cf3 100%) !important;
+  border-color: color-mix(in srgb, var(--theme-primary) 70%, var(--theme-border)) !important;
 }
 
 .theme-button-brand {
-  background: linear-gradient(135deg, #1652f0, #1f64ff) !important;
-  border-color: color-mix(in srgb, #1652f0 78%, var(--theme-border)) !important;
+  background: linear-gradient(135deg, #1652f0 0%, #4f7cf3 100%) !important;
+  border-color: color-mix(in srgb, var(--theme-primary) 78%, var(--theme-border)) !important;
   color: #ffffff !important;
 }
 
 .theme-button-brand-soft {
-  background: color-mix(in srgb, #1652f0 18%, var(--theme-surface)) !important;
-  border-color: color-mix(in srgb, #1652f0 62%, var(--theme-border)) !important;
-  color: #dbe7ff !important;
+  background: linear-gradient(135deg, #1652f0 0%, #4f7cf3 100%) !important;
+  border-color: color-mix(in srgb, var(--theme-primary) 62%, var(--theme-border)) !important;
+  color: var(--theme-text) !important;
 }
 
 .logo-button-reset,
@@ -175,3 +176,73 @@ textarea::placeholder {
 .theme-border { border-color: var(--theme-border); }
 .theme-border-primary { border-color: var(--theme-primary); }
 .theme-border-secondary { border-color: var(--theme-secondary); }
+
+/* Normalize legacy utility color classes to the active Joybit theme */
+.text-white {
+  color: var(--theme-text) !important;
+}
+
+.text-gray-300,
+.text-gray-400,
+.text-gray-500,
+.text-gray-600 {
+  color: var(--theme-text-secondary) !important;
+}
+
+.text-blue-300,
+.text-blue-400,
+.text-blue-500,
+.text-purple-500 {
+  color: var(--theme-primary) !important;
+}
+
+.text-red-300,
+.text-red-400,
+.text-red-500 {
+  color: var(--theme-error) !important;
+}
+
+.border-white\/10,
+.border-white\/15,
+.border-white\/20,
+.border-gray-600,
+.border-gray-500 {
+  border-color: color-mix(in srgb, var(--theme-border) 68%, transparent) !important;
+}
+
+.divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: color-mix(in srgb, var(--theme-border) 68%, transparent) !important;
+}
+
+.bg-white\/\[0\.04\],
+.bg-white\/10,
+.bg-white\/20,
+.bg-gray-800\/50,
+.bg-gray-600\/30,
+.bg-gray-600\/50 {
+  background-color: color-mix(in srgb, var(--theme-surface) 84%, transparent) !important;
+}
+
+.bg-black\/30,
+.bg-black\/45,
+.bg-black\/50,
+.bg-black\/60,
+.bg-black\/70,
+.bg-black\/80 {
+  background-color: color-mix(in srgb, var(--theme-background) 78%, transparent) !important;
+}
+
+.bg-blue-500,
+.bg-purple-500 {
+  background-color: var(--theme-primary) !important;
+}
+
+.bg-blue-500\/10,
+.bg-purple-500\/20 {
+  background-color: color-mix(in srgb, var(--theme-primary) 20%, transparent) !important;
+}
+
+.hover\:bg-white\/10:hover,
+.hover\:bg-white\/20:hover {
+  background-color: color-mix(in srgb, var(--theme-surface) 72%, transparent) !important;
+}

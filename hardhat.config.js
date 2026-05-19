@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
+require("@nomicfoundation/hardhat-verify");
 require("dotenv").config({ path: ".env.local" });
 
 /** @type import('hardhat/config').HardhatUserConfig */

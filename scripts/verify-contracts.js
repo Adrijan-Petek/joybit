@@ -20,11 +20,11 @@ async function verifyContract(address, args, contractName) {
 }
 
 async function main() {
-  const joybitToken = process.env.NEXT_PUBLIC_JOYBIT_TOKEN_ADDRESS;
+  const usdcToken = process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS;
   const treasury = process.env.NEXT_PUBLIC_TREASURY_ADDRESS;
   const match3Game = process.env.NEXT_PUBLIC_MATCH3_GAME_ADDRESS;
 
-  await verifyContract(treasury, [joybitToken], "Treasury");
+  await verifyContract(treasury, [usdcToken], "Treasury");
   await verifyContract(match3Game, [treasury], "Match3Game");
 }
 
