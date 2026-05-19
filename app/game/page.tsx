@@ -1238,7 +1238,7 @@ export default function Match3Game() {
                   {/* Start from Level 1 */}
                   <button
                     onClick={() => startGame(1, false)}
-                    disabled={isStarting}
+                    disabled={isStarting || playFee === undefined}
                     className="theme-button-primary w-full px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 text-sm md:text-base hover:opacity-90"
                     style={{
                       backgroundColor: 'var(--theme-primary)',
@@ -1247,7 +1247,7 @@ export default function Match3Game() {
                   >
                     <div className="text-base md:text-lg mb-1">🆕 Start from Level 1</div>
                     <div className="text-xs opacity-90">
-                      {`${formatUnits(playFee || 0n, 6)} USDC`}
+                      {playFee === undefined ? 'Loading fee...' : `${formatUnits(playFee, 6)} USDC`}
                     </div>
                   </button>
 
@@ -1264,7 +1264,7 @@ export default function Match3Game() {
                     >
                       <div className="text-base md:text-lg mb-1">▶️ Continue from Level {lastPlayedLevel}</div>
                       <div className="text-xs opacity-90">
-                        {formatUnits(continueFee || 0n, 6)} USDC (Required)
+                        {continueFee === undefined ? 'Loading fee...' : `${formatUnits(continueFee, 6)} USDC (Required)`}
                       </div>
                     </button>
                   )}
