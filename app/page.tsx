@@ -326,7 +326,7 @@ export default function Home() {
 
 
 
-          <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:mt-6 lg:mt-8">
             <div className="mb-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <div className="text-xs uppercase tracking-wide text-gray-400">Wallet USDC</div>
@@ -375,6 +375,16 @@ export default function Home() {
                 ) : null}
               </div>
             ) : null}
+
+            {/* Info Section */}
+            <div className="mt-4 space-y-2 rounded-lg border border-white/10 bg-black/20 p-3">
+              <div className="text-xs font-semibold text-gray-300">📋 How it Works</div>
+              <div className="text-xs text-gray-400">
+                <p className="mb-1"><strong>Deposit:</strong> Transfer USDC from your wallet to treasury. Used to play games and earn rewards.</p>
+                <p className="mb-1"><strong>Withdraw:</strong> Reclaim your USDC anytime. Your balance is always yours.</p>
+                <p><strong>🔒 Secure:</strong> Smart contract based, non-custodial. Your funds are controlled only by you.</p>
+              </div>
+            </div>
           </div>
 
         </div>
