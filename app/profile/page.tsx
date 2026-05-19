@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 import { AudioButtons } from '@/components/AudioButtons'
+import { Logo } from '@/components/Logo'
 import { WalletButton } from '@/components/WalletButton'
 import { useAudio } from '@/components/audio/AudioContext'
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
@@ -91,49 +92,65 @@ export default function ProfilePage() {
 
   return (
     <main
-      className="min-h-screen px-4 py-5"
-      style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}
+      className="min-h-screen"
+      style={{
+        backgroundColor: 'var(--theme-background)',
+        backgroundImage:
+          'radial-gradient(70rem 32rem at 80% -8%, color-mix(in srgb, var(--theme-primary) 24%, transparent), transparent 62%), radial-gradient(52rem 28rem at -10% 100%, color-mix(in srgb, var(--theme-accent) 16%, transparent), transparent 60%)',
+        color: 'var(--theme-text)'
+      }}
     >
-      <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
-        <AudioButtons />
-        <WalletButton />
-      </div>
+      {/* Header */}
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-black/45 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+          <Logo size="small" />
+          <h1 className="flex-1 text-center text-lg font-black">Player Profile</h1>
+          <div className="flex items-center gap-2">
+            <AudioButtons splitButtons />
+            <WalletButton />
+          </div>
+        </div>
+      </header>
 
-      <div className="mx-auto max-w-3xl pt-14">
-        <div className="mb-6 flex items-center justify-between">
+      <div className="mx-auto max-w-6xl px-4 pb-10 pt-24 md:pb-10">
+        <div className="mb-6 flex items-center gap-2">
           <button
             type="button"
             onClick={() => router.push('/')}
-            className="rounded-lg px-4 py-2 text-sm font-semibold"
+            className="theme-button-brand-soft rounded-lg px-3 py-2 text-sm font-bold"
           >
-            Back
+            ← Home
           </button>
-          <h1 className="text-2xl font-black">Profile</h1>
-          <div className="w-16" />
         </div>
 
         {!isConnected ? (
-          <section className="rounded-xl border border-white/10 bg-white/[0.04] p-6 text-center">
-            <h2 className="mb-2 text-xl font-bold">Connect to view your profile</h2>
+          <section className="rounded-xl border border-white/10 bg-white/[0.04] p-8 text-center">
+            <h2 className="mb-3 text-2xl font-bold">Connect Wallet</h2>
+            <p className="text-gray-400">Connect your wallet to view your profile and manage rewards.</p>
           </section>
         ) : (
-          <div className="space-y-4">
-            <section className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-6">
+            {/* Stats Grid */}
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Stat label="Games Played" value={stats?.gamesPlayed ?? 0} />
               <Stat label="High Score" value={stats?.highScore ?? 0} />
               <Stat label="Best Level" value={stats?.highScoreLevel ?? 0} />
-            </section>
-
-            <section className="grid gap-3 sm:grid-cols-2">
-              <Stat label="Leaderboard Score" value={currentPlayer?.score ?? 0} />
               <Stat label="Rank" value={rank ? `#${rank}` : '-'} />
             </section>
 
-            <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
+            {/* Leaderboard Score Section */}
+            <section className="rounded-xl border border-white/10 bg-white/[0.04] p-6">
+              <h2 className="mb-2 text-lg font-bold">Leaderboard Score</h2>
+              <div className="text-4xl font-black text-blue-300">{currentPlayer?.score ?? 0}</div>
+              <p className="mt-2 text-sm text-gray-400">Your total competitive score on the leaderboard</p>
+            </section>
+
+            {/* Pending Rewards Section */}
+            <section className="rounded-xl border border-white/10 bg-white/[0.04] p-6">
+              <div className="mb-5 flex items-start justify-between gap-4 sm:items-center">
                 <div>
                   <h2 className="text-lg font-bold">Pending Rewards</h2>
-                  <p className="text-sm text-gray-400">Claim rewards earned from Joybit Blast.</p>
+                  <p className="mt-1 text-sm text-gray-400">Claim USDC earned from gameplay</p>
                 </div>
                 <button
                   type="button"
@@ -142,27 +159,29 @@ export default function ProfilePage() {
                     await refetch()
                   }}
                   disabled={isClaiming || !hasPendingRewards}
-                  className="theme-button-primary rounded-lg px-4 py-2 text-sm font-bold"
+                  className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-50 whitespace-nowrap"
                 >
                   {isClaiming ? 'Claiming...' : 'Claim All'}
                 </button>
               </div>
 
               {!hasPendingRewards ? (
-                <p className="text-sm text-gray-400">No pending rewards yet.</p>
+                <div className="rounded-lg bg-black/30 p-4 text-center">
+                  <p className="text-sm text-gray-400">No pending rewards. Keep playing to earn more!</p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {pendingRewards.map((reward) => (
                     <div
                       key={reward.token}
-                      className="flex items-center justify-between rounded-lg bg-black/30 px-3 py-2 text-sm"
+                      className="flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-4 py-3"
                     >
-                      <div className="flex flex-col">
-                        <span className="text-gray-300">{getTokenLabel(reward.token)}</span>
-                        <span className="font-mono text-[11px] text-gray-500">{reward.token}</span>
+                      <div>
+                        <span className="block font-semibold text-white">{getTokenLabel(reward.token)}</span>
+                        <span className="text-xs text-gray-500">{reward.token.slice(0, 6)}...{reward.token.slice(-4)}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold">{formatRewardAmount(reward.amount, reward.token)}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg font-bold">{formatRewardAmount(reward.amount, reward.token)}</span>
                         <button
                           type="button"
                           disabled={isClaiming || claimingToken === reward.token}
@@ -175,61 +194,11 @@ export default function ProfilePage() {
                               setClaimingToken(null)
                             }
                           }}
-                          className="rounded-md border border-white/15 px-2 py-1 text-xs font-semibold hover:bg-white/10 disabled:opacity-50"
+                          className="theme-button-brand-soft rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50"
                         >
                           {claimingToken === reward.token ? 'Claiming...' : 'Claim'}
                         </button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold">Seasonal Rewards</h2>
-                  <p className="text-sm text-gray-400">Shows distributed rewards you won for each period.</p>
-                </div>
-                <div className="rounded-lg border border-white/10 p-1 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setSeasonTab('weekly')}
-                    className={`rounded-md px-2 py-1 ${seasonTab === 'weekly' ? 'bg-white/20 text-white' : 'text-gray-400'}`}
-                  >
-                    Weekly
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSeasonTab('monthly')}
-                    className={`rounded-md px-2 py-1 ${seasonTab === 'monthly' ? 'bg-white/20 text-white' : 'text-gray-400'}`}
-                  >
-                    Monthly
-                  </button>
-                </div>
-              </div>
-
-              <div className="mb-3 rounded-lg bg-black/30 px-3 py-2 text-sm">
-                <span className="text-gray-400">Distributed rewards found: </span>
-                <span className="font-bold">{seasonalRows.length}</span>
-              </div>
-
-              {seasonalLoading ? (
-                <p className="text-sm text-gray-400">Loading seasonal rewards...</p>
-              ) : seasonalRows.length === 0 ? (
-                <p className="text-sm text-gray-400">No distributed {seasonTab} rewards won yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {seasonalRows.slice(0, 20).map((entry) => (
-                    <div key={`${entry.epochId}-${entry.tokenAddress}`} className="rounded-lg bg-black/30 px-3 py-2 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">Epoch #{entry.epochId} - Rank #{entry.rank}</span>
-                        <span className="font-bold">{formatSeasonalAmount(entry.amountRaw || '0', entry.tokenDecimals)} {getTokenLabel(entry.tokenAddress)}</span>
-                      </div>
-                      <div className="mt-1 text-xs text-gray-400">Token: {getTokenLabel(entry.tokenAddress)}</div>
-                      <div className="font-mono text-[11px] text-gray-500">{entry.tokenAddress}</div>
-                      <div className="text-xs text-gray-500">Status: {entry.claimed ? 'Claimed' : 'Pending'} | {entry.status}</div>
                     </div>
                   ))}
                 </div>
@@ -244,9 +213,9 @@ export default function ProfilePage() {
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
-      <div className="text-2xl font-black text-white">{value}</div>
-      <div className="mt-1 text-sm text-gray-400">{label}</div>
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-6">
+      <div className="text-3xl font-black text-blue-300">{value}</div>
+      <div className="mt-2 text-sm font-medium text-gray-400">{label}</div>
     </div>
   )
 }
