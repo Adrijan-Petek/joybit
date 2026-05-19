@@ -529,6 +529,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    if (action === 'delete-epoch') {
+      const epochId = toNumber(body.epochId)
+      if (!epochId) {
+        return NextResponse.json({ error: 'epochId is required' }, { status: 400 })
+      }
+
+      const existing = await db.execute({
+        sql: 'SELECT id FROM seasonal_reward_epochs WHERE id = ? LIMIT 1',
+        args: [epochId],
+      })
+
+      if (existing.rows.length === 0) {
+        return NextResponse.json({ error: 'Epoch not found' }, { status: 404 })
+      }
+
+      await db.batch([
+        {
+          sql: 'DELETE FROM seasonal_reward_fundings WHERE epoch_id = ?',
+          args: [epochId],
+        },
+        {
+          sql: 'DELETE FROM seasonal_reward_allocations WHERE epoch_id = ?',
+          args: [epochId],
+        },
+        {
+          sql: 'DELETE FROM seasonal_reward_epochs WHERE id = ?',
+          args: [epochId],
+        },
+      ], 'write')
+
+      return NextResponse.json({ success: true })
+    }
+
     if (action === 'mark-claimed') {
       const epochId = toNumber(body.epochId)
       const player = toText(body.address, '').toLowerCase()

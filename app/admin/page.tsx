@@ -934,6 +934,24 @@ export default function AdminPage() {
     }, 'Seasonal epoch marked distributed.')
   }
 
+  const handleDeleteEpoch = (epochIdInput?: number) => {
+    const parsedEpochId = epochIdInput ?? Number(seasonalEpochId)
+    if (!Number.isFinite(parsedEpochId) || parsedEpochId <= 0) {
+      setStatus('Enter a valid Epoch ID before deleting.')
+      return
+    }
+
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm(`Delete epoch #${parsedEpochId}? This permanently removes the epoch, allocations, and funding records.`)
+      if (!confirmed) return
+    }
+
+    callSeasonalAction({
+      action: 'delete-epoch',
+      epochId: parsedEpochId,
+    }, `Seasonal epoch #${parsedEpochId} deleted.`)
+  }
+
   useEffect(() => {
     fetchSeasonalEpochs()
   }, [])
@@ -1513,9 +1531,19 @@ export default function AdminPage() {
               ) : (
                 seasonalEpochs.map((epoch) => (
                   <div key={epoch.id} className="rounded-lg border border-white/10 bg-black/30 p-3 text-xs text-gray-300">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="font-bold">#{epoch.id} {formatEpochPeriod(epoch.period)} - {String(epoch.status || '').toUpperCase() || 'UNKNOWN'}</span>
-                      <span>Token decimals: {epoch.tokenDecimals || 18}</span>
+                      <div className="flex items-center gap-3">
+                        <span>Token decimals: {epoch.tokenDecimals || 18}</span>
+                        <button
+                          type="button"
+                          disabled={seasonalBusy}
+                          onClick={() => handleDeleteEpoch(epoch.id)}
+                          className="rounded border border-red-400/40 bg-red-500/20 px-2 py-1 text-[11px] font-semibold text-red-200 transition hover:bg-red-500/30"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                     <div className="mt-1 break-all">Token: {getTokenSymbol(epoch.tokenAddress)} ({epoch.tokenAddress})</div>
                     <div className="mt-1">Budget: {formatRawTokenAmount(epoch.budgetRaw, getTokenSymbol(epoch.tokenAddress), epoch.tokenDecimals || 18)}</div>
