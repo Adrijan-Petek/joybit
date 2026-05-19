@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { sdk } from '@farcaster/miniapp-sdk'
-import { useAccount } from 'wagmi'
+import { useAccount, useBalance, usePublicClient, useReadContract, useWriteContract } from 'wagmi'
+import { erc20Abi, formatUnits, isAddress, maxUint256, parseUnits, zeroAddress } from 'viem'
 import { AudioButtons } from '@/components/AudioButtons'
 import { InfoModal } from '@/components/InfoModal'
 import { Logo } from '@/components/Logo'
 import { WalletButton } from '@/components/WalletButton'
 import { useAudio } from '@/components/audio/AudioContext'
+import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
+import { TREASURY_ABI } from '@/lib/contracts/abis'
 
 const quickLinks = [
   { label: 'Leaderboard', href: '/leaderboard' },
@@ -22,13 +25,28 @@ const quickActions = [
 
 export default function Home() {
   const router = useRouter()
-  const { address } = useAccount()
+  const { address, isConnected } = useAccount()
+  const publicClient = usePublicClient()
+  const { writeContractAsync } = useWriteContract()
   const { playMusic } = useAudio()
   const [mounted, setMounted] = useState(false)
   const [logoClickCount, setLogoClickCount] = useState(0)
   const [showInfoModal, setShowInfoModal] = useState(false)
   const [miniAppBusy, setMiniAppBusy] = useState(false)
   const [userFid, setUserFid] = useState<number | null>(null)
+  const [depositAmount, setDepositAmount] = useState('10')
+  const [depositBusy, setDepositBusy] = useState(false)
+  const [depositStatus, setDepositStatus] = useState('')
+  const [withdrawAmount, setWithdrawAmount] = useState('10')
+  const [withdrawBusy, setWithdrawBusy] = useState(false)
+  const [withdrawStatus, setWithdrawStatus] = useState('')
+
+  const rewardTokenAddress = isAddress(CONTRACT_ADDRESSES.rewardToken)
+    ? (CONTRACT_ADDRESSES.rewardToken as `0x${string}`)
+    : undefined
+  const treasuryAddress = isAddress(CONTRACT_ADDRESSES.treasury)
+    ? (CONTRACT_ADDRESSES.treasury as `0x${string}`)
+    : undefined
 
   const adminWalletList = (process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES || process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS || '')
     .split(',')
@@ -38,6 +56,120 @@ export default function Home() {
   const isAuthorizedAdmin =
     (!!address && adminWalletList.includes(address.toLowerCase())) ||
     (!!userFid && adminFid > 0 && userFid === adminFid)
+
+  const { data: walletUsdcBalance, refetch: refetchWalletUsdcBalance } = useBalance({
+    address,
+    token: rewardTokenAddress,
+    query: {
+      enabled: !!address && !!rewardTokenAddress,
+    },
+  })
+
+  const { data: depositedUsdcRaw, refetch: refetchDepositedUsdc } = useReadContract({
+    address: treasuryAddress || zeroAddress,
+    abi: TREASURY_ABI,
+    functionName: 'balances',
+    args: [address || zeroAddress, rewardTokenAddress || zeroAddress],
+    query: {
+      enabled: !!address && !!rewardTokenAddress && !!treasuryAddress,
+    },
+  })
+
+  const handleDepositUsdc = useCallback(async () => {
+    if (!address || !rewardTokenAddress || !treasuryAddress) {
+      setDepositStatus('Connect wallet and ensure contract addresses are configured.')
+      return
+    }
+
+    try {
+      setDepositBusy(true)
+      setDepositStatus('Preparing USDC deposit...')
+
+      const decimals = walletUsdcBalance?.decimals ?? 6
+      const amount = parseUnits(depositAmount || '0', decimals)
+      if (amount <= 0n) {
+        setDepositStatus('Enter a valid deposit amount greater than 0.')
+        return
+      }
+
+      if (publicClient) {
+        const allowance = await publicClient.readContract({
+          address: rewardTokenAddress,
+          abi: erc20Abi,
+          functionName: 'allowance',
+          args: [address, treasuryAddress],
+        })
+
+        if (allowance < amount) {
+          setDepositStatus('Approving USDC spend...')
+          const approveHash = await writeContractAsync({
+            address: rewardTokenAddress,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [treasuryAddress, maxUint256],
+          })
+          await publicClient.waitForTransactionReceipt({ hash: approveHash })
+        }
+      }
+
+      setDepositStatus('Sending deposit transaction...')
+      const depositHash = await writeContractAsync({
+        address: treasuryAddress,
+        abi: TREASURY_ABI,
+        functionName: 'depositUSDC',
+        args: [amount],
+      })
+
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash: depositHash })
+      }
+
+      await Promise.all([refetchWalletUsdcBalance(), refetchDepositedUsdc()])
+      setDepositStatus('USDC deposited successfully.')
+    } catch (error) {
+      setDepositStatus(`Deposit failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setDepositBusy(false)
+    }
+  }, [address, rewardTokenAddress, treasuryAddress, walletUsdcBalance?.decimals, depositAmount, publicClient, writeContractAsync, refetchWalletUsdcBalance, refetchDepositedUsdc])
+
+  const handleWithdrawUsdc = useCallback(async () => {
+    if (!address || !rewardTokenAddress || !treasuryAddress) {
+      setWithdrawStatus('Connect wallet and ensure contract addresses are configured.')
+      return
+    }
+
+    try {
+      setWithdrawBusy(true)
+      setWithdrawStatus('Preparing USDC withdrawal...')
+
+      const decimals = walletUsdcBalance?.decimals ?? 6
+      const amount = parseUnits(withdrawAmount || '0', decimals)
+      if (amount <= 0n) {
+        setWithdrawStatus('Enter a valid withdrawal amount greater than 0.')
+        return
+      }
+
+      setWithdrawStatus('Sending withdrawal transaction...')
+      const withdrawHash = await writeContractAsync({
+        address: treasuryAddress,
+        abi: TREASURY_ABI,
+        functionName: 'withdraw',
+        args: [rewardTokenAddress, amount],
+      })
+
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash: withdrawHash })
+      }
+
+      await Promise.all([refetchWalletUsdcBalance(), refetchDepositedUsdc()])
+      setWithdrawStatus('USDC withdrawn successfully.')
+    } catch (error) {
+      setWithdrawStatus(`Withdrawal failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setWithdrawBusy(false)
+    }
+  }, [address, rewardTokenAddress, treasuryAddress, walletUsdcBalance?.decimals, withdrawAmount, publicClient, writeContractAsync, refetchWalletUsdcBalance, refetchDepositedUsdc])
 
   const handleAddMiniApp = useCallback(async () => {
     if (miniAppBusy) return
@@ -119,6 +251,10 @@ export default function Home() {
 
   if (!mounted) return null
 
+  const tokenDecimals = walletUsdcBalance?.decimals ?? 6
+  const walletUsdcValue = walletUsdcBalance?.value ?? 0n
+  const depositedUsdcValue = (depositedUsdcRaw as bigint) || 0n
+
   return (
     <main
       className="min-h-screen overflow-hidden"
@@ -152,7 +288,7 @@ export default function Home() {
       <button
         type="button"
         onClick={() => setShowInfoModal(true)}
-        className="fixed bottom-36 right-4 z-40 flex h-11 w-11 animate-pulse items-center justify-center rounded-full border border-white/15 bg-blue-500 text-base font-bold text-white shadow-lg md:bottom-20"
+        className="fixed bottom-36 right-4 z-40 flex h-10 w-10 animate-pulse items-center justify-center rounded-full border border-white/15 bg-blue-500 text-sm font-bold text-white shadow-lg md:bottom-20"
         title="How to play"
         aria-label="How to play"
       >
@@ -164,7 +300,7 @@ export default function Home() {
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-blue-300">
             Joybit Mini App
           </p>
-          <h1 className="mb-4 text-3xl font-black leading-tight text-white sm:text-4xl md:text-5xl">
+          <h1 className="mb-4 text-xl font-black leading-tight text-white sm:text-2xl md:text-3xl">
             Match. Climb. Earn.
           </h1>
           <p className="mb-7 text-base leading-7 text-gray-300 md:text-lg">
@@ -175,14 +311,14 @@ export default function Home() {
             <button
               type="button"
               onClick={() => router.push('/game')}
-              className="theme-button-brand rounded-xl px-7 py-4 text-base font-bold"
+              className="theme-button-brand rounded-xl px-6 py-2 text-sm font-bold"
             >
               Start Playing
             </button>
             <button
               type="button"
               onClick={() => router.push('/leaderboard')}
-              className="theme-button-brand-soft rounded-xl px-7 py-4 text-base font-bold"
+              className="theme-button-brand-soft rounded-xl px-6 py-2 text-sm font-bold"
             >
               View Leaderboard
             </button>
@@ -203,6 +339,61 @@ export default function Home() {
             </div>
           </div>
 
+          <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.04] p-2 text-left md:text-center">
+            <div className="mb-2 text-sm font-bold text-white">USDC Wallet & Treasury</div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-white/10 bg-black/30 p-2">
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">Wallet USDC</div>
+                <div className="mt-0.5 text-sm font-bold text-white">{formatUnits(walletUsdcValue, tokenDecimals)} USDC</div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/30 p-2">
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">Deposited USDC</div>
+                <div className="mt-0.5 text-sm font-bold text-white">{formatUnits(depositedUsdcValue, tokenDecimals)} USDC</div>
+              </div>
+            </div>
+
+            <div className="mt-1.5 flex flex-col gap-1 sm:flex-row">
+              <input
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder="Deposit"
+                className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs text-white"
+              />
+              <button
+                type="button"
+                disabled={!isConnected || depositBusy || !rewardTokenAddress || !treasuryAddress}
+                onClick={handleDepositUsdc}
+                className="theme-button-brand rounded-lg px-2 py-1 text-xs font-bold disabled:opacity-50 w-24 text-center"
+              >
+                {depositBusy ? 'Depositing...' : 'Deposit'}
+              </button>
+            </div>
+
+            <div className="mt-1 flex flex-col gap-1 sm:flex-row">
+              <input
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                placeholder="Withdraw"
+                className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs text-white"
+              />
+              <button
+                type="button"
+                disabled={!isConnected || withdrawBusy || !rewardTokenAddress || !treasuryAddress}
+                onClick={handleWithdrawUsdc}
+                className="theme-button-brand-soft rounded-lg px-2 py-1 text-xs font-bold disabled:opacity-50 w-24 text-center"
+              >
+                {withdrawBusy ? 'Withdrawing...' : 'Withdraw'}
+              </button>
+            </div>
+
+            {depositStatus ? (
+              <div className="mt-1 text-xs text-gray-300">{depositStatus}</div>
+            ) : null}
+            {withdrawStatus ? (
+              <div className="mt-1 text-xs text-gray-300">{withdrawStatus}</div>
+            ) : null}
+          </div>
+
         </div>
       </section>
 
@@ -213,7 +404,7 @@ export default function Home() {
               key={link.href}
               type="button"
               onClick={() => router.push(link.href)}
-              className="theme-button-brand-soft rounded-lg px-2 py-3 text-xs font-semibold"
+              className="theme-button-brand-soft rounded-lg px-2 py-1 text-[11px] font-semibold"
             >
               {link.label}
             </button>
@@ -230,7 +421,7 @@ export default function Home() {
                 }
               }}
               disabled={item.action === 'add-mini-app' && miniAppBusy}
-              className="theme-button-brand rounded-lg px-2 py-3 text-xs font-semibold"
+              className="theme-button-brand rounded-lg px-2 py-1 text-[11px] font-semibold"
             >
               {item.action === 'add-mini-app' && miniAppBusy ? 'Adding...' : item.label}
             </button>
@@ -245,7 +436,7 @@ export default function Home() {
               key={link.href}
               type="button"
               onClick={() => router.push(link.href)}
-              className="theme-button-brand-soft rounded-lg px-4 py-2 text-sm font-semibold"
+              className="theme-button-brand-soft rounded-lg px-3 py-1 text-xs font-semibold"
             >
               {link.label}
             </button>
@@ -262,7 +453,7 @@ export default function Home() {
                 }
               }}
               disabled={item.action === 'add-mini-app' && miniAppBusy}
-              className="theme-button-brand rounded-lg px-4 py-2 text-sm font-semibold"
+              className="theme-button-brand rounded-lg px-3 py-1 text-xs font-semibold"
             >
               {item.action === 'add-mini-app' && miniAppBusy ? 'Adding...' : item.label}
             </button>
