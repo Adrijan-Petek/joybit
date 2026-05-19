@@ -97,11 +97,19 @@ export function WalletButton() {
 
   // Fetch Base identity (name + avatar) as fallback when Mini App profile data is absent.
   useEffect(() => {
-    if (!address) return
+    if (!address || basename) return
 
     const fetchBaseIdentity = async () => {
       try {
-        const response = await fetch(`/api/get-basename?address=${address}`, { cache: 'no-store' })
+        const cacheKey = `identity:${address.toLowerCase()}`
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          const { name, avatar } = JSON.parse(cached)
+          if (name) setBasename(name)
+          if (avatar) setBaseAvatar(avatar)
+          return
+        }
+        const response = await fetch(`/api/get-basename?address=${address}`)
         if (!response.ok) return
         const data = (await response.json()) as BaseIdentityData & { basename?: string | null }
         
@@ -110,24 +118,32 @@ export function WalletButton() {
         if (data.avatar) {
           setBaseAvatar(data.avatar)
         }
+        sessionStorage.setItem(cacheKey, JSON.stringify({ name: resolvedName, avatar: data.avatar || null }))
       } catch (error) {
         console.log('Could not fetch Base identity:', error)
       }
     }
 
     fetchBaseIdentity()
-  }, [address])
+  }, [address, basename])
 
   // Fetch persisted user profile (username/pfp) as additional fallback.
   useEffect(() => {
-    if (!address) return
+    if (!address || userData) return
 
     const fetchUserData = async () => {
       try {
+        const cacheKey = `userprofile:${address.toLowerCase()}`
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          setUserData(JSON.parse(cached))
+          return
+        }
         const response = await fetch(`/api/user-profile?address=${address}`)
         if (response.ok) {
           const data = await response.json()
           setUserData(data)
+          sessionStorage.setItem(cacheKey, JSON.stringify(data))
         }
       } catch (error) {
         console.log('Could not fetch user profile:', error)
@@ -135,7 +151,7 @@ export function WalletButton() {
     }
 
     fetchUserData()
-  }, [address])
+  }, [address, userData])
 
   // Auto-connect to Farcaster Wallet when in MiniApp
   useEffect(() => {

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 import { Avatar } from '@coinbase/onchainkit/identity'
 import { AudioButtons } from '@/components/AudioButtons'
+import { Logo } from '@/components/Logo'
 import { WalletButton } from '@/components/WalletButton'
 import { useAudio } from '@/components/audio/AudioContext'
 import { useLeaderboard } from '@/lib/hooks/useLeaderboard'
@@ -55,12 +56,17 @@ export default function Leaderboard() {
       className="min-h-screen px-4 py-5"
       style={{ backgroundColor: 'var(--theme-background)', color: 'var(--theme-text)' }}
     >
-      <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
-        <AudioButtons />
-        <WalletButton />
-      </div>
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-black/45 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+          <Logo size="small" />
+          <div className="flex items-center gap-2">
+            <AudioButtons splitButtons />
+            <WalletButton />
+          </div>
+        </div>
+      </header>
 
-      <div className="mx-auto max-w-3xl pt-14">
+      <div className="mx-auto max-w-3xl pt-20">
         <div className="mb-6 flex items-center justify-between">
           <button
             type="button"

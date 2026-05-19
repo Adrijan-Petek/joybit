@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         avatar,
       }, {
         headers: {
-          'Cache-Control': 'no-store'
+          'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600'
         }
       })
     }
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       avatar,
     }, {
       headers: {
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600'
       }
     })
 

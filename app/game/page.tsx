@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -1192,7 +1192,7 @@ export default function Match3Game() {
                         </span>
                   </div>
                       <div className="text-center text-[9px] md:text-[10px] mb-2" style={{ color: 'var(--theme-text-secondary)' }}>
-                        This week’s milestones and JOYB rewards.
+                        This week's reward pool.
                       </div>
                       {weeklyRewardSummary ? (
                         <div className="mx-auto max-w-[240px] text-center py-1">
@@ -1212,7 +1212,7 @@ export default function Match3Game() {
                     </div>
                   )}
                   <div className="text-center text-[9px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
-                    Complete levels this week to earn JOYB rewards.
+                    Complete levels this week to earn rewards.
                   </div>
                 </div>
               </div>

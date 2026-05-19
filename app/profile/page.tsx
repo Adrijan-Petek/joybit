@@ -104,7 +104,6 @@ export default function ProfilePage() {
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-black/45 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Logo size="small" />
-          <h1 className="flex-1 text-center text-lg font-black">Player Profile</h1>
           <div className="flex items-center gap-2">
             <AudioButtons splitButtons />
             <WalletButton />
@@ -112,7 +111,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 pb-10 pt-24 md:pb-10">
+      <div className="mx-auto max-w-6xl px-4 pb-10 pt-24 sm:pb-28 sm:pt-20 md:pb-10 md:pt-20">
         <div className="mb-6 flex items-center gap-2">
           <button
             type="button"

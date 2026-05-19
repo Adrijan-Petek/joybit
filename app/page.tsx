@@ -295,7 +295,7 @@ export default function Home() {
         i
       </button>
 
-      <section className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 pb-20 pt-20 sm:pb-28 sm:pt-16 md:pb-10 md:pt-16">
+      <section className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 pb-20 pt-24 sm:pb-28 sm:pt-20 md:pb-10 md:pt-20">
         <div className="max-w-xl md:mx-auto md:text-center">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-blue-300 sm:text-base">
             Joybit Mini App
