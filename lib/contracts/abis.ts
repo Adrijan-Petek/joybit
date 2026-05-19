@@ -13,6 +13,7 @@ export const TREASURY_ABI = [
   { type: 'function', name: 'setAuthorizedGame', stateMutability: 'nonpayable', inputs: [{ name: 'game', type: 'address', internalType: 'address' }, { name: 'status', type: 'bool', internalType: 'bool' }], outputs: [] },
   { type: 'function', name: 'setFeePercent', stateMutability: 'nonpayable', inputs: [{ name: 'percent', type: 'uint256', internalType: 'uint256' }], outputs: [] },
   { type: 'function', name: 'withdrawProtocolFees', stateMutability: 'nonpayable', inputs: [{ name: 'token', type: 'address', internalType: 'address' }, { name: 'amount', type: 'uint256', internalType: 'uint256' }], outputs: [] },
+  { type: 'function', name: 'withdraw', stateMutability: 'nonpayable', inputs: [{ name: 'token', type: 'address', internalType: 'address' }, { name: 'amount', type: 'uint256', internalType: 'uint256' }], outputs: [] },
   { type: 'function', name: 'chargeFromBalance', stateMutability: 'nonpayable', inputs: [{ name: 'player', type: 'address', internalType: 'address' }, { name: 'token', type: 'address', internalType: 'address' }, { name: 'amount', type: 'uint256', internalType: 'uint256' }], outputs: [] },
   { type: 'function', name: 'chargeDirectUSDC', stateMutability: 'nonpayable', inputs: [{ name: 'player', type: 'address', internalType: 'address' }, { name: 'amount', type: 'uint256', internalType: 'uint256' }], outputs: [] },
   { type: 'function', name: 'depositUSDC', stateMutability: 'nonpayable', inputs: [{ name: 'amount', type: 'uint256', internalType: 'uint256' }], outputs: [] },
