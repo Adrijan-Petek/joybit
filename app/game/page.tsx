@@ -782,28 +782,9 @@ export default function Match3Game() {
     }
   }, [gameState.level, continueFee, continueLevel, isConnected, address, playSound, refetch, ensureCanPayUsdc, sessionId])
 
-  const handleNextLevel = async () => {
-    if (!isConnected || !address) return
-
-    if (playFee === undefined) {
-      console.log('Game fee is still loading, skipping next level start request.')
-      return
-    }
-
-    if (!ensureCanPayUsdc(playFee, 'starting the next level')) {
-      return
-    }
-
+  const handleNextLevel = () => {
     const nextLevel = gameState.level + 1
     const config = getLevelConfig(nextLevel)
-
-    try {
-      const { sessionId: confirmedSessionId } = await startGameContract(nextLevel, playFee)
-      setSessionId(confirmedSessionId)
-    } catch (error) {
-      console.error('Failed to start next level on-chain:', error)
-      return
-    }
     
     // Update game state locally - no blockchain interaction
     setGameState(prev => ({
