@@ -766,9 +766,7 @@ export default function Match3Game() {
       setGameState(prev => ({
         ...prev,
         grid: initializeGrid(config.tileTypes),
-        score: 0,
         moves: config.moves,
-        targetScore: config.targetScore,
         timeLeft: config.timeLimit,
         isPlaying: true,
         selectedTile: null,
