@@ -2,7 +2,7 @@ import { useAccount, usePublicClient, useReadContract, useWaitForTransactionRece
 import { CONTRACT_ADDRESSES } from '../contracts/addresses'
 import { MATCH3_GAME_ABI } from '../contracts/abis'
 import { useState } from 'react'
-import { erc20Abi, maxUint256 } from 'viem'
+import { erc20Abi, maxUint256, zeroAddress } from 'viem'
 
 type PaymentSource = 'wallet' | 'deposit'
 
@@ -24,6 +24,45 @@ export function useMatch3Game() {
   const { isLoading: isStartConfirming } = useWaitForTransactionReceipt({
     hash: txHash,
   })
+
+  const resolveLatestSessionId = async (player: `0x${string}`) => {
+    if (!publicClient) return null
+
+    const nextSession = await publicClient.readContract({
+      address: CONTRACT_ADDRESSES.match3Game as `0x${string}`,
+      abi: MATCH3_GAME_ABI,
+      functionName: 'nextSessionId',
+    }) as bigint
+
+    const upperBound = nextSession > 0n ? nextSession - 1n : 0n
+    if (upperBound === 0n) return null
+
+    const lowerBound = upperBound > 40n ? upperBound - 40n : 1n
+    const normalizedPlayer = player.toLowerCase()
+    const rewardToken = (CONTRACT_ADDRESSES.rewardToken || zeroAddress).toLowerCase()
+
+    for (let id = upperBound; id >= lowerBound; id--) {
+      const session = await publicClient.readContract({
+        address: CONTRACT_ADDRESSES.match3Game as `0x${string}`,
+        abi: MATCH3_GAME_ABI,
+        functionName: 'sessions',
+        args: [id],
+      }) as readonly [`0x${string}`, `0x${string}`, bigint, boolean]
+
+      const [sessionPlayer, token, , completed] = session
+      if (
+        sessionPlayer.toLowerCase() === normalizedPlayer &&
+        token.toLowerCase() === rewardToken &&
+        !completed
+      ) {
+        return id
+      }
+
+      if (id === 1n) break
+    }
+
+    return null
+  }
 
   const ensureUsdcAllowance = async (amount: bigint) => {
     if (!publicClient || !address || amount <= 0n) return
@@ -48,6 +87,10 @@ export function useMatch3Game() {
   }
 
   const startGame = async (_level: number, value?: bigint) => {
+    if (!address) {
+      throw new Error('Wallet not connected')
+    }
+
     await ensureUsdcAllowance(value || 0n)
 
     const hash = await gameWrite({
@@ -57,8 +100,18 @@ export function useMatch3Game() {
       args: [CONTRACT_ADDRESSES.rewardToken as `0x${string}`, false],
       value: 0n,
     })
+
+    await publicClient?.waitForTransactionReceipt({ hash })
+    const resolvedSessionId = await resolveLatestSessionId(address as `0x${string}`)
+    if (resolvedSessionId === null) {
+      throw new Error('Could not resolve session ID after startGame confirmation')
+    }
+
     setTxHash(hash)
-    return hash
+    return {
+      hash,
+      sessionId: resolvedSessionId,
+    }
   }
 
   const continueLevel = async (sessionId: bigint, value?: bigint) => {

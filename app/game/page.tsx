@@ -119,7 +119,7 @@ export default function Match3Game() {
     buyShufflePack,
     buyColorBombPack
   } = useMatch3Game()
-  const { playFee, continueFee, maxReward, nextSessionId, boosterPrices, refetch } = useMatch3GameData(address)
+  const { playFee, continueFee, maxReward, boosterPrices, refetch } = useMatch3GameData(address)
   const { stats: match3Stats, saveStats } = useMatch3Stats(address)
   
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -319,9 +319,8 @@ export default function Match3Game() {
         return
       }
       
-      const sessionPreview = nextSessionId ? BigInt(nextSessionId) : null
-      await startGameContract(level, value)
-      setSessionId(sessionPreview ?? BigInt(Date.now()))
+      const { sessionId: confirmedSessionId } = await startGameContract(level, value)
+      setSessionId(confirmedSessionId)
       
       setGameState({
         grid: initializeGrid(config.tileTypes),
@@ -340,7 +339,7 @@ export default function Match3Game() {
     } catch (error) {
       console.error('Failed to start game:', error)
     }
-  }, [playSound, gameState.boosters, playFee, startGameContract, isConnected, address, refetch, ensureCanPayUsdc, nextSessionId])
+  }, [playSound, gameState.boosters, playFee, startGameContract, isConnected, address, refetch, ensureCanPayUsdc])
 
   // Submit game result
   const endGame = useCallback(async (won: boolean) => {
@@ -783,13 +782,28 @@ export default function Match3Game() {
     }
   }, [gameState.level, continueFee, continueLevel, isConnected, address, playSound, refetch, ensureCanPayUsdc, sessionId])
 
-  const handleNextLevel = () => {
+  const handleNextLevel = async () => {
+    if (!isConnected || !address) return
+
+    if (playFee === undefined) {
+      console.log('Game fee is still loading, skipping next level start request.')
+      return
+    }
+
+    if (!ensureCanPayUsdc(playFee, 'starting the next level')) {
+      return
+    }
+
     const nextLevel = gameState.level + 1
     const config = getLevelConfig(nextLevel)
-    
-    // Generate new session ID for tracking (no contract call needed)
-    const newSessionId = BigInt(Date.now())
-    setSessionId(newSessionId)
+
+    try {
+      const { sessionId: confirmedSessionId } = await startGameContract(nextLevel, playFee)
+      setSessionId(confirmedSessionId)
+    } catch (error) {
+      console.error('Failed to start next level on-chain:', error)
+      return
+    }
     
     // Update game state locally - no blockchain interaction
     setGameState(prev => ({
