@@ -3,15 +3,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { sdk } from '@farcaster/miniapp-sdk'
-import { useAccount, useBalance, usePublicClient, useReadContract, useWriteContract } from 'wagmi'
-import { erc20Abi, formatUnits, isAddress, maxUint256, parseUnits, zeroAddress } from 'viem'
+import { useAccount } from 'wagmi'
 import { AudioButtons } from '@/components/AudioButtons'
 import { InfoModal } from '@/components/InfoModal'
 import { Logo } from '@/components/Logo'
 import { WalletButton } from '@/components/WalletButton'
 import { useAudio } from '@/components/audio/AudioContext'
-import { CONTRACT_ADDRESSES } from '@/lib/contracts/addresses'
-import { TREASURY_ABI } from '@/lib/contracts/abis'
 
 const quickLinks = [
   { label: 'Leaderboard', href: '/leaderboard' },
@@ -25,28 +22,13 @@ const quickActions = [
 
 export default function Home() {
   const router = useRouter()
-  const { address, isConnected } = useAccount()
-  const publicClient = usePublicClient()
-  const { writeContractAsync } = useWriteContract()
+  const { address } = useAccount()
   const { playMusic } = useAudio()
   const [mounted, setMounted] = useState(false)
   const [logoClickCount, setLogoClickCount] = useState(0)
   const [showInfoModal, setShowInfoModal] = useState(false)
   const [miniAppBusy, setMiniAppBusy] = useState(false)
   const [userFid, setUserFid] = useState<number | null>(null)
-  const [depositAmount, setDepositAmount] = useState('10')
-  const [depositBusy, setDepositBusy] = useState(false)
-  const [depositStatus, setDepositStatus] = useState('')
-  const [withdrawAmount, setWithdrawAmount] = useState('10')
-  const [withdrawBusy, setWithdrawBusy] = useState(false)
-  const [withdrawStatus, setWithdrawStatus] = useState('')
-
-  const rewardTokenAddress = isAddress(CONTRACT_ADDRESSES.rewardToken)
-    ? (CONTRACT_ADDRESSES.rewardToken as `0x${string}`)
-    : undefined
-  const treasuryAddress = isAddress(CONTRACT_ADDRESSES.treasury)
-    ? (CONTRACT_ADDRESSES.treasury as `0x${string}`)
-    : undefined
 
   const adminWalletList = (process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES || process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS || '')
     .split(',')
@@ -56,120 +38,6 @@ export default function Home() {
   const isAuthorizedAdmin =
     (!!address && adminWalletList.includes(address.toLowerCase())) ||
     (!!userFid && adminFid > 0 && userFid === adminFid)
-
-  const { data: walletUsdcBalance, refetch: refetchWalletUsdcBalance } = useBalance({
-    address,
-    token: rewardTokenAddress,
-    query: {
-      enabled: !!address && !!rewardTokenAddress,
-    },
-  })
-
-  const { data: depositedUsdcRaw, refetch: refetchDepositedUsdc } = useReadContract({
-    address: treasuryAddress || zeroAddress,
-    abi: TREASURY_ABI,
-    functionName: 'balances',
-    args: [address || zeroAddress, rewardTokenAddress || zeroAddress],
-    query: {
-      enabled: !!address && !!rewardTokenAddress && !!treasuryAddress,
-    },
-  })
-
-  const handleDepositUsdc = useCallback(async () => {
-    if (!address || !rewardTokenAddress || !treasuryAddress) {
-      setDepositStatus('Connect wallet and ensure contract addresses are configured.')
-      return
-    }
-
-    try {
-      setDepositBusy(true)
-      setDepositStatus('Preparing USDC deposit...')
-
-      const decimals = walletUsdcBalance?.decimals ?? 6
-      const amount = parseUnits(depositAmount || '0', decimals)
-      if (amount <= 0n) {
-        setDepositStatus('Enter a valid deposit amount greater than 0.')
-        return
-      }
-
-      if (publicClient) {
-        const allowance = await publicClient.readContract({
-          address: rewardTokenAddress,
-          abi: erc20Abi,
-          functionName: 'allowance',
-          args: [address, treasuryAddress],
-        })
-
-        if (allowance < amount) {
-          setDepositStatus('Approving USDC spend...')
-          const approveHash = await writeContractAsync({
-            address: rewardTokenAddress,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [treasuryAddress, maxUint256],
-          })
-          await publicClient.waitForTransactionReceipt({ hash: approveHash })
-        }
-      }
-
-      setDepositStatus('Sending deposit transaction...')
-      const depositHash = await writeContractAsync({
-        address: treasuryAddress,
-        abi: TREASURY_ABI,
-        functionName: 'depositUSDC',
-        args: [amount],
-      })
-
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: depositHash })
-      }
-
-      await Promise.all([refetchWalletUsdcBalance(), refetchDepositedUsdc()])
-      setDepositStatus('USDC deposited successfully.')
-    } catch (error) {
-      setDepositStatus(`Deposit failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    } finally {
-      setDepositBusy(false)
-    }
-  }, [address, rewardTokenAddress, treasuryAddress, walletUsdcBalance?.decimals, depositAmount, publicClient, writeContractAsync, refetchWalletUsdcBalance, refetchDepositedUsdc])
-
-  const handleWithdrawUsdc = useCallback(async () => {
-    if (!address || !rewardTokenAddress || !treasuryAddress) {
-      setWithdrawStatus('Connect wallet and ensure contract addresses are configured.')
-      return
-    }
-
-    try {
-      setWithdrawBusy(true)
-      setWithdrawStatus('Preparing USDC withdrawal...')
-
-      const decimals = walletUsdcBalance?.decimals ?? 6
-      const amount = parseUnits(withdrawAmount || '0', decimals)
-      if (amount <= 0n) {
-        setWithdrawStatus('Enter a valid withdrawal amount greater than 0.')
-        return
-      }
-
-      setWithdrawStatus('Sending withdrawal transaction...')
-      const withdrawHash = await writeContractAsync({
-        address: treasuryAddress,
-        abi: TREASURY_ABI,
-        functionName: 'withdraw',
-        args: [rewardTokenAddress, amount],
-      })
-
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: withdrawHash })
-      }
-
-      await Promise.all([refetchWalletUsdcBalance(), refetchDepositedUsdc()])
-      setWithdrawStatus('USDC withdrawn successfully.')
-    } catch (error) {
-      setWithdrawStatus(`Withdrawal failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    } finally {
-      setWithdrawBusy(false)
-    }
-  }, [address, rewardTokenAddress, treasuryAddress, walletUsdcBalance?.decimals, withdrawAmount, publicClient, writeContractAsync, refetchWalletUsdcBalance, refetchDepositedUsdc])
 
   const handleAddMiniApp = useCallback(async () => {
     if (miniAppBusy) return
@@ -251,10 +119,6 @@ export default function Home() {
 
   if (!mounted) return null
 
-  const tokenDecimals = walletUsdcBalance?.decimals ?? 6
-  const walletUsdcValue = walletUsdcBalance?.value ?? 0n
-  const depositedUsdcValue = (depositedUsdcRaw as bigint) || 0n
-
   return (
     <main
       className="min-h-screen overflow-hidden"
@@ -323,70 +187,6 @@ export default function Home() {
               View Leaderboard
             </button>
           </div>
-
-
-
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:mt-6 lg:mt-8">
-            <div className="mb-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <div className="text-xs uppercase tracking-wide text-gray-400">Wallet USDC</div>
-                <div className="mt-1 text-lg font-bold text-white">{formatUnits(walletUsdcValue, tokenDecimals)} USDC</div>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <div className="text-xs uppercase tracking-wide text-gray-400">Deposited USDC</div>
-                <div className="mt-1 text-lg font-bold text-white">{formatUnits(depositedUsdcValue, tokenDecimals)} USDC</div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
-              <div className="text-sm font-semibold text-gray-300 whitespace-nowrap">Manage Funds</div>
-              
-              <input
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="10"
-                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white w-20"
-              />
-              <button
-                type="button"
-                disabled={!isConnected || depositBusy || !rewardTokenAddress || !treasuryAddress}
-                onClick={handleDepositUsdc}
-                className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-50 whitespace-nowrap"
-              >
-                {depositBusy ? 'Depositing...' : 'Deposit'}
-              </button>
-              <button
-                type="button"
-                disabled={!isConnected || withdrawBusy || !rewardTokenAddress || !treasuryAddress}
-                onClick={handleWithdrawUsdc}
-                className="theme-button-brand-soft rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-50 whitespace-nowrap"
-              >
-                {withdrawBusy ? 'Withdrawing...' : 'Withdraw'}
-              </button>
-            </div>
-
-            {(depositStatus || withdrawStatus) ? (
-              <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3">
-                {depositStatus ? (
-                  <div className="text-sm text-gray-300">{depositStatus}</div>
-                ) : null}
-                {withdrawStatus ? (
-                  <div className="text-sm text-gray-300">{withdrawStatus}</div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {/* Info Section */}
-            <div className="mt-4 space-y-2 rounded-lg border border-white/10 bg-black/20 p-3">
-              <div className="text-xs font-semibold text-gray-300">📋 How it Works</div>
-              <div className="text-xs text-gray-400">
-                <p className="mb-1"><strong>Deposit:</strong> Transfer USDC from your wallet to treasury. Used to play games and earn rewards.</p>
-                <p className="mb-1"><strong>Withdraw:</strong> Reclaim your USDC anytime. Your balance is always yours.</p>
-                <p><strong>🔒 Secure:</strong> Smart contract based, non-custodial. Your funds are controlled only by you.</p>
-              </div>
-            </div>
-          </div>
-
         </div>
       </section>
 

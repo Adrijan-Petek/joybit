@@ -214,13 +214,7 @@ function allocateRewardsByBps(players: RankedPlayer[], budgetRaw: bigint, payout
   let distributed = 0n
   const allocations = players.map((player, index) => {
     const bps = payoutBps[index] || 0
-    let amount = (budgetRaw * BigInt(bps)) / 10000n
-
-    if (index === 0) {
-      const remainder = budgetRaw - distributed - amount
-      if (remainder > 0n) amount += remainder
-    }
-
+    const amount = (budgetRaw * BigInt(bps)) / 10000n
     distributed += amount
     return {
       ...player,
@@ -228,6 +222,11 @@ function allocateRewardsByBps(players: RankedPlayer[], budgetRaw: bigint, payout
       payoutBps: bps,
     }
   })
+
+  if (allocations.length > 0 && distributed < budgetRaw) {
+    const remainder = budgetRaw - distributed
+    allocations[0].amountRaw = (BigInt(allocations[0].amountRaw) + remainder).toString()
+  }
 
   return allocations
 }
@@ -249,6 +248,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const address = searchParams.get('address')
+    const epochIdParam = searchParams.get('epochId')
 
     if (address) {
       const normalized = address.toLowerCase()
@@ -308,6 +308,33 @@ export async function GET(request: NextRequest) {
         monthlyPendingRaw,
         allocations,
       })
+    }
+
+    if (epochIdParam) {
+      const epochId = Number(epochIdParam)
+      if (!Number.isFinite(epochId) || epochId <= 0) {
+        return NextResponse.json({ error: 'Invalid epochId' }, { status: 400 })
+      }
+
+      const allocationsResult = await db.execute({
+        sql: `
+          SELECT address, rank, score, amount_raw, claimed
+          FROM seasonal_reward_allocations
+          WHERE epoch_id = ?
+          ORDER BY rank ASC
+        `,
+        args: [epochId],
+      })
+
+      const allocations = allocationsResult.rows.map((row) => ({
+        address: toText(row.address).toLowerCase(),
+        rank: toNumber(row.rank),
+        score: toNumber(row.score),
+        amountRaw: toText(row.amount_raw, '0'),
+        claimed: toNumber(row.claimed) === 1,
+      }))
+
+      return NextResponse.json({ epochId, allocations })
     }
 
     const latestEpochsResult = await db.execute(`
@@ -418,6 +445,10 @@ export async function POST(request: NextRequest) {
           ...player,
           rank: index + 1,
         }))
+
+      if (ranked.length === 0) {
+        return NextResponse.json({ error: 'No leaderboard players with score > 0 for this period. Play games first, then finalize.' }, { status: 409 })
+      }
 
       const effectivePayoutBps = normalizeBps(payoutBps.slice(0, ranked.length))
       const allocations = allocateRewardsByBps(ranked, budgetRaw, effectivePayoutBps)

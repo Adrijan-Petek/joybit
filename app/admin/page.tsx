@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAccount, useReadContract, useWriteContract } from 'wagmi'
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from 'wagmi'
 import { formatEther, formatUnits, isAddress, parseEther, parseUnits, zeroAddress } from 'viem'
 import { AudioButtons } from '@/components/AudioButtons'
 import { Logo } from '@/components/Logo'
@@ -83,6 +83,7 @@ function formatRawTokenAmount(raw: string | undefined, symbol: string, decimals 
 export default function AdminPage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
+  const publicClient = usePublicClient()
   const { writeContractAsync, isPending } = useWriteContract()
 
   const [mounted, setMounted] = useState(false)
@@ -766,6 +767,17 @@ export default function AdminPage() {
       setStatus('Withdrawing USDC protocol fees...')
       const rewardTokenDecimals = Number(rewardTokenDecimalsData ?? 6)
       const amount = parseUnits(withdrawTokenAmount || '0', rewardTokenDecimals)
+      if (amount <= 0n) {
+        setStatus('Withdraw amount must be greater than 0.')
+        return
+      }
+
+      const currentProtocolFees = (treasuryProtocolFees as bigint) || 0n
+      if (amount > currentProtocolFees) {
+        setStatus(`Withdraw amount exceeds protocol fees. Available: ${formatUnits(currentProtocolFees, rewardTokenDecimals)} USDC`)
+        return
+      }
+
       await writeContractAsync({
         address: CONTRACT_ADDRESSES.treasury,
         abi: TREASURY_ABI,
@@ -845,13 +857,15 @@ export default function AdminPage() {
       const data = await response.json()
       if (!response.ok) {
         setStatus(data?.error || 'Seasonal rewards action failed.')
-        return
+        return false
       }
 
       setStatus(successMessage)
       await fetchSeasonalEpochs()
+      return true
     } catch (error) {
       setStatus(`Seasonal rewards action failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return false
     } finally {
       setSeasonalBusy(false)
     }
@@ -997,16 +1011,133 @@ export default function AdminPage() {
     }
   }
 
-  const handleDistributeEpoch = () => {
+  const handleDistributeEpoch = async () => {
     if (!seasonalEpochId || Number(seasonalEpochId) <= 0) {
       setStatus('Enter a valid Epoch ID before distribution.')
       return
     }
 
-    callSeasonalAction({
+    if (!address || !isAddress(address)) {
+      setStatus('Connect an admin wallet before distributing.')
+      return
+    }
+
+    if (!validRewardTokenAddress) {
+      setStatus('USDC token address is invalid or missing in env.')
+      return
+    }
+
+    if (rewardPoolValue <= 0n) {
+      setStatus('Reward pool is empty. Fund the pool before distributing.')
+      return
+    }
+
+    try {
+      const loadAllocations = async (epochId: number) => {
+        const response = await fetch(`/api/rewards/epochs?epochId=${epochId}`)
+        const payload = await response.json()
+        if (!response.ok) {
+          throw new Error(payload?.error || 'Failed to load epoch allocations for distribution.')
+        }
+        return Array.isArray(payload?.allocations) ? payload.allocations : []
+      }
+
+      const selectedEpochId = Number(seasonalEpochId)
+      let rawAllocations = await loadAllocations(selectedEpochId)
+
+      if (rawAllocations.length === 0) {
+        const latestFinalizedEpoch = [...seasonalEpochs]
+          .filter((epoch) => String(epoch.status || '').toLowerCase() === 'finalized')
+          .sort((a, b) => b.id - a.id)[0]
+
+        if (latestFinalizedEpoch && latestFinalizedEpoch.id !== selectedEpochId) {
+          rawAllocations = await loadAllocations(latestFinalizedEpoch.id)
+          setSeasonalEpochId(String(latestFinalizedEpoch.id))
+        }
+      }
+
+      const allocations = rawAllocations
+        .map((entry) => {
+          const player = typeof entry?.address === 'string' ? entry.address.toLowerCase() : ''
+          const amountRaw = typeof entry?.amountRaw === 'string' ? entry.amountRaw : '0'
+          return { player, amountRaw }
+        })
+        .filter((entry) => isAddress(entry.player))
+
+      if (allocations.length === 0) {
+        setStatus('No valid wallet allocations found for this epoch. Finalize after players have leaderboard scores.')
+        return
+      }
+
+      if (!publicClient) {
+        setStatus('Wallet client is not ready. Try again.')
+        return
+      }
+
+      const walletAuthorized = await publicClient.readContract({
+        address: treasuryAddress,
+        abi: TREASURY_ABI,
+        functionName: 'authorizedGames',
+        args: [address],
+      })
+
+      if (!walletAuthorized) {
+        setStatus('Authorizing connected wallet for treasury seasonal payout...')
+        await writeContractAsync({
+          address: treasuryAddress,
+          abi: TREASURY_ABI,
+          functionName: 'setAuthorizedGame',
+          args: [address, true],
+        })
+      }
+
+      const totalWeight = allocations.reduce((acc, entry) => acc + BigInt(entry.amountRaw), 0n)
+      if (totalWeight <= 0n) {
+        setStatus('Epoch allocation total is 0. Increase budget or ensure ranked players exist before distributing.')
+        return
+      }
+
+      let distributed = 0n
+      for (let i = 0; i < allocations.length; i += 1) {
+        const entry = allocations[i]
+        const weight = BigInt(entry.amountRaw)
+        const payout = i === 0
+          ? (rewardPoolValue - distributed)
+          : (rewardPoolValue * weight) / totalWeight
+
+        if (payout <= 0n) continue
+
+        distributed += payout
+        setStatus(`Distributing seasonal rewards on-chain (${i + 1}/${allocations.length})...`)
+        await writeContractAsync({
+          address: treasuryAddress,
+          abi: TREASURY_ABI,
+          functionName: 'rewardPlayer',
+          args: [entry.player as `0x${string}`, rewardTokenAddress, payout],
+        })
+      }
+    } catch (error) {
+      setStatus(`On-chain distribution failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return
+    }
+
+    const funded = await callSeasonalAction({
+      action: 'fund',
+      epochId: Number(seasonalEpochId),
+      tokenAddress: rewardTokenAddress,
+      amountRaw: rewardPoolValue.toString(),
+      fundedBy: address || '',
+    }, 'Seasonal epoch funded with full current reward pool.')
+
+    if (!funded) return
+
+    await callSeasonalAction({
       action: 'distribute',
       epochId: Number(seasonalEpochId),
-    }, 'Seasonal epoch marked distributed.')
+    }, 'Seasonal epoch distributed using full current reward pool.')
+
+    await refetchTreasuryRewardPool()
+    await refetchTreasuryRewardToken()
   }
 
   const handleDeleteEpoch = (epochIdInput?: number) => {
@@ -1049,6 +1180,14 @@ export default function AdminPage() {
   const rewardPoolValue = (treasuryRewardPool as bigint) || 0n
   const protocolFeesValue = (treasuryProtocolFees as bigint) || 0n
   const rewardTokenDecimals = Number(rewardTokenDecimalsData ?? 6)
+  let withdrawProtocolAmountValue = 0n
+  let withdrawProtocolAmountInvalid = false
+  try {
+    withdrawProtocolAmountValue = parseUnits(withdrawTokenAmount || '0', rewardTokenDecimals)
+  } catch {
+    withdrawProtocolAmountInvalid = true
+  }
+  const canWithdrawProtocolUsdc = !withdrawProtocolAmountInvalid && withdrawProtocolAmountValue > 0n && withdrawProtocolAmountValue <= protocolFeesValue
 
   if (!mounted) return null
 
@@ -1270,13 +1409,22 @@ export default function AdminPage() {
               </button>
               <button
                 type="button"
-                disabled={isPending}
+                disabled={isPending || !canWithdrawProtocolUsdc}
                 onClick={handleWithdrawProtocolUsdc}
                 className="theme-button-primary rounded-lg px-4 py-2 text-sm font-bold"
               >
                 Withdraw USDC Fees
               </button>
             </div>
+            {!canWithdrawProtocolUsdc && (
+              <p className="mt-2 text-xs text-amber-300">
+                {withdrawProtocolAmountInvalid
+                  ? 'Enter a valid token amount to withdraw protocol fees.'
+                  : withdrawProtocolAmountValue <= 0n
+                    ? 'Withdraw amount must be greater than 0.'
+                    : `Amount exceeds available protocol fees (${formatUnits(protocolFeesValue, rewardTokenDecimals)} USDC).`}
+              </p>
+            )}
           </section>
 
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
@@ -1537,7 +1685,7 @@ export default function AdminPage() {
 
           <section className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
             <h2 className="mb-3 text-lg font-bold">Seasonal Rewards (Weekly / Monthly)</h2>
-            <p className="mb-3 text-xs text-gray-400">Use finalize to snapshot rankings, then fund and mark distributed when payouts are executed. After distribution, the leaderboard is reset automatically so the next weekly or monthly cycle starts fresh. All amounts below are in token units (not wei).</p>
+            <p className="mb-3 text-xs text-gray-400">Use finalize to snapshot rankings, then click Distribute to auto-fund the epoch with the full current USDC reward pool and mark it distributed. After distribution, the leaderboard is reset automatically so the next weekly or monthly cycle starts fresh. All amounts below are in token units (not wei).</p>
 
             <div className="mb-3 grid gap-3 sm:grid-cols-2">
               <div>
@@ -1644,7 +1792,7 @@ export default function AdminPage() {
                   onClick={handleDistributeEpoch}
                   className="theme-button-brand rounded-lg px-4 py-2 text-sm font-bold"
                 >
-                  Distribute
+                  Distribute All Pool
                 </button>
               </div>
             </div>
