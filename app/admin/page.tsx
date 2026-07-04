@@ -1043,7 +1043,7 @@ export default function AdminPage() {
       }
 
       const selectedEpochId = Number(seasonalEpochId)
-      let rawAllocations = await loadAllocations(selectedEpochId)
+      let rawAllocations: unknown[] = await loadAllocations(selectedEpochId)
 
       if (rawAllocations.length === 0) {
         const latestFinalizedEpoch = [...seasonalEpochs]
@@ -1057,9 +1057,10 @@ export default function AdminPage() {
       }
 
       const allocations = rawAllocations
-        .map((entry) => {
-          const player = typeof entry?.address === 'string' ? entry.address.toLowerCase() : ''
-          const amountRaw = typeof entry?.amountRaw === 'string' ? entry.amountRaw : '0'
+        .map((entry: unknown) => {
+          const row = (entry && typeof entry === 'object' ? entry : {}) as { address?: unknown; amountRaw?: unknown }
+          const player = typeof row.address === 'string' ? row.address.toLowerCase() : ''
+          const amountRaw = typeof row.amountRaw === 'string' ? row.amountRaw : '0'
           return { player, amountRaw }
         })
         .filter((entry) => isAddress(entry.player))
